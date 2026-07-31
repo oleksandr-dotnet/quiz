@@ -1,5 +1,6 @@
 .landing,
-.lobby {
+.lobby,
+.base-selection {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -45,4 +46,35 @@
 
 .seat-host {
   border-color: #646cff;
+}
+
+.turn-banner {
+  font-weight: 500;
+}
+
+.map {
+  width: 100%;
+  max-width: 40rem;
+}
+
+.map .region {
+  transition: fill-opacity 150ms;
+}
+
+.map .region.selectable {
+  cursor: pointer;
+}
+
+.map .region.selectable:hover {
+  fill-opacity: 0.55;
+}
+
+.player-list {
+  list-style: none;
+  padding: 0;
+  width: 100%;
+  max-width: 24rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }

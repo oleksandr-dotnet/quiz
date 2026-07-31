@@ -1,7 +1,12 @@
 using System.Security.Cryptography;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
+using Triviador.Application.Content;
 using Triviador.Application.Contracts;
+using Triviador.Domain.Commands;
+using Triviador.Domain.Engine;
+using Triviador.Domain.Primitives;
+using Triviador.Domain.State;
 
 namespace Triviador.Application.Hosting;
 
@@ -15,19 +20,23 @@ public sealed class RoomActor
     private readonly Seat[] _seats;
     private readonly IRoomBroadcaster _broadcaster;
     private readonly IRoomClock _clock;
+    private readonly IMapRepository _mapRepository;
     private readonly ILogger<RoomActor>? _logger;
     private readonly Task _pump;
 
     private Guid? _hostPlayerId;
+    private GameEngine? _engine;
+    private Timer? _engineTimer;
     private DateTimeOffset _lastActivityUtc;
     private volatile bool _faulted;
 
     public RoomActor(string roomCode, RoomOptions options, IRoomBroadcaster broadcaster, IRoomClock clock,
-        ILogger<RoomActor>? logger = null)
+        IMapRepository mapRepository, ILogger<RoomActor>? logger = null)
     {
         RoomCode = roomCode;
         _broadcaster = broadcaster;
         _clock = clock;
+        _mapRepository = mapRepository;
         _logger = logger;
         _seats = Enumerable.Range(0, options.MaxSeats).Select(i => new Seat(i)).ToArray();
         _lastActivityUtc = clock.UtcNow;
@@ -84,6 +93,36 @@ public sealed class RoomActor
         return tcs.Task;
     }
 
+    public Task<CommandAck> StartGameAsync(Guid requestingPlayerId)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new StartGameRequest(requestingPlayerId, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
+    public Task<CommandAck> SelectBaseAsync(Guid requestingPlayerId, string regionId)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new SelectBaseRequest(requestingPlayerId, regionId, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
+    public Task<GameViewDto> GetGameViewAsync(Guid playerId)
+    {
+        var tcs = new TaskCompletionSource<GameViewDto>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new GameViewRequest(playerId, tcs)))
+        {
+            tcs.TrySetException(new InvalidOperationException("Room is closed."));
+        }
+        return tcs.Task;
+    }
+
     public Task ShutdownAsync()
     {
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -120,6 +159,10 @@ public sealed class RoomActor
         LeaveRequest m => HandleLeaveAsync(m),
         ConnectionLost m => HandleConnectionLostAsync(m),
         ViewRequest m => HandleViewRequest(m),
+        StartGameRequest m => HandleStartGameAsync(m),
+        SelectBaseRequest m => HandleSelectBaseAsync(m),
+        GameViewRequest m => HandleGameViewRequest(m),
+        EngineTimerElapsed m => HandleEngineTimerElapsedAsync(m),
         ShutdownRequest m => HandleShutdownAsync(m),
         _ => Task.CompletedTask,
     };
@@ -163,6 +206,11 @@ public sealed class RoomActor
 
     private async Task HandleSetSeatAsync(SetSeatRequest m)
     {
+        if (_engine is not null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameAlreadyStarted"));
+            return;
+        }
         if (m.RequestingPlayerId != _hostPlayerId)
         {
             m.Reply.TrySetResult(CommandAck.Reject("NotHost"));
@@ -234,8 +282,116 @@ public sealed class RoomActor
         return Task.CompletedTask;
     }
 
+    private async Task HandleStartGameAsync(StartGameRequest m)
+    {
+        if (m.RequestingPlayerId != _hostPlayerId)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotHost"));
+            return;
+        }
+        if (_engine is not null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameAlreadyStarted"));
+            return;
+        }
+
+        var occupiedSeats = _seats.Where(s => s.IsBot || s.PlayerId is not null)
+            .OrderBy(s => s.Index).ToArray();
+        var rules = GameRules.Default;
+        if (occupiedSeats.Length < rules.MinPlayers)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotEnoughSeatsFilled"));
+            return;
+        }
+
+        foreach (var seat in occupiedSeats)
+        {
+            seat.PlayerId ??= Guid.NewGuid();
+        }
+
+        var state = GameState.CreateLobby(_mapRepository.GetDefaultMap(), rules);
+        var engine = new GameEngine(state);
+        var now = Now();
+
+        foreach (var seat in occupiedSeats)
+        {
+            engine.Execute(new JoinGame(now, new PlayerId(seat.PlayerId!.Value)));
+        }
+
+        var startResult = engine.Execute(new StartGame(now));
+        if (!startResult.IsAccepted)
+        {
+            // Shouldn't happen given the seat-count check above, but never leave a half-built
+            // engine sitting in _engine if the domain rejected it for a reason we didn't predict.
+            m.Reply.TrySetResult(CommandAck.Reject(startResult.Rejection?.ToString() ?? "StartFailed"));
+            return;
+        }
+
+        _engine = engine;
+        ArmEngineTimer();
+        await BroadcastGameViewAsync();
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
+    private async Task HandleSelectBaseAsync(SelectBaseRequest m)
+    {
+        if (_engine is null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameNotStarted"));
+            return;
+        }
+        if (_engine.State.Pending is not PendingActivity.BasePick pick)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotAwaitingThisInput"));
+            return;
+        }
+
+        var result = _engine.Execute(new SelectBase(
+            Now(), new PlayerId(m.RequestingPlayerId), pick.Token, new RegionId(m.RegionId)));
+
+        if (!result.IsAccepted)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject(result.Rejection!.Value.ToString()));
+            return;
+        }
+
+        ArmEngineTimer();
+        await BroadcastGameViewAsync();
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
+    private Task HandleGameViewRequest(GameViewRequest m)
+    {
+        if (_engine is null)
+        {
+            m.Reply.TrySetException(new InvalidOperationException("Game has not started."));
+        }
+        else
+        {
+            m.Reply.TrySetResult(BuildGameView(m.PlayerId));
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleEngineTimerElapsedAsync(EngineTimerElapsed m)
+    {
+        if (_engine is null)
+        {
+            return;
+        }
+
+        var result = _engine.Execute(new TimeoutElapsed(Now(), m.Token));
+        ArmEngineTimer();
+
+        if (result.IsAccepted && result.Events.Length > 0)
+        {
+            await BroadcastGameViewAsync();
+        }
+    }
+
     private async Task HandleShutdownAsync(ShutdownRequest m)
     {
+        _engineTimer?.Dispose();
         foreach (var seat in _seats.Where(s => s.IsConnected))
         {
             await _broadcaster.SendClosedAsync(seat.ConnectionId!, "Room closed due to inactivity.");
@@ -251,6 +407,13 @@ public sealed class RoomActor
         await Task.WhenAll(sends);
     }
 
+    private async Task BroadcastGameViewAsync()
+    {
+        var sends = _seats.Where(s => s.IsConnected)
+            .Select(s => _broadcaster.SendGameViewAsync(s.ConnectionId!, BuildGameView(s.PlayerId!.Value)));
+        await Task.WhenAll(sends);
+    }
+
     private RoomViewDto BuildView(Guid viewerId)
     {
         var seats = _seats
@@ -259,6 +422,61 @@ public sealed class RoomActor
             .ToArray();
         return new RoomViewDto(RoomCode, viewerId, viewerId == _hostPlayerId, seats);
     }
+
+    private GameViewDto BuildGameView(Guid viewerId)
+    {
+        var state = _engine!.State;
+        var map = _mapRepository.GetDefaultMap();
+        var seatsByPlayerId = _seats.Where(s => s.PlayerId is not null).ToDictionary(s => s.PlayerId!.Value);
+
+        var players = state.Players.Select(p =>
+        {
+            seatsByPlayerId.TryGetValue(p.Id.Value, out var seat);
+            return new PlayerViewDto(p.Id.Value, p.Seat, seat?.DisplayName, seat?.IsBot ?? false, p.BaseRegion?.Value);
+        }).ToArray();
+
+        var regions = map.Regions.Select(r =>
+        {
+            var regionState = state.RegionOf(r.Id);
+            return new RegionViewDto(r.Id.Value, r.Value, r.RenderPath, regionState.OwnerId?.Value, state.IsBase(r.Id));
+        }).ToArray();
+
+        var currentPickerId = state.Pending is PendingActivity.BasePick pick ? pick.Player.Value : (Guid?)null;
+        var deadlineUtc = state.Pending is not null
+            ? DateTimeOffset.FromUnixTimeMilliseconds(state.Pending.Deadline.UnixMillis)
+            : (DateTimeOffset?)null;
+        var baseSelectionComplete = state.Phase == GamePhase.BaseSelection && state.Pending is null;
+
+        return new GameViewDto(
+            state.Phase,
+            _mapRepository.GetDefaultViewBox(),
+            regions,
+            players,
+            currentPickerId,
+            deadlineUtc,
+            viewerId,
+            currentPickerId == viewerId,
+            baseSelectionComplete);
+    }
+
+    private void ArmEngineTimer()
+    {
+        _engineTimer?.Dispose();
+        _engineTimer = null;
+
+        var pending = _engine?.State.Pending;
+        if (pending is null)
+        {
+            return;
+        }
+
+        var token = pending.Token;
+        var delay = pending.Deadline.Since(Now());
+        var dueTime = delay < TimeSpan.Zero ? TimeSpan.Zero : delay;
+        _engineTimer = new Timer(_ => TryPost(new EngineTimerElapsed(token)), null, dueTime, Timeout.InfiniteTimeSpan);
+    }
+
+    private Instant Now() => new(_clock.UtcNow.ToUnixTimeMilliseconds());
 
     private static string GenerateToken() =>
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(16))

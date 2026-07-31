@@ -5,6 +5,7 @@ import { joinRoom } from './api/commands'
 import { useGameStore } from './store/gameStore'
 import { LandingScreen } from './screens/LandingScreen'
 import { LobbyScreen } from './screens/LobbyScreen'
+import { BaseSelectionScreen } from './screens/BaseSelectionScreen'
 
 function urlRoomCode(): string | null {
   const match = /^#\/room\/([A-Za-z0-9]{4})/.exec(window.location.hash)
@@ -15,6 +16,7 @@ function App() {
   const status = useGameStore((s) => s.status)
   const session = useGameStore((s) => s.session)
   const view = useGameStore((s) => s.view)
+  const gameView = useGameStore((s) => s.gameView)
   const applyView = useGameStore((s) => s.applyView)
   const setSession = useGameStore((s) => s.setSession)
 
@@ -39,6 +41,7 @@ function App() {
   }, [status, sessionUsable])
 
   if (!sessionUsable || !view) return <LandingScreen />
+  if (gameView && gameView.phase !== 'Lobby') return <BaseSelectionScreen />
   return <LobbyScreen />
 }
 

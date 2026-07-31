@@ -12,6 +12,9 @@ public sealed class SignalRRoomBroadcaster(IHubContext<GameHub, IGameClient> hub
     public Task SendViewAsync(string connectionId, RoomViewDto view, CancellationToken ct = default) =>
         hub.Clients.Client(connectionId).State(view);
 
+    public Task SendGameViewAsync(string connectionId, GameViewDto view, CancellationToken ct = default) =>
+        hub.Clients.Client(connectionId).GameState(view);
+
     public Task SendClosedAsync(string connectionId, string reason, CancellationToken ct = default) =>
         hub.Clients.Client(connectionId).RoomClosed(reason);
 }

@@ -69,6 +69,26 @@ public sealed class GameHub(RoomRegistry registry, ConnectionMap connectionMap) 
         connectionMap.Remove(Context.ConnectionId);
     }
 
+    public async Task StartGame()
+    {
+        var (room, playerId) = ResolveConnection();
+        var ack = await room.StartGameAsync(playerId);
+        if (!ack.Success)
+        {
+            throw new HubException(ack.RejectionReason);
+        }
+    }
+
+    public async Task SelectBase(string regionId)
+    {
+        var (room, playerId) = ResolveConnection();
+        var ack = await room.SelectBaseAsync(playerId, regionId);
+        if (!ack.Success)
+        {
+            throw new HubException(ack.RejectionReason);
+        }
+    }
+
     public override Task OnDisconnectedAsync(Exception? exception)
     {
         if (connectionMap.TryGet(Context.ConnectionId, out var binding) &&

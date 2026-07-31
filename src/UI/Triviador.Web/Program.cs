@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
+using Triviador.Application.Content;
 using Triviador.Application.Hosting;
+using Triviador.Infrastructure.Content;
 using Triviador.Infrastructure.Hosting;
 using Triviador.Web.Realtime;
 
@@ -25,9 +27,20 @@ builder.Services.AddSingleton<IRoomBroadcaster, SignalRRoomBroadcaster>();
 builder.Services.AddSingleton<IRoomFactory, RoomFactory>();
 builder.Services.AddSingleton<RoomRegistry>();
 builder.Services.AddSingleton<ConnectionMap>();
+builder.Services.AddSingleton<IMapRepository, MapRepository>();
 builder.Services.AddHostedService<RoomJanitor>();
 
 var app = builder.Build();
+
+// Force construction now, not on first use - a bad Data/map.json should fail startup, not a player's
+// first "Start Game" click.
+app.Services.GetRequiredService<IMapRepository>();
+
+if (app.Environment.IsDevelopment())
+{
+    app.Lifetime.ApplicationStarted.Register(() =>
+        Console.WriteLine("\n  ➜  Dev mode: browse http://localhost:5173 (not this port) - Vite proxies API/hub calls here.\n"));
+}
 
 app.UseDefaultFiles();
 app.UseStaticFiles();

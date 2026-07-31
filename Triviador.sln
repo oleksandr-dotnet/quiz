@@ -15,38 +15,136 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Triviador.Application", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Triviador.Infrastructure", "src\Triviador.Infrastructure\Triviador.Infrastructure.csproj", "{74193B9D-C479-4974-91AE-D82B04565941}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "openspec", "openspec", "{E1000000-0000-0000-0000-000000000001}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "openspec", "openspec", "{60489B24-248F-6815-B915-222B3DEC83E9}"
 	ProjectSection(SolutionItems) = preProject
 		openspec\config.yaml = openspec\config.yaml
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "changes", "changes", "{E1000000-0000-0000-0000-000000000002}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "changes", "changes", "{5210F561-69F0-4D3D-C355-5ADC17E66FE0}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "archive", "archive", "{E1000000-0000-0000-0000-000000000003}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "archive", "archive", "{DCF0D843-6C6A-1A64-D5E8-E639F9885006}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2026-07-31-restructure-clean-architecture", "2026-07-31-restructure-clean-architecture", "{E1000000-0000-0000-0000-000000000004}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2026-07-31-domain-kernel", "2026-07-31-domain-kernel", "{419B7187-EB90-9BBF-9772-D61C176EFE99}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-domain-kernel\.openspec.yaml = openspec\changes\archive\2026-07-31-domain-kernel\.openspec.yaml
+		openspec\changes\archive\2026-07-31-domain-kernel\design.md = openspec\changes\archive\2026-07-31-domain-kernel\design.md
+		openspec\changes\archive\2026-07-31-domain-kernel\proposal.md = openspec\changes\archive\2026-07-31-domain-kernel\proposal.md
+		openspec\changes\archive\2026-07-31-domain-kernel\tasks.md = openspec\changes\archive\2026-07-31-domain-kernel\tasks.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "artifacts", "artifacts", "{5F571627-652D-646A-7A85-2D7DF31271F3}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-domain-kernel\artifacts\verification-harness.md = openspec\changes\archive\2026-07-31-domain-kernel\artifacts\verification-harness.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "specs", "specs", "{9FBA718D-9740-3958-8318-5A6051813735}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "answer-ranking", "answer-ranking", "{8794371D-DABD-BE78-1ACB-3E67EC78F218}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-domain-kernel\specs\answer-ranking\spec.md = openspec\changes\archive\2026-07-31-domain-kernel\specs\answer-ranking\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "game-setup-rules", "game-setup-rules", "{59374CF6-9305-8C4B-3E3B-17C082B4B7EF}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-domain-kernel\specs\game-setup-rules\spec.md = openspec\changes\archive\2026-07-31-domain-kernel\specs\game-setup-rules\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "map-topology", "map-topology", "{88262188-744C-E7A4-979D-4D7B36E173F5}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-domain-kernel\specs\map-topology\spec.md = openspec\changes\archive\2026-07-31-domain-kernel\specs\map-topology\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2026-07-31-e2e-room-lobby-tests", "2026-07-31-e2e-room-lobby-tests", "{F46FF5BF-F853-EB2B-74AA-BE3CA42CF1DF}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\.openspec.yaml = openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\.openspec.yaml
+		openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\design.md = openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\design.md
+		openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\proposal.md = openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\proposal.md
+		openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\tasks.md = openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\tasks.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "specs", "specs", "{7461458E-71E4-B29B-B458-40D7010501F3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "e2e-test-tooling", "e2e-test-tooling", "{8B7EEC8D-7534-4C01-D8B4-B55AF3BC2EF4}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\specs\e2e-test-tooling\spec.md = openspec\changes\archive\2026-07-31-e2e-room-lobby-tests\specs\e2e-test-tooling\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2026-07-31-restructure-clean-architecture", "2026-07-31-restructure-clean-architecture", "{83B947DA-117C-ACCB-E934-FDF182B4A30F}"
 	ProjectSection(SolutionItems) = preProject
 		openspec\changes\archive\2026-07-31-restructure-clean-architecture\.openspec.yaml = openspec\changes\archive\2026-07-31-restructure-clean-architecture\.openspec.yaml
 		openspec\changes\archive\2026-07-31-restructure-clean-architecture\README.md = openspec\changes\archive\2026-07-31-restructure-clean-architecture\README.md
-		openspec\changes\archive\2026-07-31-restructure-clean-architecture\proposal.md = openspec\changes\archive\2026-07-31-restructure-clean-architecture\proposal.md
 		openspec\changes\archive\2026-07-31-restructure-clean-architecture\design.md = openspec\changes\archive\2026-07-31-restructure-clean-architecture\design.md
+		openspec\changes\archive\2026-07-31-restructure-clean-architecture\proposal.md = openspec\changes\archive\2026-07-31-restructure-clean-architecture\proposal.md
 		openspec\changes\archive\2026-07-31-restructure-clean-architecture\tasks.md = openspec\changes\archive\2026-07-31-restructure-clean-architecture\tasks.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "rooms-and-lobby", "rooms-and-lobby", "{E1000000-0000-0000-0000-000000000005}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2026-07-31-rooms-and-lobby", "2026-07-31-rooms-and-lobby", "{E38D31D4-B646-A9F6-3DF7-EBA3B1EE8F1D}"
 	ProjectSection(SolutionItems) = preProject
-		openspec\changes\rooms-and-lobby\.openspec.yaml = openspec\changes\rooms-and-lobby\.openspec.yaml
-		openspec\changes\rooms-and-lobby\README.md = openspec\changes\rooms-and-lobby\README.md
-		openspec\changes\rooms-and-lobby\proposal.md = openspec\changes\rooms-and-lobby\proposal.md
-		openspec\changes\rooms-and-lobby\design.md = openspec\changes\rooms-and-lobby\design.md
-		openspec\changes\rooms-and-lobby\tasks.md = openspec\changes\rooms-and-lobby\tasks.md
+		openspec\changes\archive\2026-07-31-rooms-and-lobby\.openspec.yaml = openspec\changes\archive\2026-07-31-rooms-and-lobby\.openspec.yaml
+		openspec\changes\archive\2026-07-31-rooms-and-lobby\README.md = openspec\changes\archive\2026-07-31-rooms-and-lobby\README.md
+		openspec\changes\archive\2026-07-31-rooms-and-lobby\design.md = openspec\changes\archive\2026-07-31-rooms-and-lobby\design.md
+		openspec\changes\archive\2026-07-31-rooms-and-lobby\proposal.md = openspec\changes\archive\2026-07-31-rooms-and-lobby\proposal.md
+		openspec\changes\archive\2026-07-31-rooms-and-lobby\tasks.md = openspec\changes\archive\2026-07-31-rooms-and-lobby\tasks.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "specs", "specs", "{E1000000-0000-0000-0000-000000000006}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "specs", "specs", "{2799D638-3C09-DB3B-4394-FF6C7FA4717B}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "room-lobby", "room-lobby", "{E1000000-0000-0000-0000-000000000007}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "room-lobby", "room-lobby", "{D00F0944-9A38-7F17-06BC-C7E870A7CF48}"
 	ProjectSection(SolutionItems) = preProject
-		openspec\changes\rooms-and-lobby\specs\room-lobby\spec.md = openspec\changes\rooms-and-lobby\specs\room-lobby\spec.md
+		openspec\changes\archive\2026-07-31-rooms-and-lobby\specs\room-lobby\spec.md = openspec\changes\archive\2026-07-31-rooms-and-lobby\specs\room-lobby\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2026-07-31-start-game-and-base-selection", "2026-07-31-start-game-and-base-selection", "{49A5B114-C0B9-82E8-C293-D00F76D67B78}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-start-game-and-base-selection\.openspec.yaml = openspec\changes\archive\2026-07-31-start-game-and-base-selection\.openspec.yaml
+		openspec\changes\archive\2026-07-31-start-game-and-base-selection\README.md = openspec\changes\archive\2026-07-31-start-game-and-base-selection\README.md
+		openspec\changes\archive\2026-07-31-start-game-and-base-selection\design.md = openspec\changes\archive\2026-07-31-start-game-and-base-selection\design.md
+		openspec\changes\archive\2026-07-31-start-game-and-base-selection\proposal.md = openspec\changes\archive\2026-07-31-start-game-and-base-selection\proposal.md
+		openspec\changes\archive\2026-07-31-start-game-and-base-selection\tasks.md = openspec\changes\archive\2026-07-31-start-game-and-base-selection\tasks.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "specs", "specs", "{76C67AA1-80B1-FA01-B7CB-3F5425C1B8C4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "base-selection-flow", "base-selection-flow", "{598AF529-A4CC-8485-4771-92698FC2FB37}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-start-game-and-base-selection\specs\base-selection-flow\spec.md = openspec\changes\archive\2026-07-31-start-game-and-base-selection\specs\base-selection-flow\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "room-lobby", "room-lobby", "{8F9C825A-9DFA-7CDE-F96B-57DC9E277576}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-start-game-and-base-selection\specs\room-lobby\spec.md = openspec\changes\archive\2026-07-31-start-game-and-base-selection\specs\room-lobby\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "specs", "specs", "{33625DED-3B27-D7DF-0313-73EBAC4B9608}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "answer-ranking", "answer-ranking", "{85802898-55F7-9785-057B-FF0C823F14BC}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\specs\answer-ranking\spec.md = openspec\specs\answer-ranking\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "base-selection-flow", "base-selection-flow", "{0E2CBA16-68A5-B9A0-912D-A5227DD7177B}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\specs\base-selection-flow\spec.md = openspec\specs\base-selection-flow\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "e2e-test-tooling", "e2e-test-tooling", "{75D5E70A-2C0C-115C-18E5-3DC37A668DD6}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\specs\e2e-test-tooling\spec.md = openspec\specs\e2e-test-tooling\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "game-setup-rules", "game-setup-rules", "{4D640B58-466C-036C-E776-4C5601A892F4}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\specs\game-setup-rules\spec.md = openspec\specs\game-setup-rules\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "map-topology", "map-topology", "{D0B9CD64-3644-AF93-59B5-54886C1ED658}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\specs\map-topology\spec.md = openspec\specs\map-topology\spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "room-lobby", "room-lobby", "{96D2188E-D0B5-F1A9-9F1A-EE586022D675}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\specs\room-lobby\spec.md = openspec\specs\room-lobby\spec.md
 	EndProjectSection
 EndProject
 Global
@@ -117,11 +215,31 @@ Global
 		{74193B9D-C479-4974-91AE-D82B04565941} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{A1B2C3D4-E5F6-47A8-9B0C-D1E2F3A4B5C6} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{B800D848-378B-49CB-A6A2-C988BFC81D49} = {A1B2C3D4-E5F6-47A8-9B0C-D1E2F3A4B5C6}
-		{E1000000-0000-0000-0000-000000000002} = {E1000000-0000-0000-0000-000000000001}
-		{E1000000-0000-0000-0000-000000000003} = {E1000000-0000-0000-0000-000000000002}
-		{E1000000-0000-0000-0000-000000000004} = {E1000000-0000-0000-0000-000000000003}
-		{E1000000-0000-0000-0000-000000000005} = {E1000000-0000-0000-0000-000000000002}
-		{E1000000-0000-0000-0000-000000000006} = {E1000000-0000-0000-0000-000000000005}
-		{E1000000-0000-0000-0000-000000000007} = {E1000000-0000-0000-0000-000000000006}
+		{5210F561-69F0-4D3D-C355-5ADC17E66FE0} = {60489B24-248F-6815-B915-222B3DEC83E9}
+		{DCF0D843-6C6A-1A64-D5E8-E639F9885006} = {5210F561-69F0-4D3D-C355-5ADC17E66FE0}
+		{419B7187-EB90-9BBF-9772-D61C176EFE99} = {DCF0D843-6C6A-1A64-D5E8-E639F9885006}
+		{5F571627-652D-646A-7A85-2D7DF31271F3} = {419B7187-EB90-9BBF-9772-D61C176EFE99}
+		{9FBA718D-9740-3958-8318-5A6051813735} = {419B7187-EB90-9BBF-9772-D61C176EFE99}
+		{8794371D-DABD-BE78-1ACB-3E67EC78F218} = {9FBA718D-9740-3958-8318-5A6051813735}
+		{59374CF6-9305-8C4B-3E3B-17C082B4B7EF} = {9FBA718D-9740-3958-8318-5A6051813735}
+		{88262188-744C-E7A4-979D-4D7B36E173F5} = {9FBA718D-9740-3958-8318-5A6051813735}
+		{F46FF5BF-F853-EB2B-74AA-BE3CA42CF1DF} = {DCF0D843-6C6A-1A64-D5E8-E639F9885006}
+		{7461458E-71E4-B29B-B458-40D7010501F3} = {F46FF5BF-F853-EB2B-74AA-BE3CA42CF1DF}
+		{8B7EEC8D-7534-4C01-D8B4-B55AF3BC2EF4} = {7461458E-71E4-B29B-B458-40D7010501F3}
+		{83B947DA-117C-ACCB-E934-FDF182B4A30F} = {DCF0D843-6C6A-1A64-D5E8-E639F9885006}
+		{E38D31D4-B646-A9F6-3DF7-EBA3B1EE8F1D} = {DCF0D843-6C6A-1A64-D5E8-E639F9885006}
+		{2799D638-3C09-DB3B-4394-FF6C7FA4717B} = {E38D31D4-B646-A9F6-3DF7-EBA3B1EE8F1D}
+		{D00F0944-9A38-7F17-06BC-C7E870A7CF48} = {2799D638-3C09-DB3B-4394-FF6C7FA4717B}
+		{49A5B114-C0B9-82E8-C293-D00F76D67B78} = {DCF0D843-6C6A-1A64-D5E8-E639F9885006}
+		{76C67AA1-80B1-FA01-B7CB-3F5425C1B8C4} = {49A5B114-C0B9-82E8-C293-D00F76D67B78}
+		{598AF529-A4CC-8485-4771-92698FC2FB37} = {76C67AA1-80B1-FA01-B7CB-3F5425C1B8C4}
+		{8F9C825A-9DFA-7CDE-F96B-57DC9E277576} = {76C67AA1-80B1-FA01-B7CB-3F5425C1B8C4}
+		{33625DED-3B27-D7DF-0313-73EBAC4B9608} = {60489B24-248F-6815-B915-222B3DEC83E9}
+		{85802898-55F7-9785-057B-FF0C823F14BC} = {33625DED-3B27-D7DF-0313-73EBAC4B9608}
+		{0E2CBA16-68A5-B9A0-912D-A5227DD7177B} = {33625DED-3B27-D7DF-0313-73EBAC4B9608}
+		{75D5E70A-2C0C-115C-18E5-3DC37A668DD6} = {33625DED-3B27-D7DF-0313-73EBAC4B9608}
+		{4D640B58-466C-036C-E776-4C5601A892F4} = {33625DED-3B27-D7DF-0313-73EBAC4B9608}
+		{D0B9CD64-3644-AF93-59B5-54886C1ED658} = {33625DED-3B27-D7DF-0313-73EBAC4B9608}
+		{96D2188E-D0B5-F1A9-9F1A-EE586022D675} = {33625DED-3B27-D7DF-0313-73EBAC4B9608}
 	EndGlobalSection
 EndGlobal

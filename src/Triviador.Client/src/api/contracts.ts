@@ -22,3 +22,33 @@ export interface JoinResult {
   playerToken: string | null
   view: RoomView | null
 }
+
+export type GamePhase = 'Lobby' | 'BaseSelection' | 'Finished'
+
+export interface RegionView {
+  regionId: string
+  value: number
+  renderPath: string
+  ownerPlayerId: string | null
+  isBase: boolean
+}
+
+export interface PlayerView {
+  playerId: string
+  seat: number
+  displayName: string | null
+  isBot: boolean
+  baseRegionId: string | null
+}
+
+export interface GameView {
+  phase: GamePhase
+  mapViewBox: string
+  regions: RegionView[]
+  players: PlayerView[]
+  currentPickerPlayerId: string | null
+  deadlineUtc: string | null
+  youPlayerId: string
+  youAreCurrentPicker: boolean
+  baseSelectionComplete: boolean
+}

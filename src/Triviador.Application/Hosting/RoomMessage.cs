@@ -1,4 +1,5 @@
 using Triviador.Application.Contracts;
+using Triviador.Domain.Primitives;
 
 namespace Triviador.Application.Hosting;
 
@@ -30,6 +31,18 @@ public sealed record ConnectionLost(string ConnectionId) : RoomMessage;
 public sealed record ViewRequest(Guid PlayerId, TaskCompletionSource<RoomViewDto> Reply) : RoomMessage;
 
 public sealed record ShutdownRequest(TaskCompletionSource Done) : RoomMessage;
+
+public sealed record StartGameRequest(Guid RequestingPlayerId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
+public sealed record SelectBaseRequest(
+    Guid RequestingPlayerId, string RegionId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
+public sealed record GameViewRequest(Guid PlayerId, TaskCompletionSource<GameViewDto> Reply) : RoomMessage;
+
+/// Carries the exact token the timer was armed for, so a timer superseded by a newer pending
+/// activity (already resolved before this fires) is a harmless no-op - the engine's own
+/// TimeoutElapsed handling checks this token against whatever is currently pending.
+public sealed record EngineTimerElapsed(ActivityToken Token) : RoomMessage;
 
 public sealed record CommandAck(bool Success, string? RejectionReason = null)
 {

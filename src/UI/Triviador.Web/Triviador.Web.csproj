@@ -7,7 +7,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Data\**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="Data\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="BuildClient" BeforeTargets="BeforePublish" Condition="'$(SkipClientBuild)' != 'true'">

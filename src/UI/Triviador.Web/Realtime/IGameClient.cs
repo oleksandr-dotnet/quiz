@@ -6,5 +6,7 @@ public interface IGameClient
 {
     Task State(RoomViewDto view);
 
+    Task GameState(GameViewDto view);
+
     Task RoomClosed(string reason);
 }

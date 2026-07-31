@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { RoomView } from '../api/contracts'
+import type { GameView, RoomView } from '../api/contracts'
 
 type Status = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'closed'
 
@@ -28,10 +28,12 @@ function saveSession(session: Session | null) {
 interface GameStore {
   status: Status
   view: RoomView | null
+  gameView: GameView | null
   session: Session | null
   closedReason: string | null
   setStatus: (status: Status) => void
   applyView: (view: RoomView) => void
+  applyGameView: (view: GameView) => void
   setSession: (session: Session | null) => void
   roomClosed: (reason: string) => void
 }
@@ -39,16 +41,18 @@ interface GameStore {
 export const useGameStore = create<GameStore>((set) => ({
   status: 'idle',
   view: null,
+  gameView: null,
   session: loadSession(),
   closedReason: null,
   setStatus: (status) => set({ status }),
   applyView: (view) => set({ view }),
+  applyGameView: (gameView) => set({ gameView }),
   setSession: (session) => {
     saveSession(session)
     set({ session })
   },
   roomClosed: (reason) => {
     saveSession(null)
-    set({ session: null, view: null, closedReason: reason })
+    set({ session: null, view: null, gameView: null, closedReason: reason })
   },
 }))

@@ -11,3 +11,7 @@ export const setSeat = (seatIndex: number, isBot: boolean): Promise<void> =>
   getConnection().invoke('SetSeat', seatIndex, isBot)
 
 export const leaveRoom = (): Promise<void> => getConnection().invoke('LeaveRoom')
+
+export const startGame = (): Promise<void> => getConnection().invoke('StartGame')
+
+export const selectBase = (regionId: string): Promise<void> => getConnection().invoke('SelectBase', regionId)
