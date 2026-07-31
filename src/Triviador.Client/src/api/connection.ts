@@ -1,4 +1,6 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
+import { useGameStore } from '../store/gameStore'
+import type { RoomView } from './contracts'
 
 let conn: HubConnection | null = null
 
@@ -13,5 +15,21 @@ export function getConnection(): HubConnection {
     .configureLogging(LogLevel.Warning)
     .build()
 
+  const store = useGameStore.getState()
+  conn.on('State', (view: RoomView) => store.applyView(view))
+  conn.on('RoomClosed', (reason: string) => store.roomClosed(reason))
+  conn.onreconnecting(() => store.setStatus('reconnecting'))
+  conn.onreconnected(() => store.setStatus('connected'))
+  conn.onclose(() => store.setStatus('closed'))
+
   return conn
+}
+
+export async function ensureConnected(): Promise<void> {
+  const connection = getConnection()
+  if (connection.state === 'Disconnected') {
+    useGameStore.getState().setStatus('connecting')
+    await connection.start()
+    useGameStore.getState().setStatus('connected')
+  }
 }

@@ -15,6 +15,40 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Triviador.Application", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Triviador.Infrastructure", "src\Triviador.Infrastructure\Triviador.Infrastructure.csproj", "{74193B9D-C479-4974-91AE-D82B04565941}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "openspec", "openspec", "{E1000000-0000-0000-0000-000000000001}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\config.yaml = openspec\config.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "changes", "changes", "{E1000000-0000-0000-0000-000000000002}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "archive", "archive", "{E1000000-0000-0000-0000-000000000003}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2026-07-31-restructure-clean-architecture", "2026-07-31-restructure-clean-architecture", "{E1000000-0000-0000-0000-000000000004}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\archive\2026-07-31-restructure-clean-architecture\.openspec.yaml = openspec\changes\archive\2026-07-31-restructure-clean-architecture\.openspec.yaml
+		openspec\changes\archive\2026-07-31-restructure-clean-architecture\README.md = openspec\changes\archive\2026-07-31-restructure-clean-architecture\README.md
+		openspec\changes\archive\2026-07-31-restructure-clean-architecture\proposal.md = openspec\changes\archive\2026-07-31-restructure-clean-architecture\proposal.md
+		openspec\changes\archive\2026-07-31-restructure-clean-architecture\design.md = openspec\changes\archive\2026-07-31-restructure-clean-architecture\design.md
+		openspec\changes\archive\2026-07-31-restructure-clean-architecture\tasks.md = openspec\changes\archive\2026-07-31-restructure-clean-architecture\tasks.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "rooms-and-lobby", "rooms-and-lobby", "{E1000000-0000-0000-0000-000000000005}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\rooms-and-lobby\.openspec.yaml = openspec\changes\rooms-and-lobby\.openspec.yaml
+		openspec\changes\rooms-and-lobby\README.md = openspec\changes\rooms-and-lobby\README.md
+		openspec\changes\rooms-and-lobby\proposal.md = openspec\changes\rooms-and-lobby\proposal.md
+		openspec\changes\rooms-and-lobby\design.md = openspec\changes\rooms-and-lobby\design.md
+		openspec\changes\rooms-and-lobby\tasks.md = openspec\changes\rooms-and-lobby\tasks.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "specs", "specs", "{E1000000-0000-0000-0000-000000000006}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "room-lobby", "room-lobby", "{E1000000-0000-0000-0000-000000000007}"
+	ProjectSection(SolutionItems) = preProject
+		openspec\changes\rooms-and-lobby\specs\room-lobby\spec.md = openspec\changes\rooms-and-lobby\specs\room-lobby\spec.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,5 +117,11 @@ Global
 		{74193B9D-C479-4974-91AE-D82B04565941} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{A1B2C3D4-E5F6-47A8-9B0C-D1E2F3A4B5C6} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{B800D848-378B-49CB-A6A2-C988BFC81D49} = {A1B2C3D4-E5F6-47A8-9B0C-D1E2F3A4B5C6}
+		{E1000000-0000-0000-0000-000000000002} = {E1000000-0000-0000-0000-000000000001}
+		{E1000000-0000-0000-0000-000000000003} = {E1000000-0000-0000-0000-000000000002}
+		{E1000000-0000-0000-0000-000000000004} = {E1000000-0000-0000-0000-000000000003}
+		{E1000000-0000-0000-0000-000000000005} = {E1000000-0000-0000-0000-000000000002}
+		{E1000000-0000-0000-0000-000000000006} = {E1000000-0000-0000-0000-000000000005}
+		{E1000000-0000-0000-0000-000000000007} = {E1000000-0000-0000-0000-000000000006}
 	EndGlobalSection
 EndGlobal
