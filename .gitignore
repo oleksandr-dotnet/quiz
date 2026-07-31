@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+node_modules/
+dist/
+src/Triviador.Server/wwwroot/*
+!src/Triviador.Server/wwwroot/.gitkeep
+artifacts/
+*.log
+.playwright-mcp/

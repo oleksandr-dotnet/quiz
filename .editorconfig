@@ -1,0 +1,15 @@
+root = true
+
+[*]
+end_of_line = crlf
+insert_final_newline = true
+charset = utf-8
+
+[*.{cs}]
+indent_size = 4
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = when_multiline:suggestion
+dotnet_diagnostic.CA2007.severity = none
+
+[*.{ts,tsx,json,css,html,yml}]
+indent_size = 2
