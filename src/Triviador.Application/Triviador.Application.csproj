@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Triviador.Domain\Triviador.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

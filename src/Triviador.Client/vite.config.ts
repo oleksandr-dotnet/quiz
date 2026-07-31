@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../Triviador.Server/wwwroot',
+    outDir: '../UI/Triviador.Web/wwwroot',
     emptyOutDir: true,
   },
 })

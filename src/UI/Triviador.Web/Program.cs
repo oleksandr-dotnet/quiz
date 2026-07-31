@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using Triviador.Server.Realtime;
+using Triviador.Web.Realtime;
 
 var builder = WebApplication.CreateBuilder(args);
 

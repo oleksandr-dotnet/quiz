@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace Triviador.Server.Realtime;
+namespace Triviador.Web.Realtime;
 
 public sealed class GameHub : Hub
 {

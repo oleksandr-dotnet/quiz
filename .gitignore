@@ -5,8 +5,8 @@ obj/
 *.user
 node_modules/
 dist/
-src/Triviador.Server/wwwroot/*
-!src/Triviador.Server/wwwroot/.gitkeep
+src/UI/Triviador.Web/wwwroot/*
+!src/UI/Triviador.Web/wwwroot/.gitkeep
 artifacts/
 *.log
 .playwright-mcp/

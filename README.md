@@ -1,7 +1,7 @@
 # Triviador
 
 ```powershell
-dotnet watch --project src/Triviador.Server/Triviador.Server.csproj run
+dotnet watch --project src/UI/Triviador.Web/Triviador.Web.csproj run
 cd src/Triviador.Client; npm install; npm run dev
 ```
 

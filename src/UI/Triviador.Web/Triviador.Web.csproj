@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Triviador.Domain\Triviador.Domain.csproj" />
+    <ProjectReference Include="..\..\Triviador.Application\Triviador.Application.csproj" />
+    <ProjectReference Include="..\..\Triviador.Infrastructure\Triviador.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Data\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="BuildClient" BeforeTargets="BeforePublish" Condition="'$(SkipClientBuild)' != 'true'">
+    <Exec Command="npm ci" WorkingDirectory="$(MSBuildProjectDirectory)\..\..\Triviador.Client" />
+    <Exec Command="npm run build" WorkingDirectory="$(MSBuildProjectDirectory)\..\..\Triviador.Client" />
+  </Target>
+
+</Project>
