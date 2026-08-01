@@ -17,6 +17,8 @@
   "landing.errorNameAndCodeRequired": "Введите имя и 4-значный код комнаты.",
   "landing.languageRussian": "Русский",
   "landing.languageEnglish": "English",
+  "landing.tagline": "Отвечайте быстрее. Захватывайте территории. Правьте картой.",
+  "landing.orJoinExisting": "или войдите в существующую комнату",
 
   "lobby.titleLabel": "Комната",
   "lobby.copyInviteLink": "Скопировать ссылку-приглашение",
