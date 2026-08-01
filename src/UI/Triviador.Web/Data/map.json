@@ -1,14 +1,294 @@
 {
-  "id": "europe-8",
-  "viewBox": "0 0 1200 700",
+  "id": "abstract-18",
+  "viewBox": "0 0 1200 640",
   "regions": [
-    { "id": "r01", "nameEn": "Spain", "nameRu": "Испания", "value": 400, "centerX": 260, "centerY": 520, "radius": 68, "labelX": 260, "labelY": 520, "adjacentTo": ["r03"] },
-    { "id": "r03", "nameEn": "France", "nameRu": "Франция", "value": 400, "centerX": 430, "centerY": 430, "radius": 68, "labelX": 430, "labelY": 430, "adjacentTo": ["r01", "r04", "r08", "r10"] },
-    { "id": "r04", "nameEn": "United Kingdom", "nameRu": "Великобритания", "value": 400, "centerX": 260, "centerY": 180, "radius": 65, "labelX": 260, "labelY": 180, "adjacentTo": ["r03"] },
-    { "id": "r08", "nameEn": "Germany", "nameRu": "Германия", "value": 400, "centerX": 650, "centerY": 300, "radius": 70, "labelX": 650, "labelY": 300, "adjacentTo": ["r03", "r10", "r12", "r15"] },
-    { "id": "r10", "nameEn": "Italy", "nameRu": "Италия", "value": 400, "centerX": 650, "centerY": 560, "radius": 66, "labelX": 650, "labelY": 560, "adjacentTo": ["r03", "r08"] },
-    { "id": "r12", "nameEn": "Poland", "nameRu": "Польша", "value": 400, "centerX": 880, "centerY": 250, "radius": 64, "labelX": 880, "labelY": 250, "adjacentTo": ["r08", "r16"] },
-    { "id": "r15", "nameEn": "Sweden", "nameRu": "Швеция", "value": 400, "centerX": 800, "centerY": 100, "radius": 62, "labelX": 800, "labelY": 100, "adjacentTo": ["r08"] },
-    { "id": "r16", "nameEn": "Ukraine", "nameRu": "Украина", "value": 400, "centerX": 1050, "centerY": 300, "radius": 66, "labelX": 1050, "labelY": 300, "adjacentTo": ["r12"] }
+    {
+      "id": "r01",
+      "nameEn": "Ironreach",
+      "nameRu": "Железный Предел",
+      "value": 200,
+      "centerX": 155.18,
+      "centerY": 157.3,
+      "radius": 68,
+      "labelX": 155.18,
+      "labelY": 157.3,
+      "adjacentTo": [
+        "r02",
+        "r07"
+      ]
+    },
+    {
+      "id": "r02",
+      "nameEn": "Vale of Ash",
+      "nameRu": "Пепельный Дол",
+      "value": 200,
+      "centerX": 346.66,
+      "centerY": 142.48,
+      "radius": 68,
+      "labelX": 346.66,
+      "labelY": 142.48,
+      "adjacentTo": [
+        "r01",
+        "r03",
+        "r08"
+      ]
+    },
+    {
+      "id": "r03",
+      "nameEn": "Saltmarch",
+      "nameRu": "Соляной Марш",
+      "value": 200,
+      "centerX": 529.56,
+      "centerY": 151.22,
+      "radius": 68,
+      "labelX": 529.56,
+      "labelY": 151.22,
+      "adjacentTo": [
+        "r02",
+        "r04",
+        "r09"
+      ]
+    },
+    {
+      "id": "r04",
+      "nameEn": "Thornhold",
+      "nameRu": "Терновый Оплот",
+      "value": 200,
+      "centerX": 689.46,
+      "centerY": 147.74,
+      "radius": 68,
+      "labelX": 689.46,
+      "labelY": 147.74,
+      "adjacentTo": [
+        "r03",
+        "r05",
+        "r10"
+      ]
+    },
+    {
+      "id": "r05",
+      "nameEn": "Greyfen",
+      "nameRu": "Серая Трясина",
+      "value": 200,
+      "centerX": 873.49,
+      "centerY": 152.37,
+      "radius": 68,
+      "labelX": 873.49,
+      "labelY": 152.37,
+      "adjacentTo": [
+        "r04",
+        "r06",
+        "r11"
+      ]
+    },
+    {
+      "id": "r06",
+      "nameEn": "Duskmoor",
+      "nameRu": "Сумеречная Пустошь",
+      "value": 200,
+      "centerX": 1061.82,
+      "centerY": 165.71,
+      "radius": 68,
+      "labelX": 1061.82,
+      "labelY": 165.71,
+      "adjacentTo": [
+        "r05",
+        "r12"
+      ]
+    },
+    {
+      "id": "r07",
+      "nameEn": "Highgarth",
+      "nameRu": "Горний Чертог",
+      "value": 400,
+      "centerX": 165.78,
+      "centerY": 329.61,
+      "radius": 68,
+      "labelX": 165.78,
+      "labelY": 329.61,
+      "adjacentTo": [
+        "r01",
+        "r08",
+        "r13"
+      ]
+    },
+    {
+      "id": "r08",
+      "nameEn": "Stonewick",
+      "nameRu": "Каменный Починок",
+      "value": 400,
+      "centerX": 338.1,
+      "centerY": 334.51,
+      "radius": 68,
+      "labelX": 338.1,
+      "labelY": 334.51,
+      "adjacentTo": [
+        "r02",
+        "r07",
+        "r09",
+        "r14"
+      ]
+    },
+    {
+      "id": "r09",
+      "nameEn": "Fenmoor",
+      "nameRu": "Болотная Пустошь",
+      "value": 400,
+      "centerX": 510.35,
+      "centerY": 331.87,
+      "radius": 68,
+      "labelX": 510.35,
+      "labelY": 331.87,
+      "adjacentTo": [
+        "r03",
+        "r08",
+        "r10",
+        "r15"
+      ]
+    },
+    {
+      "id": "r10",
+      "nameEn": "Ashvale",
+      "nameRu": "Пепельная Лощина",
+      "value": 400,
+      "centerX": 689.64,
+      "centerY": 320.07,
+      "radius": 68,
+      "labelX": 689.64,
+      "labelY": 320.07,
+      "adjacentTo": [
+        "r04",
+        "r09",
+        "r11",
+        "r16"
+      ]
+    },
+    {
+      "id": "r11",
+      "nameEn": "Ravenhollow",
+      "nameRu": "Вороний Дол",
+      "value": 400,
+      "centerX": 874.4,
+      "centerY": 318.57,
+      "radius": 68,
+      "labelX": 874.4,
+      "labelY": 318.57,
+      "adjacentTo": [
+        "r05",
+        "r10",
+        "r12",
+        "r17"
+      ]
+    },
+    {
+      "id": "r12",
+      "nameEn": "Wolfmere",
+      "nameRu": "Волчье Озеро",
+      "value": 400,
+      "centerX": 1046.88,
+      "centerY": 338.99,
+      "radius": 68,
+      "labelX": 1046.88,
+      "labelY": 338.99,
+      "adjacentTo": [
+        "r06",
+        "r11",
+        "r18"
+      ]
+    },
+    {
+      "id": "r13",
+      "nameEn": "Emberfall",
+      "nameRu": "Пламенный Обрыв",
+      "value": 200,
+      "centerX": 174.51,
+      "centerY": 474.28,
+      "radius": 68,
+      "labelX": 174.51,
+      "labelY": 474.28,
+      "adjacentTo": [
+        "r07",
+        "r14"
+      ]
+    },
+    {
+      "id": "r14",
+      "nameEn": "Sunreach",
+      "nameRu": "Солнечный Предел",
+      "value": 200,
+      "centerX": 342.65,
+      "centerY": 486.99,
+      "radius": 68,
+      "labelX": 342.65,
+      "labelY": 486.99,
+      "adjacentTo": [
+        "r08",
+        "r13",
+        "r15"
+      ]
+    },
+    {
+      "id": "r15",
+      "nameEn": "Thistledown",
+      "nameRu": "Пуховый Дол",
+      "value": 200,
+      "centerX": 522.63,
+      "centerY": 492.61,
+      "radius": 68,
+      "labelX": 522.63,
+      "labelY": 492.61,
+      "adjacentTo": [
+        "r09",
+        "r14",
+        "r16"
+      ]
+    },
+    {
+      "id": "r16",
+      "nameEn": "Blackmere",
+      "nameRu": "Чёрное Озеро",
+      "value": 200,
+      "centerX": 692.76,
+      "centerY": 471.16,
+      "radius": 68,
+      "labelX": 692.76,
+      "labelY": 471.16,
+      "adjacentTo": [
+        "r10",
+        "r15",
+        "r17"
+      ]
+    },
+    {
+      "id": "r17",
+      "nameEn": "Windhaven",
+      "nameRu": "Ветреная Гавань",
+      "value": 200,
+      "centerX": 866.89,
+      "centerY": 484.72,
+      "radius": 68,
+      "labelX": 866.89,
+      "labelY": 484.72,
+      "adjacentTo": [
+        "r11",
+        "r16",
+        "r18"
+      ]
+    },
+    {
+      "id": "r18",
+      "nameEn": "Grimwood",
+      "nameRu": "Мрачный Лес",
+      "value": 200,
+      "centerX": 1042.07,
+      "centerY": 510.69,
+      "radius": 68,
+      "labelX": 1042.07,
+      "labelY": 510.69,
+      "adjacentTo": [
+        "r12",
+        "r17"
+      ]
+    }
   ]
 }

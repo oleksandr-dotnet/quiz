@@ -1,11 +1,15 @@
 #!/usr/bin/env node
-// Deterministic, dependency-free generator for src/UI/Triviador.Web/Data/map.json.
+// Deterministic, dependency-free generator for Triviador's abstract map. Produces two outputs from
+// one shared seeded vertex lattice, so they can never drift apart:
+//   1. src/UI/Triviador.Web/Data/map.json - the server content MapRepository.cs parses.
+//   2. src/Triviador.Client/src/components/map/abstractGeography.ts - the client's baked SVG path +
+//      centroid per region, consumed by RegionShape.tsx/GameMap.tsx.
 //
-// Topology is deliberately preserved byte-for-byte: 18 regions in a 6x3 grid, 4-neighbour
-// adjacency, middle row worth 400 and outer rows worth 200 - exactly what the placeholder grid
-// map had. Only the geometry (an organic coastline instead of identical squares), names, and
-// label anchors are new. Re-running this script against an unmodified tree must reproduce the
-// committed map.json exactly, since the seed and every input here are fixed.
+// Topology: 18 regions in a 6x3 grid, 4-neighbour (rook) adjacency - trivially fully connected.
+// Middle row worth 400, outer rows worth 200. Region names are invented (English + Russian),
+// deliberately not real-world places - this is an abstract territory board, not a map of anywhere.
+// Re-running this script against an unmodified tree must reproduce both committed outputs
+// byte-for-byte, since the seed and every input here are fixed.
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -16,11 +20,20 @@ const ROWS = 3; // regions per column
 const VIEW_W = 1200;
 const VIEW_H = 640;
 const PAD = 70;
+const RADIUS_FACTOR = 0.82; // fallback-circle radius as a fraction of the half-min-cell-dimension
 
-const NAMES = [
+// Row-major, matching regionId(row, col) below. Invented fantasy names - no real-world country,
+// city, or place is referenced by either list.
+const NAMES_EN = [
   'Ironreach', 'Vale of Ash', 'Saltmarch', 'Thornhold', 'Greyfen', 'Duskmoor',
   'Highgarth', 'Stonewick', 'Fenmoor', 'Ashvale', 'Ravenhollow', 'Wolfmere',
   'Emberfall', 'Sunreach', 'Thistledown', 'Blackmere', 'Windhaven', 'Grimwood',
+];
+
+const NAMES_RU = [
+  'Железный Предел', 'Пепельный Дол', 'Соляной Марш', 'Терновый Оплот', 'Серая Трясина', 'Сумеречная Пустошь',
+  'Горний Чертог', 'Каменный Починок', 'Болотная Пустошь', 'Пепельная Лощина', 'Вороний Дол', 'Волчье Озеро',
+  'Пламенный Обрыв', 'Солнечный Предел', 'Пуховый Дол', 'Чёрное Озеро', 'Ветреная Гавань', 'Мрачный Лес',
 ];
 
 function mulberry32(seed) {
@@ -103,11 +116,36 @@ function bezierSegment(fromVertex, edge, toVertex) {
   return `C${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${toVertex.x.toFixed(2)},${toVertex.y.toFixed(2)}`;
 }
 
+// True area-weighted polygon centroid (shoelace formula) of a closed vertex loop - more accurate
+// than the plain vertex mean for placing labels/wax-seals visually centered on an irregular blob.
+function polygonCentroid(poly) {
+  let areaAcc = 0;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const p0 = poly[i];
+    const p1 = poly[(i + 1) % poly.length];
+    const cross = p0.x * p1.y - p1.x * p0.y;
+    areaAcc += cross;
+    cx += (p0.x + p1.x) * cross;
+    cy += (p0.y + p1.y) * cross;
+  }
+  const area = areaAcc / 2;
+  if (Math.abs(area) < 1e-9) {
+    // Degenerate polygon (shouldn't happen for a jittered quad) - fall back to the plain mean.
+    const mean = poly.reduce((acc, p) => ({ x: acc.x + p.x / poly.length, y: acc.y + p.y / poly.length }), { x: 0, y: 0 });
+    return mean;
+  }
+  return { x: cx / (6 * area), y: cy / (6 * area) };
+}
+
 const round2 = (n) => Math.round(n * 100) / 100;
 const regionId = (row, col) => `r${String(row * COLS + col + 1).padStart(2, '0')}`;
 const valueForRow = (row) => (row === 1 ? 400 : 200); // middle row is 400, outer rows are 200
+const radius = Math.round((minCell / 2) * RADIUS_FACTOR);
 
-const regions = [];
+const mapRegions = [];
+const geometryEntries = [];
 let ordinal = 0;
 for (let row = 0; row < ROWS; row++) {
   for (let col = 0; col < COLS; col++) {
@@ -122,7 +160,7 @@ for (let row = 0; row < ROWS; row++) {
     const bottomEdge = edgeBetween(br, bl);
     const leftEdge = edgeBetween(bl, tl);
 
-    const renderPath = [
+    const path = [
       `M${vTl.x.toFixed(2)},${vTl.y.toFixed(2)}`,
       bezierSegment(vTl, topEdge, vTr),
       bezierSegment(vTr, rightEdge, vBr),
@@ -137,25 +175,61 @@ for (let row = 0; row < ROWS; row++) {
     if (col < COLS - 1) adjacentTo.push(regionId(row, col + 1));
     if (row < ROWS - 1) adjacentTo.push(regionId(row + 1, col));
 
-    regions.push({
-      id: regionId(row, col),
-      name: NAMES[ordinal],
+    const id = regionId(row, col);
+    const centerX = round2((vTl.x + vTr.x + vBr.x + vBl.x) / 4);
+    const centerY = round2((vTl.y + vTr.y + vBr.y + vBl.y) / 4);
+    const centroid = polygonCentroid([vTl, vTr, vBr, vBl]);
+
+    mapRegions.push({
+      id,
+      nameEn: NAMES_EN[ordinal],
+      nameRu: NAMES_RU[ordinal],
       value: valueForRow(row),
-      renderPath,
-      labelX: round2((vTl.x + vTr.x + vBr.x + vBl.x) / 4),
-      labelY: round2((vTl.y + vTr.y + vBr.y + vBl.y) / 4),
+      centerX,
+      centerY,
+      radius,
+      labelX: centerX,
+      labelY: centerY,
       adjacentTo,
     });
+
+    geometryEntries.push({ id, path, centroidX: round2(centroid.x), centroidY: round2(centroid.y) });
     ordinal++;
   }
 }
 
-const output = {
-  id: 'organic-18',
+const mapOutput = {
+  id: 'abstract-18',
   viewBox: `0 0 ${VIEW_W} ${VIEW_H}`,
-  regions,
+  regions: mapRegions,
 };
 
-const outPath = resolve(dirname(fileURLToPath(import.meta.url)), '../../src/UI/Triviador.Web/Data/map.json');
-writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n', 'utf8');
-console.log(`Wrote ${regions.length} regions to ${outPath}`);
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const mapJsonPath = resolve(scriptDir, '../../src/UI/Triviador.Web/Data/map.json');
+const geometryTsPath = resolve(scriptDir, '../../src/Triviador.Client/src/components/map/abstractGeography.ts');
+
+writeFileSync(mapJsonPath, JSON.stringify(mapOutput, null, 2) + '\n', 'utf8');
+
+const geometryLines = geometryEntries
+  .map((entry) => `  ${entry.id}: { path: "${entry.path}", centroidX: ${entry.centroidX}, centroidY: ${entry.centroidY} },`)
+  .join('\n');
+
+const geometryOutput = `// GENERATED FILE - do not hand-edit.
+// Produced by tools/mapgen/generate-map.mjs (deterministic, seed ${SEED}, no npm dependencies).
+// Re-run that script if src/UI/Triviador.Web/Data/map.json's region set changes.
+
+export interface RegionGeometry {
+  path: string
+  centroidX: number
+  centroidY: number
+}
+
+export const REGION_GEOMETRY: Record<string, RegionGeometry> = {
+${geometryLines}
+}
+`;
+
+writeFileSync(geometryTsPath, geometryOutput, 'utf8');
+
+console.log(`Wrote ${mapRegions.length} regions to ${mapJsonPath}`);
+console.log(`Wrote ${geometryEntries.length} geometries to ${geometryTsPath}`);
