@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { GameView, RegionView } from '../../api/contracts'
 import { findPlayer, playerDisplayName } from '../../lib/format'
 import { seatIndexFor } from '../../lib/seats'
-import { EUROPE_GEOGRAPHY } from './europeGeography'
+import { REGION_GEOMETRY } from './abstractGeography'
 import { HeraldicDefs } from './HeraldicDefs'
 import { RegionShape } from './RegionShape'
 import { ValueBadge } from './ValueBadge'
@@ -16,11 +16,11 @@ export interface GameMapProps {
   onSelect?: (regionId: string) => void
 }
 
-// The real country shape's visual centroid rarely matches the old hand-picked circle center, so
+// The abstract shape's visual centroid rarely matches the old hand-picked circle center, so
 // markers/labels/connectors anchor on it instead - falling back to the server's labelX/labelY only
-// for a region the static geography dataset doesn't cover.
+// for a region the static geometry dataset doesn't cover.
 function markerPosition(region: RegionView) {
-  const geometry = EUROPE_GEOGRAPHY[region.regionId]
+  const geometry = REGION_GEOMETRY[region.regionId]
   return geometry
     ? { x: geometry.centroidX, y: geometry.centroidY }
     : { x: region.labelX, y: region.labelY }

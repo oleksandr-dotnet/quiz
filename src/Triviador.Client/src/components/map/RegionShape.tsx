@@ -2,7 +2,7 @@ import type { KeyboardEvent, SVGProps } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RegionView } from '../../api/contracts'
 import { SEAT_COLORS, hatchPatternIdFor } from '../../lib/seats'
-import { EUROPE_GEOGRAPHY, type RegionGeometry } from './europeGeography'
+import { REGION_GEOMETRY, type RegionGeometry } from './abstractGeography'
 
 export interface RegionShapeProps {
   region: RegionView
@@ -14,8 +14,8 @@ export interface RegionShapeProps {
   onSelect?: (regionId: string) => void
 }
 
-// Draws the region's real country outline when one was baked by scripts/generate-europe-paths.mjs;
-// falls back to the legacy circle (server centerX/centerY/radius) if the client's static geography
+// Draws the region's abstract shape outline when one was baked by tools/mapgen/generate-map.mjs;
+// falls back to the legacy circle (server centerX/centerY/radius) if the client's static geometry
 // dataset and the server's map content ever drift out of sync.
 function RegionOutline({
   region,
@@ -29,7 +29,7 @@ function RegionOutline({
 export function RegionShape({ region, ownerSeat, ownerName, interactive, eligible, contested, onSelect }: RegionShapeProps) {
   const { t } = useTranslation()
   const clickable = interactive && eligible && !!onSelect
-  const geometry = EUROPE_GEOGRAPHY[region.regionId]
+  const geometry = REGION_GEOMETRY[region.regionId]
   const markerX = geometry ? geometry.centroidX : region.labelX
   const markerY = geometry ? geometry.centroidY : region.labelY
   const label = ownerName
