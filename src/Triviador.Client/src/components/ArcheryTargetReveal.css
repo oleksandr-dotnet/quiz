@@ -1,0 +1,140 @@
+/* Archery-target reveal for numeric (Tip) question answers - replaces the old .number-line.
+   Scoped to its own file (not App.css) to avoid touching a shared stylesheet another track is
+   also editing. Durations come from the shared --dur-fast/mid tokens (theme/tokens.css already
+   zeroes them under prefers-reduced-motion), so the CSS-driven parts here (label fade-in, landing
+   thunk) collapse to instant automatically; the JS-driven flight animation is branched separately
+   in ArcheryTargetReveal.tsx since a spring transition has no CSS duration to zero out. */
+
+.archery-target-reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.archery-unit-caption {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-500);
+}
+
+.archery-target-stage {
+  position: relative;
+  width: 100%;
+  max-width: 17rem;
+  aspect-ratio: 1;
+}
+
+.archery-target-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.archery-ring {
+  stroke: var(--ink-700);
+  stroke-width: 1.5;
+}
+
+.archery-ring-0 {
+  fill: var(--paper-300);
+}
+
+.archery-ring-1 {
+  fill: var(--paper-100);
+}
+
+.archery-ring-2 {
+  fill: var(--gilt-300);
+}
+
+.archery-ring-3 {
+  fill: var(--gilt-500);
+}
+
+.archery-bullseye {
+  fill: var(--danger);
+  stroke: var(--ink-900);
+  stroke-width: 1.5;
+}
+
+.archery-arrowhead {
+  fill: currentColor;
+}
+
+.archery-arrow-shaft {
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.archery-arrow-fletch {
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.archery-arrow {
+  filter: drop-shadow(0 1px 1px rgba(43, 35, 24, 0.35));
+}
+
+.archery-arrow.landed {
+  animation: archery-thunk var(--dur-fast) var(--ease-paper);
+}
+
+@keyframes archery-thunk {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.4);
+  }
+  65% {
+    transform: scale(0.88);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.archery-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.archery-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 5.5rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--r-sm);
+  border: 1.5px solid;
+  background: var(--paper-050);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-paper);
+}
+
+.archery-label.landed {
+  opacity: 1;
+}
+
+@media (max-width: 420px) {
+  .archery-target-stage {
+    max-width: 13rem;
+  }
+
+  .archery-label {
+    max-width: 4.2rem;
+    font-size: 0.64rem;
+    padding: 0.05rem 0.3rem;
+  }
+}

@@ -3,6 +3,7 @@ import i18next from '../i18n'
 import type { AnswerValueView, GameView, QuestionPromptView, RevealedAnswerView } from '../api/contracts'
 import { findPlayer, laurelNumeral, playerDisplayName } from '../lib/format'
 import { colorForPlayer } from '../lib/seats'
+import { ArcheryTargetReveal } from './ArcheryTargetReveal'
 
 export interface RevealOverlayProps {
   view: GameView
@@ -29,7 +30,9 @@ export function RevealOverlay({ view, prompt, correctAnswer, answers, secondsRem
         {t('reveal.correctAnswerLabel')} <strong>{correctText}</strong>
       </p>
 
-      {prompt.kind === 'Tip' && <NumberLine prompt={prompt} correctAnswer={correctAnswer} answers={ranked} view={view} />}
+      {prompt.kind === 'Tip' && (
+        <ArcheryTargetReveal key={prompt.questionId} prompt={prompt} correctAnswer={correctAnswer} answers={ranked} view={view} />
+      )}
 
       <ol className="reveal-scroll">
         {ranked.map((a) => {
@@ -67,50 +70,4 @@ function answerText(prompt: QuestionPromptView, answer: AnswerValueView): string
   if (answer.kind === 'Choice') return prompt.options[answer.optionIndex ?? -1] ?? '?'
   if (answer.kind === 'Numeric') return String(answer.numericValue)
   return i18next.t('reveal.noAnswer')
-}
-
-function NumberLine({
-  prompt,
-  correctAnswer,
-  answers,
-  view,
-}: {
-  prompt: QuestionPromptView
-  correctAnswer: AnswerValueView
-  answers: readonly RevealedAnswerView[]
-  view: GameView
-}) {
-  const { t } = useTranslation()
-  const values = answers.filter((a) => a.answer.kind === 'Numeric').map((a) => a.answer.numericValue ?? 0)
-  const correct = correctAnswer.numericValue ?? 0
-  const min = Math.min(correct, ...values)
-  const max = Math.max(correct, ...values)
-  const span = max - min || 1
-  const percent = (v: number) => ((v - min) / span) * 100
-
-  return (
-    <div className="number-line" aria-hidden="true">
-      <div className="number-line-track">
-        <span
-          className="number-line-correct"
-          style={{ left: `${percent(correct)}%` }}
-          title={t('reveal.correctTitle', { value: correct })}
-        />
-        {answers
-          .filter((a) => a.answer.kind === 'Numeric')
-          .map((a) => (
-            <span
-              key={a.playerId}
-              className="number-line-pin"
-              style={{ left: `${percent(a.answer.numericValue ?? 0)}%`, background: colorForPlayer(view, a.playerId) }}
-            />
-          ))}
-      </div>
-      <div className="number-line-labels">
-        <span>{min}</span>
-        {prompt.unit && <span className="number-line-unit">{prompt.unit}</span>}
-        <span>{max}</span>
-      </div>
-    </div>
-  )
 }
