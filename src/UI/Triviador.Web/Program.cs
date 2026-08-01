@@ -28,13 +28,17 @@ builder.Services.AddSingleton<IRoomFactory, RoomFactory>();
 builder.Services.AddSingleton<RoomRegistry>();
 builder.Services.AddSingleton<ConnectionMap>();
 builder.Services.AddSingleton<IMapRepository, MapRepository>();
+builder.Services.AddSingleton<IQuestionRepository, QuestionRepository>();
+builder.Services.AddSingleton<IRandomSourceFactory, RandomSourceFactory>();
+builder.Services.AddSingleton<IQuestionSourceFactory, QuestionSourceFactory>();
 builder.Services.AddHostedService<RoomJanitor>();
 
 var app = builder.Build();
 
-// Force construction now, not on first use - a bad Data/map.json should fail startup, not a player's
-// first "Start Game" click.
+// Force construction now, not on first use - bad Data/map.json or questions.json should fail
+// startup, not a player's first "Start Game" click.
 app.Services.GetRequiredService<IMapRepository>();
+app.Services.GetRequiredService<IQuestionRepository>();
 
 if (app.Environment.IsDevelopment())
 {

@@ -1,0 +1,64 @@
+using System.Diagnostics;
+using Triviador.Domain.Abstractions;
+using Triviador.Domain.Commands;
+using Triviador.Domain.Map;
+using Triviador.Domain.Primitives;
+using Triviador.Domain.State;
+
+namespace Triviador.Domain.Engine;
+
+public sealed partial class GameEngine
+{
+    private readonly GameState _state;
+    private readonly AdjacencyIndex _adjacency;
+    private readonly IRandomSource _random;
+    private readonly IQuestionSource _questions;
+
+    public GameEngine(GameState state, IRandomSource random, IQuestionSource questions)
+    {
+        _state = state;
+        _adjacency = new AdjacencyIndex(state.Map);
+        _random = random;
+        _questions = questions;
+    }
+
+    public GameState State => _state;
+
+    public CommandResult Execute(IGameCommand command)
+    {
+        var result = command switch
+        {
+            JoinGame c => ExecuteJoinGame(c),
+            LeaveGame c => ExecuteLeaveGame(c),
+            StartGame c => ExecuteStartGame(c),
+            SelectBase c => ExecuteSelectBase(c),
+            SubmitAnswer c => ExecuteSubmitAnswer(c),
+            PickRegion c => ExecutePickRegion(c),
+            TimeoutElapsed c => ExecuteTimeoutElapsed(c),
+            _ => throw new InvalidOperationException($"Unhandled command type '{command.GetType()}'."),
+        };
+
+        AssertInvariant();
+        return result;
+    }
+
+    [Conditional("DEBUG")]
+    private void AssertInvariant()
+    {
+        // Lobby has no pending activity at all — nobody is waiting on an activity token before the
+        // game starts — so the invariant only applies once the game has left Lobby.
+        if (_state.Phase == GamePhase.Lobby)
+        {
+            return;
+        }
+
+        // Documented exception: the instant LandGrab completes (every region owned), Pending is
+        // legitimately null because the phase that would supply the next pending activity is out of
+        // this change's scope. See the "After every Execute..." requirement in
+        // specs/game-setup-rules/spec.md.
+        var awaitingFutureBattle = _state.Phase == GamePhase.LandGrab && _state.Pending is null;
+        Debug.Assert(
+            _state.Phase == GamePhase.Finished || _state.Pending is not null || awaitingFutureBattle,
+            "After Execute, the game must be Finished or have a pending activity (or be awaiting a future Battle implementation).");
+    }
+}

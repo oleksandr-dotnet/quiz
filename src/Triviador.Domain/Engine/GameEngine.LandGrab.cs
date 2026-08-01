@@ -1,0 +1,279 @@
+using System.Collections.Immutable;
+using Triviador.Domain.Commands;
+using Triviador.Domain.Events;
+using Triviador.Domain.Primitives;
+using Triviador.Domain.Questions;
+using Triviador.Domain.Ranking;
+using Triviador.Domain.State;
+
+namespace Triviador.Domain.Engine;
+
+public sealed partial class GameEngine
+{
+    private static readonly int[] AwardPicksByRank = [2, 1, 0, 0];
+
+    private ImmutableArray<IGameEvent> StartLandGrab(Instant at)
+    {
+        _state.Phase = GamePhase.LandGrab;
+        var participants = ActiveParticipants();
+        return AskLandGrabQuestion(participants, deadRoundCount: 0, at);
+    }
+
+    private ImmutableArray<PlayerId> ActiveParticipants() =>
+        _state.Players.Where(p => !p.Eliminated).Select(p => p.Id).ToImmutableArray();
+
+    private ImmutableArray<IGameEvent> AskLandGrabQuestion(ImmutableArray<PlayerId> participants, int deadRoundCount, Instant at)
+    {
+        var question = _questions.Draw(new QuestionDraw(QuestionKindRequest.Any));
+        var tieBreak = TieBreakOrder.Shuffled(participants, _random);
+        var token = _state.IssueActivityToken();
+        var durationSeconds = question.Prompt.Kind == QuestionKind.Choice
+            ? _state.Rules.ChoiceQuestionDurationSeconds
+            : _state.Rules.TipQuestionDurationSeconds;
+        var deadline = at.Add(TimeSpan.FromSeconds(durationSeconds));
+        var purpose = new QuestionPurpose.LandGrab(deadRoundCount);
+
+        _state.Pending = new PendingActivity.Question(
+            token, deadline, at, question, purpose, participants,
+            ImmutableDictionary<PlayerId, AnswerSubmission>.Empty, tieBreak);
+
+        return ImmutableArray.Create<IGameEvent>(new QuestionAsked(token, question.Prompt, purpose, participants, deadline));
+    }
+
+    private CommandResult ExecuteSubmitAnswer(SubmitAnswer command)
+    {
+        if (_state.Phase == GamePhase.Finished)
+        {
+            return CommandResult.Rejected(RejectionCode.GameAlreadyFinished);
+        }
+
+        if (_state.Phase != GamePhase.LandGrab)
+        {
+            return CommandResult.Rejected(RejectionCode.WrongPhase);
+        }
+
+        if (_state.Players.All(p => p.Id != command.PlayerId))
+        {
+            return CommandResult.Rejected(RejectionCode.UnknownPlayer);
+        }
+
+        if (_state.Pending is not PendingActivity.Question pending)
+        {
+            return CommandResult.Rejected(RejectionCode.NotAwaitingThisInput);
+        }
+
+        if (command.Token != pending.Token)
+        {
+            return CommandResult.Rejected(RejectionCode.StaleActivityToken);
+        }
+
+        if (!pending.Participants.Contains(command.PlayerId))
+        {
+            return CommandResult.Rejected(RejectionCode.NotYourTurn);
+        }
+
+        if (pending.Submissions.ContainsKey(command.PlayerId))
+        {
+            return CommandResult.Rejected(RejectionCode.AlreadyAnswered);
+        }
+
+        var elapsed = command.At.Since(pending.AskedAt);
+        var submission = new AnswerSubmission(command.PlayerId, command.Answer, elapsed);
+        var updatedSubmissions = pending.Submissions.SetItem(command.PlayerId, submission);
+        var updatedPending = pending with { Submissions = updatedSubmissions };
+        _state.Pending = updatedPending;
+
+        var events = ImmutableArray.CreateBuilder<IGameEvent>();
+        events.Add(new AnswerAcknowledged(command.PlayerId));
+
+        if (updatedSubmissions.Count >= pending.Participants.Length)
+        {
+            events.AddRange(ResolveQuestion(updatedPending, command.At));
+        }
+
+        return CommandResult.Accepted(events.ToImmutable());
+    }
+
+    private ImmutableArray<IGameEvent> ResolveQuestion(PendingActivity.Question pending, Instant at)
+    {
+        var submissions = pending.Participants
+            .Select(p => pending.Submissions.TryGetValue(p, out var s) ? s : new AnswerSubmission(p, AnswerValue.None.Instance, null))
+            .ToImmutableArray();
+
+        var result = new QuestionResult(pending.Q, AnswerRanker.Rank(pending.Q, submissions, pending.TieBreak));
+
+        var events = ImmutableArray.CreateBuilder<IGameEvent>();
+        events.Add(new QuestionResolved(result));
+
+        var allSilent = submissions.All(s => s.Answer is AnswerValue.None);
+        var deadRoundCount = pending.Purpose is QuestionPurpose.LandGrab lg ? lg.DeadRoundCount : 0;
+
+        if (allSilent)
+        {
+            var nextDeadRoundCount = deadRoundCount + 1;
+            if (nextDeadRoundCount >= _state.Rules.LandGrabDeadRoundThreshold)
+            {
+                var shuffled = _random.Shuffle(pending.Participants);
+                events.AddRange(StartAwardQueue(shuffled, at));
+            }
+            else
+            {
+                events.AddRange(AskLandGrabQuestion(pending.Participants, nextDeadRoundCount, at));
+            }
+        }
+        else
+        {
+            var orderedByRank = result.Rankings.OrderBy(r => r.Rank).Select(r => r.Player).ToImmutableArray();
+            events.AddRange(StartAwardQueue(orderedByRank, at));
+        }
+
+        return events.ToImmutable();
+    }
+
+    private ImmutableArray<PlayerId> BuildAwardQueue(ImmutableArray<PlayerId> orderedByRank)
+    {
+        var columns = new List<PlayerId>();
+        var maxPicks = AwardPicksByRank.Max();
+
+        for (var column = 0; column < maxPicks; column++)
+        {
+            for (var rankIndex = 0; rankIndex < orderedByRank.Length; rankIndex++)
+            {
+                var picks = rankIndex < AwardPicksByRank.Length ? AwardPicksByRank[rankIndex] : 0;
+                if (picks > column)
+                {
+                    columns.Add(orderedByRank[rankIndex]);
+                }
+            }
+        }
+
+        var freeRegionCount = _state.Map.Regions.Count(r => _state.RegionOf(r.Id).OwnerId is null);
+        return columns.Take(freeRegionCount).ToImmutableArray();
+    }
+
+    private ImmutableArray<IGameEvent> StartAwardQueue(ImmutableArray<PlayerId> orderedByRank, Instant at)
+    {
+        var queue = BuildAwardQueue(orderedByRank);
+        if (queue.IsEmpty)
+        {
+            return CompleteLandGrab();
+        }
+
+        var token = _state.IssueActivityToken();
+        var deadline = at.Add(TimeSpan.FromSeconds(_state.Rules.LandGrabPickDurationSeconds));
+        _state.Pending = new PendingActivity.RegionPicks(token, deadline, queue, 0);
+
+        var picker = queue[0];
+        var eligible = EligibleRegionsFor(picker);
+        return ImmutableArray.Create<IGameEvent>(new RegionPickRequested(token, picker, eligible, deadline));
+    }
+
+    public ImmutableArray<RegionId> EligibleRegionsFor(PlayerId picker)
+    {
+        var freeRegions = _state.Map.Regions.Where(r => _state.RegionOf(r.Id).OwnerId is null).ToImmutableArray();
+        var ownedRegionIds = _state.Regions.Where(r => r.OwnerId == picker).Select(r => r.Id).ToImmutableHashSet();
+
+        var bordering = freeRegions
+            .Where(r => _adjacency.NeighborsOf(r.Id).Any(ownedRegionIds.Contains))
+            .Select(r => r.Id)
+            .ToImmutableArray();
+
+        return bordering.Length > 0 ? bordering : freeRegions.Select(r => r.Id).ToImmutableArray();
+    }
+
+    private CommandResult ExecutePickRegion(PickRegion command)
+    {
+        if (_state.Phase == GamePhase.Finished)
+        {
+            return CommandResult.Rejected(RejectionCode.GameAlreadyFinished);
+        }
+
+        if (_state.Phase != GamePhase.LandGrab)
+        {
+            return CommandResult.Rejected(RejectionCode.WrongPhase);
+        }
+
+        if (_state.Players.All(p => p.Id != command.PlayerId))
+        {
+            return CommandResult.Rejected(RejectionCode.UnknownPlayer);
+        }
+
+        if (_state.Pending is not PendingActivity.RegionPicks pending)
+        {
+            return CommandResult.Rejected(RejectionCode.NotAwaitingThisInput);
+        }
+
+        if (command.Token != pending.Token)
+        {
+            return CommandResult.Rejected(RejectionCode.StaleActivityToken);
+        }
+
+        var currentPicker = pending.AwardQueue[pending.NextIndex];
+        if (currentPicker != command.PlayerId)
+        {
+            return CommandResult.Rejected(RejectionCode.NotYourTurn);
+        }
+
+        if (!_state.Map.Regions.Any(r => r.Id == command.RegionId))
+        {
+            return CommandResult.Rejected(RejectionCode.UnknownRegion);
+        }
+
+        if (_state.RegionOf(command.RegionId).OwnerId is not null)
+        {
+            return CommandResult.Rejected(RejectionCode.RegionAlreadyOwned);
+        }
+
+        var eligible = EligibleRegionsFor(currentPicker);
+        if (!eligible.Contains(command.RegionId))
+        {
+            return CommandResult.Rejected(RejectionCode.RegionNotEligible);
+        }
+
+        return CommandResult.Accepted(CompleteRegionPick(pending, currentPicker, command.RegionId, command.At));
+    }
+
+    private ImmutableArray<IGameEvent> CompleteRegionPick(PendingActivity.RegionPicks pending, PlayerId picker, RegionId regionId, Instant at)
+    {
+        _state.RegionOf(regionId).OwnerId = picker;
+
+        var events = ImmutableArray.CreateBuilder<IGameEvent>();
+        events.Add(new RegionAwarded(picker, regionId));
+
+        var nextIndex = pending.NextIndex + 1;
+        if (nextIndex >= pending.AwardQueue.Length)
+        {
+            var freeRegionsRemain = _state.Map.Regions.Any(r => _state.RegionOf(r.Id).OwnerId is null);
+            events.AddRange(freeRegionsRemain
+                ? AskLandGrabQuestion(ActiveParticipants(), 0, at)
+                : CompleteLandGrab());
+        }
+        else
+        {
+            var token = _state.IssueActivityToken();
+            var deadline = at.Add(TimeSpan.FromSeconds(_state.Rules.LandGrabPickDurationSeconds));
+            var nextPicker = pending.AwardQueue[nextIndex];
+            _state.Pending = pending with { Token = token, Deadline = deadline, NextIndex = nextIndex };
+            var nextEligible = EligibleRegionsFor(nextPicker);
+            events.Add(new RegionPickRequested(token, nextPicker, nextEligible, deadline));
+        }
+
+        return events.ToImmutable();
+    }
+
+    private ImmutableArray<IGameEvent> CompleteLandGrab()
+    {
+        _state.Pending = null;
+        return ImmutableArray.Create<IGameEvent>(new LandGrabCompleted());
+    }
+
+    private ImmutableArray<IGameEvent> TimeoutQuestion(PendingActivity.Question pending, Instant at) =>
+        ResolveQuestion(pending, at);
+
+    private ImmutableArray<IGameEvent> TimeoutRegionPick(PendingActivity.RegionPicks pending, Instant at)
+    {
+        var picker = pending.AwardQueue[pending.NextIndex];
+        var eligible = EligibleRegionsFor(picker);
+        return CompleteRegionPick(pending, picker, eligible[0], at);
+    }
+}

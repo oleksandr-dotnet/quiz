@@ -6,6 +6,7 @@ import { useGameStore } from './store/gameStore'
 import { LandingScreen } from './screens/LandingScreen'
 import { LobbyScreen } from './screens/LobbyScreen'
 import { BaseSelectionScreen } from './screens/BaseSelectionScreen'
+import { LandGrabScreen } from './screens/LandGrabScreen'
 
 function urlRoomCode(): string | null {
   const match = /^#\/room\/([A-Za-z0-9]{4})/.exec(window.location.hash)
@@ -41,6 +42,7 @@ function App() {
   }, [status, sessionUsable])
 
   if (!sessionUsable || !view) return <LandingScreen />
+  if (gameView && gameView.phase === 'LandGrab') return <LandGrabScreen />
   if (gameView && gameView.phase !== 'Lobby') return <BaseSelectionScreen />
   return <LobbyScreen />
 }

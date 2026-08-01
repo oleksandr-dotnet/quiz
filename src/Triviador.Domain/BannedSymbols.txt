@@ -1,0 +1,5 @@
+P:System.DateTime.Now;Time is data in this project — take Instant from the command instead of reading an ambient clock.
+P:System.DateTime.UtcNow;Time is data in this project — take Instant from the command instead of reading an ambient clock.
+P:System.DateTimeOffset.Now;Time is data in this project — take Instant from the command instead of reading an ambient clock.
+P:System.DateTimeOffset.UtcNow;Time is data in this project — take Instant from the command instead of reading an ambient clock.
+T:System.Random;Randomness must be replayable — take IRandomSource instead of instantiating System.Random.

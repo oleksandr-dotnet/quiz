@@ -1,5 +1,6 @@
 using Triviador.Application.Contracts;
 using Triviador.Domain.Primitives;
+using Triviador.Domain.Questions;
 
 namespace Triviador.Application.Hosting;
 
@@ -35,6 +36,12 @@ public sealed record ShutdownRequest(TaskCompletionSource Done) : RoomMessage;
 public sealed record StartGameRequest(Guid RequestingPlayerId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
 
 public sealed record SelectBaseRequest(
+    Guid RequestingPlayerId, string RegionId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
+public sealed record SubmitAnswerRequest(
+    Guid RequestingPlayerId, AnswerValue Answer, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
+public sealed record PickRegionRequest(
     Guid RequestingPlayerId, string RegionId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
 
 public sealed record GameViewRequest(Guid PlayerId, TaskCompletionSource<GameViewDto> Reply) : RoomMessage;

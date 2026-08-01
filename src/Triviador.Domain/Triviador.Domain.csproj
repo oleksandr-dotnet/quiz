@@ -1,2 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0" PrivateAssets="all" />
+    <AdditionalFiles Include="BannedSymbols.txt" />
+  </ItemGroup>
+
 </Project>

@@ -15,3 +15,11 @@ export const leaveRoom = (): Promise<void> => getConnection().invoke('LeaveRoom'
 export const startGame = (): Promise<void> => getConnection().invoke('StartGame')
 
 export const selectBase = (regionId: string): Promise<void> => getConnection().invoke('SelectBase', regionId)
+
+export const submitChoiceAnswer = (optionIndex: number): Promise<void> =>
+  getConnection().invoke('SubmitAnswer', optionIndex, null)
+
+export const submitNumericAnswer = (value: number): Promise<void> =>
+  getConnection().invoke('SubmitAnswer', null, value)
+
+export const pickRegion = (regionId: string): Promise<void> => getConnection().invoke('PickRegion', regionId)

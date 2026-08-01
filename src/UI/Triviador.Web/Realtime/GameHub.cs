@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Triviador.Application.Contracts;
 using Triviador.Application.Hosting;
+using Triviador.Domain.Questions;
 using Triviador.Web.Realtime.Contracts;
 
 namespace Triviador.Web.Realtime;
@@ -83,6 +84,32 @@ public sealed class GameHub(RoomRegistry registry, ConnectionMap connectionMap) 
     {
         var (room, playerId) = ResolveConnection();
         var ack = await room.SelectBaseAsync(playerId, regionId);
+        if (!ack.Success)
+        {
+            throw new HubException(ack.RejectionReason);
+        }
+    }
+
+    public async Task SubmitAnswer(int? choiceIndex, long? numericValue)
+    {
+        var (room, playerId) = ResolveConnection();
+        AnswerValue answer = choiceIndex is { } idx
+            ? new AnswerValue.Choice(idx)
+            : numericValue is { } value
+                ? new AnswerValue.Numeric(value)
+                : AnswerValue.None.Instance;
+
+        var ack = await room.SubmitAnswerAsync(playerId, answer);
+        if (!ack.Success)
+        {
+            throw new HubException(ack.RejectionReason);
+        }
+    }
+
+    public async Task PickRegion(string regionId)
+    {
+        var (room, playerId) = ResolveConnection();
+        var ack = await room.PickRegionAsync(playerId, regionId);
         if (!ack.Success)
         {
             throw new HubException(ack.RejectionReason);

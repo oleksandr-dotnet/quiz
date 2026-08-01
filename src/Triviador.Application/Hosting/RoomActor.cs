@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -5,7 +6,10 @@ using Triviador.Application.Content;
 using Triviador.Application.Contracts;
 using Triviador.Domain.Commands;
 using Triviador.Domain.Engine;
+using Triviador.Domain.Events;
 using Triviador.Domain.Primitives;
+using Triviador.Domain.Questions;
+using Triviador.Domain.Ranking;
 using Triviador.Domain.State;
 
 namespace Triviador.Application.Hosting;
@@ -21,6 +25,8 @@ public sealed class RoomActor
     private readonly IRoomBroadcaster _broadcaster;
     private readonly IRoomClock _clock;
     private readonly IMapRepository _mapRepository;
+    private readonly IRandomSourceFactory _randomSourceFactory;
+    private readonly IQuestionSourceFactory _questionSourceFactory;
     private readonly ILogger<RoomActor>? _logger;
     private readonly Task _pump;
 
@@ -31,12 +37,15 @@ public sealed class RoomActor
     private volatile bool _faulted;
 
     public RoomActor(string roomCode, RoomOptions options, IRoomBroadcaster broadcaster, IRoomClock clock,
-        IMapRepository mapRepository, ILogger<RoomActor>? logger = null)
+        IMapRepository mapRepository, IRandomSourceFactory randomSourceFactory,
+        IQuestionSourceFactory questionSourceFactory, ILogger<RoomActor>? logger = null)
     {
         RoomCode = roomCode;
         _broadcaster = broadcaster;
         _clock = clock;
         _mapRepository = mapRepository;
+        _randomSourceFactory = randomSourceFactory;
+        _questionSourceFactory = questionSourceFactory;
         _logger = logger;
         _seats = Enumerable.Range(0, options.MaxSeats).Select(i => new Seat(i)).ToArray();
         _lastActivityUtc = clock.UtcNow;
@@ -113,6 +122,26 @@ public sealed class RoomActor
         return tcs.Task;
     }
 
+    public Task<CommandAck> SubmitAnswerAsync(Guid requestingPlayerId, AnswerValue answer)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new SubmitAnswerRequest(requestingPlayerId, answer, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
+    public Task<CommandAck> PickRegionAsync(Guid requestingPlayerId, string regionId)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new PickRegionRequest(requestingPlayerId, regionId, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
     public Task<GameViewDto> GetGameViewAsync(Guid playerId)
     {
         var tcs = new TaskCompletionSource<GameViewDto>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -161,6 +190,8 @@ public sealed class RoomActor
         ViewRequest m => HandleViewRequest(m),
         StartGameRequest m => HandleStartGameAsync(m),
         SelectBaseRequest m => HandleSelectBaseAsync(m),
+        SubmitAnswerRequest m => HandleSubmitAnswerAsync(m),
+        PickRegionRequest m => HandlePickRegionAsync(m),
         GameViewRequest m => HandleGameViewRequest(m),
         EngineTimerElapsed m => HandleEngineTimerElapsedAsync(m),
         ShutdownRequest m => HandleShutdownAsync(m),
@@ -176,6 +207,13 @@ public sealed class RoomActor
             {
                 existing.ConnectionId = m.ConnectionId;
                 await BroadcastAsync();
+                if (_engine is not null)
+                {
+                    // A reconnect mid-game only got the lobby-shaped RoomView above; without this,
+                    // a client that reconnects (refresh, HMR reload, dropped connection) after the
+                    // game has started sees no game state until the next command broadcasts one.
+                    await _broadcaster.SendGameViewAsync(existing.ConnectionId, BuildGameView(existing.PlayerId!.Value));
+                }
                 m.Reply.TrySetResult(JoinResult.Ok(existing.PlayerId!.Value, existing.PlayerToken!,
                     BuildView(existing.PlayerId.Value)));
                 return;
@@ -309,8 +347,9 @@ public sealed class RoomActor
             seat.PlayerId ??= Guid.NewGuid();
         }
 
+        var seed = RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue);
         var state = GameState.CreateLobby(_mapRepository.GetDefaultMap(), rules);
-        var engine = new GameEngine(state);
+        var engine = new GameEngine(state, _randomSourceFactory.Create(seed), _questionSourceFactory.Create(seed));
         var now = Now();
 
         foreach (var seat in occupiedSeats)
@@ -356,9 +395,66 @@ public sealed class RoomActor
         }
 
         ArmEngineTimer();
-        await BroadcastGameViewAsync();
+        await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
         m.Reply.TrySetResult(CommandAck.Ok);
     }
+
+    private async Task HandleSubmitAnswerAsync(SubmitAnswerRequest m)
+    {
+        if (_engine is null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameNotStarted"));
+            return;
+        }
+        if (_engine.State.Pending is not PendingActivity.Question pending)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotAwaitingThisInput"));
+            return;
+        }
+
+        var result = _engine.Execute(new SubmitAnswer(
+            Now(), new PlayerId(m.RequestingPlayerId), pending.Token, m.Answer));
+
+        if (!result.IsAccepted)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject(result.Rejection!.Value.ToString()));
+            return;
+        }
+
+        ArmEngineTimer();
+        await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
+    private async Task HandlePickRegionAsync(PickRegionRequest m)
+    {
+        if (_engine is null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameNotStarted"));
+            return;
+        }
+        if (_engine.State.Pending is not PendingActivity.RegionPicks pending)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotAwaitingThisInput"));
+            return;
+        }
+
+        var result = _engine.Execute(new PickRegion(
+            Now(), new PlayerId(m.RequestingPlayerId), pending.Token, new RegionId(m.RegionId)));
+
+        if (!result.IsAccepted)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject(result.Rejection!.Value.ToString()));
+            return;
+        }
+
+        ArmEngineTimer();
+        await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
+    private static QuestionResult? ExtractLastReveal(ImmutableArray<IGameEvent> events) =>
+        events.OfType<QuestionResolved>().Select(e => e.Result).LastOrDefault();
 
     private Task HandleGameViewRequest(GameViewRequest m)
     {
@@ -385,7 +481,7 @@ public sealed class RoomActor
 
         if (result.IsAccepted && result.Events.Length > 0)
         {
-            await BroadcastGameViewAsync();
+            await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
         }
     }
 
@@ -407,10 +503,10 @@ public sealed class RoomActor
         await Task.WhenAll(sends);
     }
 
-    private async Task BroadcastGameViewAsync()
+    private async Task BroadcastGameViewAsync(QuestionResult? lastReveal = null)
     {
         var sends = _seats.Where(s => s.IsConnected)
-            .Select(s => _broadcaster.SendGameViewAsync(s.ConnectionId!, BuildGameView(s.PlayerId!.Value)));
+            .Select(s => _broadcaster.SendGameViewAsync(s.ConnectionId!, BuildGameView(s.PlayerId!.Value, lastReveal)));
         await Task.WhenAll(sends);
     }
 
@@ -423,7 +519,7 @@ public sealed class RoomActor
         return new RoomViewDto(RoomCode, viewerId, viewerId == _hostPlayerId, seats);
     }
 
-    private GameViewDto BuildGameView(Guid viewerId)
+    private GameViewDto BuildGameView(Guid viewerId, QuestionResult? lastReveal = null)
     {
         var state = _engine!.State;
         var map = _mapRepository.GetDefaultMap();
@@ -432,7 +528,7 @@ public sealed class RoomActor
         var players = state.Players.Select(p =>
         {
             seatsByPlayerId.TryGetValue(p.Id.Value, out var seat);
-            return new PlayerViewDto(p.Id.Value, p.Seat, seat?.DisplayName, seat?.IsBot ?? false, p.BaseRegion?.Value);
+            return new PlayerViewDto(p.Id.Value, p.Seat, seat?.DisplayName, seat?.IsBot ?? false, p.BaseRegion?.Value, state.ScoreOf(p.Id));
         }).ToArray();
 
         var regions = map.Regions.Select(r =>
@@ -442,10 +538,37 @@ public sealed class RoomActor
         }).ToArray();
 
         var currentPickerId = state.Pending is PendingActivity.BasePick pick ? pick.Player.Value : (Guid?)null;
-        var deadlineUtc = state.Pending is not null
-            ? DateTimeOffset.FromUnixTimeMilliseconds(state.Pending.Deadline.UnixMillis)
+        var basePickDeadlineUtc = state.Pending is PendingActivity.BasePick basePick
+            ? DateTimeOffset.FromUnixTimeMilliseconds(basePick.Deadline.UnixMillis)
             : (DateTimeOffset?)null;
-        var baseSelectionComplete = state.Phase == GamePhase.BaseSelection && state.Pending is null;
+
+        PendingQuestionViewDto? pendingQuestion = null;
+        PendingRegionPickViewDto? pendingRegionPick = null;
+
+        if (state.Pending is PendingActivity.Question question)
+        {
+            var hasAnswered = question.Participants.ToDictionary(p => p.Value.ToString(), p => question.Submissions.ContainsKey(p));
+            var yourAnswer = question.Submissions.TryGetValue(new PlayerId(viewerId), out var submission)
+                ? ToAnswerDto(submission.Answer)
+                : null;
+            pendingQuestion = new PendingQuestionViewDto(
+                ToPromptDto(question.Q.Prompt),
+                question.Participants.Select(p => p.Value).ToArray(),
+                hasAnswered,
+                yourAnswer,
+                DateTimeOffset.FromUnixTimeMilliseconds(question.Deadline.UnixMillis));
+        }
+        else if (state.Pending is PendingActivity.RegionPicks regionPicks)
+        {
+            var picker = regionPicks.AwardQueue[regionPicks.NextIndex];
+            var eligible = _engine.EligibleRegionsFor(picker).Select(r => r.Value).ToArray();
+            pendingRegionPick = new PendingRegionPickViewDto(
+                picker.Value,
+                eligible,
+                DateTimeOffset.FromUnixTimeMilliseconds(regionPicks.Deadline.UnixMillis));
+        }
+
+        var landGrabComplete = state.Phase == GamePhase.LandGrab && state.Pending is null;
 
         return new GameViewDto(
             state.Phase,
@@ -453,10 +576,36 @@ public sealed class RoomActor
             regions,
             players,
             currentPickerId,
-            deadlineUtc,
+            basePickDeadlineUtc,
             viewerId,
             currentPickerId == viewerId,
-            baseSelectionComplete);
+            pendingQuestion,
+            pendingRegionPick,
+            lastReveal is not null ? ToRevealDto(lastReveal) : null,
+            landGrabComplete);
+    }
+
+    private static QuestionPromptDto ToPromptDto(QuestionPrompt prompt) =>
+        new(prompt.Id.Value, prompt.Kind, prompt.Text, prompt.Options, prompt.Unit);
+
+    private static AnswerValueDto ToAnswerDto(AnswerValue answer) => answer switch
+    {
+        AnswerValue.Choice c => AnswerValueDto.OfChoice(c.OptionIndex),
+        AnswerValue.Numeric n => AnswerValueDto.OfNumeric(n.Value),
+        _ => AnswerValueDto.None,
+    };
+
+    private static LastRevealDto ToRevealDto(QuestionResult result)
+    {
+        var correct = result.Question.Prompt.Kind == QuestionKind.Choice
+            ? AnswerValueDto.OfChoice(result.Question.CorrectOptionIndex ?? 0)
+            : AnswerValueDto.OfNumeric(result.Question.CorrectNumericValue ?? 0);
+
+        var answers = result.Rankings
+            .Select(r => new RevealedAnswerDto(r.Player.Value, ToAnswerDto(r.Answer), r.Rank, (long?)r.Elapsed?.TotalMilliseconds))
+            .ToArray();
+
+        return new LastRevealDto(ToPromptDto(result.Question.Prompt), correct, answers);
     }
 
     private void ArmEngineTimer()

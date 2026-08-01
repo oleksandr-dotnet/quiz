@@ -1,30 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { selectBase } from '../api/commands'
 import { useGameStore } from '../store/gameStore'
+import { useCountdown } from '../hooks/useCountdown'
 import type { GameView } from '../api/contracts'
 
-const SEAT_COLORS = ['#e05252', '#4c8bf5', '#3cb371', '#e0a030']
+export const SEAT_COLORS = ['#e05252', '#4c8bf5', '#3cb371', '#e0a030']
 
-function colorForPlayer(view: GameView, playerId: string | null): string {
+export function colorForPlayer(view: GameView, playerId: string | null): string {
   if (!playerId) return '#3a3a3a'
   const player = view.players.find((p) => p.playerId === playerId)
   return player ? SEAT_COLORS[player.seat % SEAT_COLORS.length] : '#666'
-}
-
-function useCountdown(deadlineUtc: string | null): number {
-  const [remainingMs, setRemainingMs] = useState(0)
-  useEffect(() => {
-    if (!deadlineUtc) {
-      setRemainingMs(0)
-      return
-    }
-    const deadline = new Date(deadlineUtc).getTime()
-    const tick = () => setRemainingMs(Math.max(0, deadline - Date.now()))
-    tick()
-    const id = setInterval(tick, 250)
-    return () => clearInterval(id)
-  }, [deadlineUtc])
-  return remainingMs
 }
 
 export function BaseSelectionScreen() {
@@ -33,16 +18,6 @@ export function BaseSelectionScreen() {
   const remainingMs = useCountdown(view?.deadlineUtc ?? null)
 
   if (!view) return null
-
-  if (view.baseSelectionComplete) {
-    return (
-      <main className="base-selection">
-        <h1>Base selection complete</h1>
-        <p>Every player has picked a base. The next phase isn't built yet - check back soon.</p>
-        <PlayerList view={view} />
-      </main>
-    )
-  }
 
   const currentPicker = view.players.find((p) => p.playerId === view.currentPickerPlayerId)
 

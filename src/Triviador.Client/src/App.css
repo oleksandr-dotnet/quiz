@@ -1,6 +1,7 @@
 .landing,
 .lobby,
-.base-selection {
+.base-selection,
+.land-grab {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -77,4 +78,54 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.question-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+  max-width: 32rem;
+}
+
+.choice-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.numeric-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.answer-chips {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.answer-chips li {
+  padding: 0.2em 0.7em;
+  border-radius: 999px;
+  border: 1px solid #444;
+}
+
+.answer-chips li.answered {
+  border-color: #3cb371;
+  background: rgba(60, 179, 113, 0.15);
+}
+
+.reveal-panel {
+  width: 100%;
+  max-width: 32rem;
+  padding: 0.75em 1em;
+  border-radius: 8px;
+  border: 1px solid #646cff;
+  background: rgba(100, 108, 255, 0.08);
 }

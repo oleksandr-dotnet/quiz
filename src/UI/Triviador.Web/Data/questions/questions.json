@@ -1,0 +1,29 @@
+{
+  "choice": [
+    { "id": "geo-0001", "text": "Which river flows through Vienna?", "options": ["Danube", "Rhine", "Elbe", "Vistula"], "correctOptionIndex": 0 },
+    { "id": "geo-0002", "text": "What is the capital of Australia?", "options": ["Canberra", "Sydney", "Melbourne", "Perth"], "correctOptionIndex": 0 },
+    { "id": "geo-0003", "text": "Which continent is the Sahara Desert on?", "options": ["Africa", "Asia", "South America", "Australia"], "correctOptionIndex": 0 },
+    { "id": "geo-0004", "text": "Which ocean is the largest by surface area?", "options": ["Pacific", "Atlantic", "Indian", "Arctic"], "correctOptionIndex": 0 },
+    { "id": "hist-0001", "text": "In which year did World War II end?", "options": ["1945", "1939", "1918", "1950"], "correctOptionIndex": 0 },
+    { "id": "hist-0002", "text": "Who was the first President of the United States?", "options": ["George Washington", "Thomas Jefferson", "John Adams", "Abraham Lincoln"], "correctOptionIndex": 0 },
+    { "id": "hist-0003", "text": "The Great Wall was built primarily to defend which country?", "options": ["China", "Japan", "Mongolia", "Korea"], "correctOptionIndex": 0 },
+    { "id": "sci-0001", "text": "What is the chemical symbol for gold?", "options": ["Au", "Ag", "Gd", "Go"], "correctOptionIndex": 0 },
+    { "id": "sci-0002", "text": "How many planets are in the Solar System?", "options": ["8", "7", "9", "10"], "correctOptionIndex": 0 },
+    { "id": "sci-0003", "text": "What gas do plants primarily absorb for photosynthesis?", "options": ["Carbon dioxide", "Oxygen", "Nitrogen", "Hydrogen"], "correctOptionIndex": 0 },
+    { "id": "sport-0001", "text": "How many players are on a standard soccer team on the field?", "options": ["11", "9", "10", "12"], "correctOptionIndex": 0 },
+    { "id": "sport-0002", "text": "In which sport would you perform a slam dunk?", "options": ["Basketball", "Volleyball", "Tennis", "Hockey"], "correctOptionIndex": 0 },
+    { "id": "cult-0001", "text": "Who painted the Mona Lisa?", "options": ["Leonardo da Vinci", "Michelangelo", "Raphael", "Donatello"], "correctOptionIndex": 0 },
+    { "id": "cult-0002", "text": "Which language has the most native speakers worldwide?", "options": ["Mandarin Chinese", "English", "Spanish", "Hindi"], "correctOptionIndex": 0 },
+    { "id": "cult-0003", "text": "What instrument has 88 keys?", "options": ["Piano", "Organ", "Harpsichord", "Accordion"], "correctOptionIndex": 0 }
+  ],
+  "tip": [
+    { "id": "num-0001", "text": "How tall is Mount Everest, in metres?", "unit": "m", "correctNumericValue": 8849 },
+    { "id": "num-0002", "text": "What is the population of Japan, in millions?", "unit": "million", "correctNumericValue": 125 },
+    { "id": "num-0003", "text": "In what year was the Eiffel Tower completed?", "unit": null, "correctNumericValue": 1889 },
+    { "id": "num-0004", "text": "How many bones are in the adult human body?", "unit": null, "correctNumericValue": 206 },
+    { "id": "num-0005", "text": "What is the boiling point of water at sea level, in Celsius?", "unit": "°C", "correctNumericValue": 100 },
+    { "id": "num-0006", "text": "How long is the Amazon River, in kilometres?", "unit": "km", "correctNumericValue": 6400 },
+    { "id": "num-0007", "text": "How many countries are in the European Union?", "unit": null, "correctNumericValue": 27 },
+    { "id": "num-0008", "text": "What is the speed of light in a vacuum, in thousands of km/s?", "unit": "km/s (thousands)", "correctNumericValue": 300 }
+  ]
+}
