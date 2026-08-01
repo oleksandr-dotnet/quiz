@@ -1,0 +1,98 @@
+import type { KeyboardEvent, SVGProps } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { RegionView } from '../../api/contracts'
+import { SEAT_COLORS, hatchPatternIdFor } from '../../lib/seats'
+import { EUROPE_GEOGRAPHY, type RegionGeometry } from './europeGeography'
+
+export interface RegionShapeProps {
+  region: RegionView
+  ownerSeat: number | null
+  ownerName: string | null
+  interactive: boolean
+  eligible: boolean
+  contested: boolean
+  onSelect?: (regionId: string) => void
+}
+
+// Draws the region's real country outline when one was baked by scripts/generate-europe-paths.mjs;
+// falls back to the legacy circle (server centerX/centerY/radius) if the client's static geography
+// dataset and the server's map content ever drift out of sync.
+function RegionOutline({
+  region,
+  geometry,
+  ...rest
+}: { region: RegionView; geometry: RegionGeometry | undefined } & Omit<SVGProps<SVGPathElement>, 'ref' | 'd'>) {
+  if (geometry) return <path d={geometry.path} {...rest} />
+  return <circle cx={region.centerX} cy={region.centerY} r={region.radius} {...rest} />
+}
+
+export function RegionShape({ region, ownerSeat, ownerName, interactive, eligible, contested, onSelect }: RegionShapeProps) {
+  const { t } = useTranslation()
+  const clickable = interactive && eligible && !!onSelect
+  const geometry = EUROPE_GEOGRAPHY[region.regionId]
+  const markerX = geometry ? geometry.centroidX : region.labelX
+  const markerY = geometry ? geometry.centroidY : region.labelY
+  const label = ownerName
+    ? t('map.regionLabelClaimed', { name: region.name, value: region.value, ownerName })
+    : t('map.regionLabelUnclaimed', { name: region.name, value: region.value })
+
+  function handleKeyDown(e: KeyboardEvent<SVGGElement>) {
+    if (!clickable) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onSelect!(region.regionId)
+    }
+  }
+
+  return (
+    <g
+      className={clickable ? 'region selectable' : 'region'}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={label}
+      data-testid={`region-${region.regionId}`}
+      onClick={clickable ? () => onSelect!(region.regionId) : undefined}
+      onKeyDown={handleKeyDown}
+    >
+      <RegionOutline region={region} geometry={geometry} fill="var(--unclaimed)" stroke="var(--ink-500)" strokeWidth={1} />
+      {ownerSeat !== null && (
+        // Keyed by owner, not just region id: a claim (no prior owner) and a capture (owner
+        // change) both force this group to remount, replaying the claim-wash animation - the
+        // exact moment a silent fill-color swap used to happen with no feedback at all.
+        <g key={`${region.regionId}-${ownerSeat}`} className="region-claim-wash">
+          <RegionOutline region={region} geometry={geometry} fill={SEAT_COLORS[ownerSeat]} fillOpacity={0.34} />
+          <RegionOutline
+            region={region}
+            geometry={geometry}
+            fill={`url(#${hatchPatternIdFor(ownerSeat)})`}
+            fillOpacity={0.22}
+          />
+          <RegionOutline region={region} geometry={geometry} fill="none" stroke="var(--ink-500)" strokeWidth={1} />
+        </g>
+      )}
+      {eligible && (
+        <RegionOutline
+          region={region}
+          geometry={geometry}
+          fill="none"
+          stroke="var(--gilt-500)"
+          strokeWidth={2.5}
+          strokeDasharray="7 5"
+          className="marching-ants"
+        />
+      )}
+      {contested && (
+        <g transform={`translate(${markerX} ${markerY})`} className="contested-marker">
+          <circle r={13} fill="var(--paper-050)" fillOpacity={0.85} stroke="var(--danger)" strokeWidth={1.5} />
+          <path
+            d="M-6,-6 L6,6 M6,-6 L-6,6"
+            stroke="var(--danger)"
+            strokeWidth={2.4}
+            strokeLinecap="round"
+          />
+        </g>
+      )}
+      <title>{label}</title>
+    </g>
+  )
+}

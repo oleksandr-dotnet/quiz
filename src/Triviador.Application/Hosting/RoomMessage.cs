@@ -44,6 +44,9 @@ public sealed record SubmitAnswerRequest(
 public sealed record PickRegionRequest(
     Guid RequestingPlayerId, string RegionId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
 
+public sealed record SelectAttackTargetRequest(
+    Guid RequestingPlayerId, string TargetRegionId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
 public sealed record GameViewRequest(Guid PlayerId, TaskCompletionSource<GameViewDto> Reply) : RoomMessage;
 
 /// Carries the exact token the timer was armed for, so a timer superseded by a newer pending

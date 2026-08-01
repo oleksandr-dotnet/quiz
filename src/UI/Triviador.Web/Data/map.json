@@ -1,26 +1,14 @@
 {
-  "id": "abstract-18",
-  "viewBox": "0 0 600 300",
+  "id": "europe-8",
+  "viewBox": "0 0 1200 700",
   "regions": [
-    { "id": "r01", "value": 200, "renderPath": "M5,5 L95,5 L95,95 L5,95 Z", "adjacentTo": ["r02", "r07"] },
-    { "id": "r02", "value": 200, "renderPath": "M105,5 L195,5 L195,95 L105,95 Z", "adjacentTo": ["r01", "r03", "r08"] },
-    { "id": "r03", "value": 200, "renderPath": "M205,5 L295,5 L295,95 L205,95 Z", "adjacentTo": ["r02", "r04", "r09"] },
-    { "id": "r04", "value": 200, "renderPath": "M305,5 L395,5 L395,95 L305,95 Z", "adjacentTo": ["r03", "r05", "r10"] },
-    { "id": "r05", "value": 200, "renderPath": "M405,5 L495,5 L495,95 L405,95 Z", "adjacentTo": ["r04", "r06", "r11"] },
-    { "id": "r06", "value": 200, "renderPath": "M505,5 L595,5 L595,95 L505,95 Z", "adjacentTo": ["r05", "r12"] },
-
-    { "id": "r07", "value": 400, "renderPath": "M5,105 L95,105 L95,195 L5,195 Z", "adjacentTo": ["r01", "r08", "r13"] },
-    { "id": "r08", "value": 400, "renderPath": "M105,105 L195,105 L195,195 L105,195 Z", "adjacentTo": ["r02", "r07", "r09", "r14"] },
-    { "id": "r09", "value": 400, "renderPath": "M205,105 L295,105 L295,195 L205,195 Z", "adjacentTo": ["r03", "r08", "r10", "r15"] },
-    { "id": "r10", "value": 400, "renderPath": "M305,105 L395,105 L395,195 L305,195 Z", "adjacentTo": ["r04", "r09", "r11", "r16"] },
-    { "id": "r11", "value": 400, "renderPath": "M405,105 L495,105 L495,195 L405,195 Z", "adjacentTo": ["r05", "r10", "r12", "r17"] },
-    { "id": "r12", "value": 400, "renderPath": "M505,105 L595,105 L595,195 L505,195 Z", "adjacentTo": ["r06", "r11", "r18"] },
-
-    { "id": "r13", "value": 200, "renderPath": "M5,205 L95,205 L95,295 L5,295 Z", "adjacentTo": ["r07", "r14"] },
-    { "id": "r14", "value": 200, "renderPath": "M105,205 L195,205 L195,295 L105,295 Z", "adjacentTo": ["r08", "r13", "r15"] },
-    { "id": "r15", "value": 200, "renderPath": "M205,205 L295,205 L295,295 L205,295 Z", "adjacentTo": ["r09", "r14", "r16"] },
-    { "id": "r16", "value": 200, "renderPath": "M305,205 L395,205 L395,295 L305,295 Z", "adjacentTo": ["r10", "r15", "r17"] },
-    { "id": "r17", "value": 200, "renderPath": "M405,205 L495,205 L495,295 L405,295 Z", "adjacentTo": ["r11", "r16", "r18"] },
-    { "id": "r18", "value": 200, "renderPath": "M505,205 L595,205 L595,295 L505,295 Z", "adjacentTo": ["r12", "r17"] }
+    { "id": "r01", "nameEn": "Spain", "nameRu": "Испания", "value": 400, "centerX": 260, "centerY": 520, "radius": 68, "labelX": 260, "labelY": 520, "adjacentTo": ["r03"] },
+    { "id": "r03", "nameEn": "France", "nameRu": "Франция", "value": 400, "centerX": 430, "centerY": 430, "radius": 68, "labelX": 430, "labelY": 430, "adjacentTo": ["r01", "r04", "r08", "r10"] },
+    { "id": "r04", "nameEn": "United Kingdom", "nameRu": "Великобритания", "value": 400, "centerX": 260, "centerY": 180, "radius": 65, "labelX": 260, "labelY": 180, "adjacentTo": ["r03"] },
+    { "id": "r08", "nameEn": "Germany", "nameRu": "Германия", "value": 400, "centerX": 650, "centerY": 300, "radius": 70, "labelX": 650, "labelY": 300, "adjacentTo": ["r03", "r10", "r12", "r15"] },
+    { "id": "r10", "nameEn": "Italy", "nameRu": "Италия", "value": 400, "centerX": 650, "centerY": 560, "radius": 66, "labelX": 650, "labelY": 560, "adjacentTo": ["r03", "r08"] },
+    { "id": "r12", "nameEn": "Poland", "nameRu": "Польша", "value": 400, "centerX": 880, "centerY": 250, "radius": 64, "labelX": 880, "labelY": 250, "adjacentTo": ["r08", "r16"] },
+    { "id": "r15", "nameEn": "Sweden", "nameRu": "Швеция", "value": 400, "centerX": 800, "centerY": 100, "radius": 62, "labelX": 800, "labelY": 100, "adjacentTo": ["r08"] },
+    { "id": "r16", "nameEn": "Ukraine", "nameRu": "Украина", "value": 400, "centerX": 1050, "centerY": 300, "radius": 66, "labelX": 1050, "labelY": 300, "adjacentTo": ["r12"] }
   ]
 }

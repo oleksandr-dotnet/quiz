@@ -4,12 +4,14 @@ using Microsoft.Extensions.Hosting;
 using Triviador.Application.Content;
 using Triviador.Domain.Primitives;
 using Triviador.Domain.Questions;
+using Triviador.Domain.State;
 
 namespace Triviador.Infrastructure.Content;
 
 public sealed class QuestionRepository : IQuestionRepository
 {
-    private readonly ImmutableArray<Question> _questions;
+    private readonly ImmutableArray<ChoiceQuestionJson> _choice;
+    private readonly ImmutableArray<TipQuestionJson> _tip;
 
     public QuestionRepository(IHostEnvironment environment)
     {
@@ -19,7 +21,6 @@ public sealed class QuestionRepository : IQuestionRepository
             ?? throw new InvalidOperationException($"'{path}' did not deserialize to a question bank.");
 
         var errors = new List<string>();
-        var builder = ImmutableArray.CreateBuilder<Question>();
         var seenIds = new HashSet<string>();
 
         foreach (var q in raw.Choice)
@@ -30,10 +31,22 @@ public sealed class QuestionRepository : IQuestionRepository
                 continue;
             }
 
+            if (string.IsNullOrWhiteSpace(q.Text) || string.IsNullOrWhiteSpace(q.TextRu))
+            {
+                errors.Add($"Choice question '{q.Id}' is missing its English or Russian text.");
+                continue;
+            }
+
             var distinctOptions = q.Options.Where(o => !string.IsNullOrWhiteSpace(o)).Distinct().Count();
             if (distinctOptions < 2)
             {
                 errors.Add($"Choice question '{q.Id}' needs at least 2 distinct non-empty options.");
+                continue;
+            }
+
+            if (q.OptionsRu.Length != q.Options.Length)
+            {
+                errors.Add($"Choice question '{q.Id}' has a Russian options list of different length than English.");
                 continue;
             }
 
@@ -42,11 +55,6 @@ public sealed class QuestionRepository : IQuestionRepository
                 errors.Add($"Choice question '{q.Id}' has a correctOptionIndex out of range.");
                 continue;
             }
-
-            builder.Add(new Question(
-                new QuestionPrompt(new QuestionId(q.Id), QuestionKind.Choice, q.Text, q.Options.ToImmutableArray(), null),
-                q.CorrectOptionIndex,
-                null));
         }
 
         foreach (var q in raw.Tip)
@@ -57,10 +65,10 @@ public sealed class QuestionRepository : IQuestionRepository
                 continue;
             }
 
-            builder.Add(new Question(
-                new QuestionPrompt(new QuestionId(q.Id), QuestionKind.Tip, q.Text, ImmutableArray<string>.Empty, q.Unit),
-                null,
-                q.CorrectNumericValue));
+            if (string.IsNullOrWhiteSpace(q.Text) || string.IsNullOrWhiteSpace(q.TextRu))
+            {
+                errors.Add($"Tip question '{q.Id}' is missing its English or Russian text.");
+            }
         }
 
         if (errors.Count > 0)
@@ -69,10 +77,36 @@ public sealed class QuestionRepository : IQuestionRepository
                 $"'{path}' failed question validation:\n" + string.Join('\n', errors));
         }
 
-        _questions = builder.ToImmutable();
+        _choice = raw.Choice;
+        _tip = raw.Tip;
     }
 
-    public ImmutableArray<Question> AllQuestions() => _questions;
+    public ImmutableArray<Question> AllQuestions(Language language)
+    {
+        var builder = ImmutableArray.CreateBuilder<Question>(_choice.Length + _tip.Length);
+
+        foreach (var q in _choice)
+        {
+            var text = language == Language.Russian ? q.TextRu : q.Text;
+            var options = language == Language.Russian ? q.OptionsRu : q.Options;
+            builder.Add(new Question(
+                new QuestionPrompt(new QuestionId(q.Id), QuestionKind.Choice, text, options, null),
+                q.CorrectOptionIndex,
+                null));
+        }
+
+        foreach (var q in _tip)
+        {
+            var text = language == Language.Russian ? q.TextRu : q.Text;
+            var unit = language == Language.Russian ? q.UnitRu : q.Unit;
+            builder.Add(new Question(
+                new QuestionPrompt(new QuestionId(q.Id), QuestionKind.Tip, text, ImmutableArray<string>.Empty, unit),
+                null,
+                q.CorrectNumericValue));
+        }
+
+        return builder.MoveToImmutable();
+    }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -81,7 +115,10 @@ public sealed class QuestionRepository : IQuestionRepository
 
     private sealed record QuestionsJson(ImmutableArray<ChoiceQuestionJson> Choice, ImmutableArray<TipQuestionJson> Tip);
 
-    private sealed record ChoiceQuestionJson(string Id, string Text, ImmutableArray<string> Options, int CorrectOptionIndex);
+    private sealed record ChoiceQuestionJson(
+        string Id, string Text, string TextRu, ImmutableArray<string> Options, ImmutableArray<string> OptionsRu,
+        int CorrectOptionIndex);
 
-    private sealed record TipQuestionJson(string Id, string Text, string? Unit, long CorrectNumericValue);
+    private sealed record TipQuestionJson(
+        string Id, string Text, string TextRu, string? Unit, string? UnitRu, long CorrectNumericValue);
 }

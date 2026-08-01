@@ -1,0 +1,56 @@
+/* Full-viewport paper surface: a cream base, a data-URI feTurbulence grain layer (no image asset,
+   no network request), and a radial vignette so edges darken slightly. */
+body {
+  position: relative;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--paper-100);
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+body::before {
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-size: 220px 220px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+body::after {
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(43, 35, 24, 0.14) 100%);
+}
+
+.paper-card {
+  position: relative;
+  background: var(--paper-050);
+  border: 1px solid var(--paper-300);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-card);
+  padding: 1rem 1.25rem;
+}
+
+/* A torn/deckle top edge: a strip of paper-colored teeth masked into a zigzag, tiled along the
+   card's top border, so the card reads as torn parchment rather than a rectangle with rounded
+   corners. */
+.paper-card::before {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  top: -7px;
+  height: 10px;
+  background-color: var(--paper-050);
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+  -webkit-mask-size: 24px 10px;
+  mask-size: 24px 10px;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10' viewBox='0 0 24 10'%3E%3Cpath d='M0,10 L4,2 L8,10 L12,3 L16,10 L20,2 L24,10 Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10' viewBox='0 0 24 10'%3E%3Cpath d='M0,10 L4,2 L8,10 L12,3 L16,10 L20,2 L24,10 Z'/%3E%3C/svg%3E");
+}

@@ -47,7 +47,7 @@ public sealed partial class GameEngine
             return CommandResult.Rejected(RejectionCode.GameAlreadyFinished);
         }
 
-        if (_state.Phase != GamePhase.LandGrab)
+        if (_state.Phase is not (GamePhase.LandGrab or GamePhase.Battle))
         {
             return CommandResult.Rejected(RejectionCode.WrongPhase);
         }
@@ -105,26 +105,44 @@ public sealed partial class GameEngine
         var events = ImmutableArray.CreateBuilder<IGameEvent>();
         events.Add(new QuestionResolved(result));
 
-        var allSilent = submissions.All(s => s.Answer is AnswerValue.None);
-        var deadRoundCount = pending.Purpose is QuestionPurpose.LandGrab lg ? lg.DeadRoundCount : 0;
+        switch (pending.Purpose)
+        {
+            case QuestionPurpose.LandGrab landGrab:
+            {
+                var allSilent = submissions.All(s => s.Answer is AnswerValue.None);
+                if (allSilent)
+                {
+                    var nextDeadRoundCount = landGrab.DeadRoundCount + 1;
+                    if (nextDeadRoundCount >= _state.Rules.LandGrabDeadRoundThreshold)
+                    {
+                        var shuffled = _random.Shuffle(pending.Participants);
+                        events.AddRange(StartAwardQueue(shuffled, at));
+                    }
+                    else
+                    {
+                        events.AddRange(AskLandGrabQuestion(pending.Participants, nextDeadRoundCount, at));
+                    }
+                }
+                else
+                {
+                    var orderedByRank = result.Rankings.OrderBy(r => r.Rank).Select(r => r.Player).ToImmutableArray();
+                    events.AddRange(StartAwardQueue(orderedByRank, at));
+                }
 
-        if (allSilent)
-        {
-            var nextDeadRoundCount = deadRoundCount + 1;
-            if (nextDeadRoundCount >= _state.Rules.LandGrabDeadRoundThreshold)
-            {
-                var shuffled = _random.Shuffle(pending.Participants);
-                events.AddRange(StartAwardQueue(shuffled, at));
+                break;
             }
-            else
+
+            case QuestionPurpose.Duel or QuestionPurpose.BaseAssault:
             {
-                events.AddRange(AskLandGrabQuestion(pending.Participants, nextDeadRoundCount, at));
+                // Battle's questions don't apply their effect immediately — see
+                // GameEngine.Battle.cs's ResolveRevealHold. The reveal is shown first; the region
+                // transfer or hit-point damage lands once RevealHold's own deadline elapses.
+                var revealToken = _state.IssueActivityToken();
+                var revealDeadline = at.Add(TimeSpan.FromSeconds(_state.Rules.RevealHoldDurationSeconds));
+                _state.Pending = new PendingActivity.RevealHold(revealToken, revealDeadline, result, pending.Purpose);
+                events.Add(new RevealHoldStarted(revealToken, result, revealDeadline));
+                break;
             }
-        }
-        else
-        {
-            var orderedByRank = result.Rankings.OrderBy(r => r.Rank).Select(r => r.Player).ToImmutableArray();
-            events.AddRange(StartAwardQueue(orderedByRank, at));
         }
 
         return events.ToImmutable();
@@ -156,7 +174,7 @@ public sealed partial class GameEngine
         var queue = BuildAwardQueue(orderedByRank);
         if (queue.IsEmpty)
         {
-            return CompleteLandGrab();
+            return CompleteLandGrab(at);
         }
 
         var token = _state.IssueActivityToken();
@@ -246,7 +264,7 @@ public sealed partial class GameEngine
             var freeRegionsRemain = _state.Map.Regions.Any(r => _state.RegionOf(r.Id).OwnerId is null);
             events.AddRange(freeRegionsRemain
                 ? AskLandGrabQuestion(ActiveParticipants(), 0, at)
-                : CompleteLandGrab());
+                : CompleteLandGrab(at));
         }
         else
         {
@@ -261,10 +279,13 @@ public sealed partial class GameEngine
         return events.ToImmutable();
     }
 
-    private ImmutableArray<IGameEvent> CompleteLandGrab()
+    private ImmutableArray<IGameEvent> CompleteLandGrab(Instant at)
     {
         _state.Pending = null;
-        return ImmutableArray.Create<IGameEvent>(new LandGrabCompleted());
+        var events = ImmutableArray.CreateBuilder<IGameEvent>();
+        events.Add(new LandGrabCompleted());
+        events.AddRange(StartBattle(at));
+        return events.ToImmutable();
     }
 
     private ImmutableArray<IGameEvent> TimeoutQuestion(PendingActivity.Question pending, Instant at) =>

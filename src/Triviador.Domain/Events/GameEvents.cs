@@ -42,3 +42,31 @@ public sealed record RegionPickRequested(
 public sealed record RegionAwarded(PlayerId PlayerId, RegionId RegionId) : IGameEvent;
 
 public sealed record LandGrabCompleted : IGameEvent;
+
+public sealed record AttackTargetRequested(
+    ActivityToken Token,
+    PlayerId PlayerId,
+    ImmutableArray<RegionId> EligibleTargetRegionIds,
+    Instant Deadline) : IGameEvent;
+
+public sealed record TurnSkipped(PlayerId PlayerId) : IGameEvent;
+
+public sealed record RevealHoldStarted(ActivityToken Token, QuestionResult Result, Instant Deadline) : IGameEvent;
+
+public sealed record RegionCaptured(PlayerId AttackerId, PlayerId DefenderId, RegionId RegionId) : IGameEvent;
+
+public sealed record BaseHitPointsChanged(PlayerId DefenderId, int RemainingHitPoints) : IGameEvent;
+
+public sealed record BaseCaptured(
+    PlayerId AttackerId,
+    PlayerId DefenderId,
+    RegionId BaseRegionId,
+    ImmutableArray<RegionId> TransferredRegionIds) : IGameEvent;
+
+public sealed record PlayerEliminated(PlayerId PlayerId) : IGameEvent;
+
+public sealed record RoundAdvanced(int RoundNumber) : IGameEvent;
+
+public sealed record BattleCompleted : IGameEvent;
+
+public sealed record GameFinished(GameOutcome Outcome) : IGameEvent;

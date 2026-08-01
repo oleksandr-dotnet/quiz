@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+src/UI/Triviador.Web/wwwroot/*
+!src/UI/Triviador.Web/wwwroot/.gitkeep
+tests/
+openspec/
+artifacts/
+.git/
+.vs/
+.idea/
+*.md

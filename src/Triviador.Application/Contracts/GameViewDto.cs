@@ -20,11 +20,53 @@ public sealed record GameViewDto(
     PendingQuestionViewDto? PendingQuestion,
     PendingRegionPickViewDto? PendingRegionPick,
     LastRevealDto? LastReveal,
-    bool LandGrabComplete);
+    int CurrentRound,
+    PendingAttackTargetViewDto? PendingAttackTarget,
+    PendingRevealViewDto? PendingReveal,
+    GameOutcomeDto? Outcome,
+    PendingBasePickViewDto? PendingBasePick,
+    BattleContextDto? Battle,
+    Language Language);
 
-public sealed record RegionViewDto(string RegionId, int Value, string RenderPath, Guid? OwnerPlayerId, bool IsBase);
+public sealed record RegionViewDto(
+    string RegionId, string Name, int Value, double CenterX, double CenterY, double Radius,
+    double LabelX, double LabelY, IReadOnlyList<string> AdjacentTo,
+    Guid? OwnerPlayerId, bool IsBase);
 
-public sealed record PlayerViewDto(Guid PlayerId, int Seat, string? DisplayName, bool IsBot, string? BaseRegionId, int Score);
+public sealed record PlayerViewDto(
+    Guid PlayerId,
+    int Seat,
+    string? DisplayName,
+    bool IsBot,
+    bool IsConnected,
+    string? BaseRegionId,
+    int Score,
+    bool Eliminated,
+    int? BaseHitPoints);
+
+/// Mirrors PendingRegionPickViewDto's shape for the one pending-activity kind that didn't already
+/// project an eligible set: base picking. CurrentPickerPlayerId/DeadlineUtc/YouAreCurrentPicker stay
+/// on GameViewDto itself for compatibility with call sites that only need those.
+public sealed record PendingBasePickViewDto(
+    Guid CurrentPickerPlayerId,
+    IReadOnlyList<string> EligibleRegionIds,
+    DateTimeOffset Deadline);
+
+public enum BattleKindDto
+{
+    Duel,
+    BaseAssault,
+}
+
+/// Describes only facts both combatants already know - never an in-flight or correct answer, which
+/// PendingQuestionViewDto/PendingRevealViewDto already guarantee never leak.
+public sealed record BattleContextDto(
+    BattleKindDto Kind,
+    string ContestedRegionId,
+    Guid AttackerPlayerId,
+    Guid DefenderPlayerId,
+    int? AssaultQuestionIndex,
+    int? DamageDealtThisTurn);
 
 public enum AnswerKindDto
 {
@@ -62,3 +104,19 @@ public sealed record LastRevealDto(
     QuestionPromptDto Prompt,
     AnswerValueDto CorrectAnswer,
     IReadOnlyList<RevealedAnswerDto> Answers);
+
+public sealed record PendingAttackTargetViewDto(
+    Guid CurrentAttackerPlayerId,
+    IReadOnlyList<string> EligibleTargetRegionIds,
+    DateTimeOffset Deadline);
+
+/// Unlike LastReveal (a one-shot push attached to the single broadcast right after resolution),
+/// PendingReveal reflects a live RevealHold pending activity - it appears on every broadcast for as
+/// long as the reveal window is open, with its own server-driven deadline.
+public sealed record PendingRevealViewDto(
+    QuestionPromptDto Prompt,
+    AnswerValueDto CorrectAnswer,
+    IReadOnlyList<RevealedAnswerDto> Answers,
+    DateTimeOffset Deadline);
+
+public sealed record GameOutcomeDto(IReadOnlyList<Guid> WinnerPlayerIds);

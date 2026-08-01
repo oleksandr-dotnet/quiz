@@ -1,0 +1,50 @@
+:root {
+  color-scheme: light;
+
+  /* paper */
+  --paper-050: #faf6ea;
+  --paper-100: #f4ecd8;
+  --paper-200: #ece0c4;
+  --paper-300: #dfcfab;
+  --paper-400: #cbb68c;
+  --sea: #dcd3bd;
+
+  /* ink */
+  --ink-900: #2b2318;
+  --ink-700: #463823;
+  --ink-500: #6d5c40;
+  --ink-300: #9c8a68;
+  --ink-200: #bfae8c;
+
+  /* gilt (focus, active turn, victory) */
+  --gilt-600: #9c7420;
+  --gilt-500: #b58a2b;
+  --gilt-300: #d9b45a;
+
+  /* heraldic seats - muted so they sit on cream, not on black */
+  --seat-0: #a8332c; /* gules - crimson */
+  --seat-1: #2f4a7a; /* azure - indigo  */
+  --seat-2: #3f6b43; /* vert  - forest  */
+  --seat-3: #a9761f; /* or    - ochre   */
+  --wax: #8f2b22;
+
+  --unclaimed: var(--paper-200);
+  --danger: #a8332c;
+
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 14px;
+  --shadow-card: 0 1px 0 var(--paper-300), 0 8px 20px -12px rgba(43, 35, 24, 0.45);
+  --dur-fast: 140ms;
+  --dur-mid: 320ms;
+  --dur-slow: 680ms;
+  --ease-paper: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-mid: 0ms;
+    --dur-slow: 0ms;
+  }
+}

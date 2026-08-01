@@ -40,6 +40,12 @@ public sealed class GameState
 
     public ActivityToken NextActivityToken { get; internal set; }
 
+    public int CurrentRound { get; internal set; }
+
+    // Empty means "needs rebuilding from the players active right now" — checked and refilled at the
+    // top of every AdvanceTurn call rather than tracked via a separate flag.
+    public ImmutableQueue<PlayerId> RoundQueue { get; internal set; } = ImmutableQueue<PlayerId>.Empty;
+
     public RegionState RegionOf(RegionId id) => _regionsById[id];
 
     public bool IsBase(RegionId id)
@@ -119,7 +125,8 @@ public sealed class GameState
         foreach (var player in _players)
         {
             builder.Append(player.Id).Append(':').Append(player.Seat).Append(':')
-                .Append(player.BaseRegion).Append(':').Append(player.Eliminated).Append(';');
+                .Append(player.BaseRegion).Append(':').Append(player.Eliminated).Append(':')
+                .Append(player.BaseHitPoints).Append(';');
         }
 
         foreach (var region in Regions)
@@ -127,7 +134,14 @@ public sealed class GameState
             builder.Append(region.Id).Append(':').Append(region.OwnerId).Append(';');
         }
 
-        builder.Append(Pending?.GetType().Name).Append('|').Append(NextActivityToken);
+        builder.Append(Pending?.GetType().Name).Append('|').Append(NextActivityToken)
+            .Append('|').Append(CurrentRound).Append('|');
+        foreach (var playerId in RoundQueue)
+        {
+            builder.Append(playerId).Append(',');
+        }
+
+        builder.Append('|').Append(Outcome is null ? "none" : string.Join(',', Outcome.Winners));
         return builder.ToString();
     }
 }

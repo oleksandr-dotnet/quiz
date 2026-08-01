@@ -9,7 +9,11 @@ public sealed record GameRules(
     int LandGrabPickDurationSeconds = 10,
     int ChoiceQuestionDurationSeconds = 12,
     int TipQuestionDurationSeconds = 20,
-    int LandGrabDeadRoundThreshold = 3)
+    int LandGrabDeadRoundThreshold = 3,
+    int AttackTargetSelectionDurationSeconds = 15,
+    int BaseHitPointsDefault = 3,
+    int RevealHoldDurationSeconds = 4,
+    Language Language = Language.Russian)
 {
     public static readonly GameRules Default = new();
 

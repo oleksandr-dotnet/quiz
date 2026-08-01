@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using Triviador.Application.Contracts;
 using Triviador.Application.Hosting;
 using Triviador.Domain.Questions;
+using Triviador.Domain.State;
 using Triviador.Web.Realtime.Contracts;
 
 namespace Triviador.Web.Realtime;
@@ -10,9 +11,12 @@ public sealed class GameHub(RoomRegistry registry, ConnectionMap connectionMap) 
 {
     public Task<string> Ping() => Task.FromResult("pong");
 
-    public async Task<JoinResultDto> CreateRoom(string displayName, int botSeats)
+    public async Task<JoinResultDto> CreateRoom(string displayName, int botSeats, string? language = null)
     {
-        var room = registry.CreateRoom();
+        var parsedLanguage = language?.Equals("english", StringComparison.OrdinalIgnoreCase) == true
+            ? Language.English
+            : Language.Russian;
+        var room = registry.CreateRoom(parsedLanguage);
         var hostJoin = await room.JoinAsync(displayName, playerToken: null, Context.ConnectionId);
         if (!hostJoin.Success || hostJoin.PlayerId is null || hostJoin.PlayerToken is null)
         {
@@ -110,6 +114,16 @@ public sealed class GameHub(RoomRegistry registry, ConnectionMap connectionMap) 
     {
         var (room, playerId) = ResolveConnection();
         var ack = await room.PickRegionAsync(playerId, regionId);
+        if (!ack.Success)
+        {
+            throw new HubException(ack.RejectionReason);
+        }
+    }
+
+    public async Task SelectAttackTarget(string regionId)
+    {
+        var (room, playerId) = ResolveConnection();
+        var ack = await room.SelectAttackTargetAsync(playerId, regionId);
         if (!ack.Success)
         {
             throw new HubException(ack.RejectionReason);

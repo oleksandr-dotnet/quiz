@@ -1,7 +1,14 @@
-import { useState } from 'react'
+import { useRef, useState, type KeyboardEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createRoom, joinRoom } from '../api/commands'
 import { useGameStore } from '../store/gameStore'
-import type { JoinResult } from '../api/contracts'
+import { Toast } from '../components/Toast'
+import { setLocalePreference, type Locale } from '../i18n'
+import type { JoinResult, Language } from '../api/contracts'
+
+function localeToLanguage(locale: Locale): Language {
+  return locale === 'en' ? 'English' : 'Russian'
+}
 
 function urlRoomCode(): string | null {
   const match = /^#\/room\/([A-Za-z0-9]{4})/.exec(window.location.hash)
@@ -9,16 +16,18 @@ function urlRoomCode(): string | null {
 }
 
 export function LandingScreen() {
+  const { t, i18n } = useTranslation()
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('triviador.name') ?? '')
-  const [joinCode, setJoinCode] = useState(() => urlRoomCode() ?? '')
+  const [joinCode, setJoinCode] = useState(() => (urlRoomCode() ?? '').padEnd(4, ' ').split(''))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const setSession = useGameStore((s) => s.setSession)
   const applyView = useGameStore((s) => s.applyView)
+  const codeInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   function handleResult(result: JoinResult) {
     if (!result.success || !result.view || !result.roomCode || !result.playerToken) {
-      setError(result.rejectionReason ?? 'Something went wrong.')
+      setError(result.rejectionReason ?? t('landing.errorGeneric'))
       setBusy(false)
       return
     }
@@ -29,63 +38,106 @@ export function LandingScreen() {
 
   async function onCreate() {
     if (!displayName.trim()) {
-      setError('Enter a name first.')
+      setError(t('landing.errorNameRequired'))
       return
     }
     setBusy(true)
     setError(null)
-    handleResult(await createRoom(displayName.trim(), 0))
+    handleResult(await createRoom(displayName.trim(), 0, localeToLanguage(i18n.language as Locale)))
   }
 
   async function onPlayVsBots() {
     if (!displayName.trim()) {
-      setError('Enter a name first.')
+      setError(t('landing.errorNameRequired'))
       return
     }
     setBusy(true)
     setError(null)
-    handleResult(await createRoom(displayName.trim(), 3))
+    handleResult(await createRoom(displayName.trim(), 3, localeToLanguage(i18n.language as Locale)))
   }
 
   async function onJoin() {
-    if (!displayName.trim() || joinCode.trim().length !== 4) {
-      setError('Enter a name and a 4-character room code.')
+    const code = joinCode.join('').trim().toUpperCase()
+    if (!displayName.trim() || code.length !== 4) {
+      setError(t('landing.errorNameAndCodeRequired'))
       return
     }
     setBusy(true)
     setError(null)
-    handleResult(await joinRoom(joinCode.trim().toUpperCase(), displayName.trim(), null))
+    handleResult(await joinRoom(code, displayName.trim(), null))
+  }
+
+  function onCodeCellChange(index: number, raw: string) {
+    const char = raw.slice(-1).toUpperCase()
+    setJoinCode((prev) => {
+      const next = [...prev]
+      next[index] = char
+      return next
+    })
+    if (char && index < 3) {
+      codeInputRefs.current[index + 1]?.focus()
+    }
+  }
+
+  function onCodeCellKeyDown(index: number, e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Backspace' && !joinCode[index] && index > 0) {
+      codeInputRefs.current[index - 1]?.focus()
+    }
   }
 
   return (
-    <main className="landing">
-      <h1>Triviador</h1>
+    <main className="landing paper-card">
+      <div className="language-toggle" role="group" aria-label="Language" data-testid="language-toggle">
+        <button
+          className={i18n.language === 'ru' ? 'language-option active' : 'language-option'}
+          onClick={() => setLocalePreference('ru')}
+          data-testid="language-ru"
+        >
+          {t('landing.languageRussian')}
+        </button>
+        <button
+          className={i18n.language === 'en' ? 'language-option active' : 'language-option'}
+          onClick={() => setLocalePreference('en')}
+          data-testid="language-en"
+        >
+          {t('landing.languageEnglish')}
+        </button>
+      </div>
+      <h1>{t('app.title')}</h1>
       <input
-        placeholder="Your name"
+        placeholder={t('landing.namePlaceholder')}
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
         maxLength={20}
+        data-testid="display-name"
       />
       <div className="landing-actions">
-        <button onClick={onCreate} disabled={busy}>
-          Create room
+        <button className="primary" onClick={onCreate} disabled={busy} data-testid="create-room">
+          {t('landing.createRoom')}
         </button>
-        <button onClick={onPlayVsBots} disabled={busy}>
-          Play vs 3 bots
+        <button onClick={onPlayVsBots} disabled={busy} data-testid="play-vs-bots">
+          {t('landing.playVsBots')}
         </button>
       </div>
       <div className="landing-join">
-        <input
-          placeholder="Room code"
-          value={joinCode}
-          maxLength={4}
-          onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-        />
-        <button onClick={onJoin} disabled={busy}>
-          Join
+        <div className="code-input" data-testid="join-code">
+          {joinCode.map((char, index) => (
+            <input
+              key={index}
+              ref={(el) => (codeInputRefs.current[index] = el)}
+              value={char.trim()}
+              maxLength={1}
+              onChange={(e) => onCodeCellChange(index, e.target.value)}
+              onKeyDown={(e) => onCodeCellKeyDown(index, e)}
+              aria-label={t('landing.roomCodeCharAriaLabel', { n: index + 1 })}
+            />
+          ))}
+        </div>
+        <button onClick={onJoin} disabled={busy} data-testid="join-room">
+          {t('landing.join')}
         </button>
       </div>
-      {error && <p className="landing-error">{error}</p>}
+      {error && <Toast message={error} />}
     </main>
   )
 }

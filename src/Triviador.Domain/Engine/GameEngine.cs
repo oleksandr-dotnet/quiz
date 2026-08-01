@@ -34,6 +34,7 @@ public sealed partial class GameEngine
             SelectBase c => ExecuteSelectBase(c),
             SubmitAnswer c => ExecuteSubmitAnswer(c),
             PickRegion c => ExecutePickRegion(c),
+            SelectAttackTarget c => ExecuteSelectAttackTarget(c),
             TimeoutElapsed c => ExecuteTimeoutElapsed(c),
             _ => throw new InvalidOperationException($"Unhandled command type '{command.GetType()}'."),
         };
@@ -52,13 +53,8 @@ public sealed partial class GameEngine
             return;
         }
 
-        // Documented exception: the instant LandGrab completes (every region owned), Pending is
-        // legitimately null because the phase that would supply the next pending activity is out of
-        // this change's scope. See the "After every Execute..." requirement in
-        // specs/game-setup-rules/spec.md.
-        var awaitingFutureBattle = _state.Phase == GamePhase.LandGrab && _state.Pending is null;
         Debug.Assert(
-            _state.Phase == GamePhase.Finished || _state.Pending is not null || awaitingFutureBattle,
-            "After Execute, the game must be Finished or have a pending activity (or be awaiting a future Battle implementation).");
+            _state.Phase == GamePhase.Finished || _state.Pending is not null,
+            "After Execute, the game must be Finished or have a pending activity.");
     }
 }

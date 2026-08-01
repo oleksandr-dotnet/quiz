@@ -30,6 +30,7 @@ public sealed class RoomActor
     private readonly ILogger<RoomActor>? _logger;
     private readonly Task _pump;
 
+    private readonly Language _language;
     private Guid? _hostPlayerId;
     private GameEngine? _engine;
     private Timer? _engineTimer;
@@ -38,7 +39,7 @@ public sealed class RoomActor
 
     public RoomActor(string roomCode, RoomOptions options, IRoomBroadcaster broadcaster, IRoomClock clock,
         IMapRepository mapRepository, IRandomSourceFactory randomSourceFactory,
-        IQuestionSourceFactory questionSourceFactory, ILogger<RoomActor>? logger = null)
+        IQuestionSourceFactory questionSourceFactory, Language language, ILogger<RoomActor>? logger = null)
     {
         RoomCode = roomCode;
         _broadcaster = broadcaster;
@@ -46,6 +47,7 @@ public sealed class RoomActor
         _mapRepository = mapRepository;
         _randomSourceFactory = randomSourceFactory;
         _questionSourceFactory = questionSourceFactory;
+        _language = language;
         _logger = logger;
         _seats = Enumerable.Range(0, options.MaxSeats).Select(i => new Seat(i)).ToArray();
         _lastActivityUtc = clock.UtcNow;
@@ -142,6 +144,16 @@ public sealed class RoomActor
         return tcs.Task;
     }
 
+    public Task<CommandAck> SelectAttackTargetAsync(Guid requestingPlayerId, string targetRegionId)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new SelectAttackTargetRequest(requestingPlayerId, targetRegionId, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
     public Task<GameViewDto> GetGameViewAsync(Guid playerId)
     {
         var tcs = new TaskCompletionSource<GameViewDto>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -192,6 +204,7 @@ public sealed class RoomActor
         SelectBaseRequest m => HandleSelectBaseAsync(m),
         SubmitAnswerRequest m => HandleSubmitAnswerAsync(m),
         PickRegionRequest m => HandlePickRegionAsync(m),
+        SelectAttackTargetRequest m => HandleSelectAttackTargetAsync(m),
         GameViewRequest m => HandleGameViewRequest(m),
         EngineTimerElapsed m => HandleEngineTimerElapsedAsync(m),
         ShutdownRequest m => HandleShutdownAsync(m),
@@ -335,7 +348,7 @@ public sealed class RoomActor
 
         var occupiedSeats = _seats.Where(s => s.IsBot || s.PlayerId is not null)
             .OrderBy(s => s.Index).ToArray();
-        var rules = GameRules.Default;
+        var rules = GameRules.Default with { Language = _language };
         if (occupiedSeats.Length < rules.MinPlayers)
         {
             m.Reply.TrySetResult(CommandAck.Reject("NotEnoughSeatsFilled"));
@@ -349,7 +362,7 @@ public sealed class RoomActor
 
         var seed = RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue);
         var state = GameState.CreateLobby(_mapRepository.GetDefaultMap(), rules);
-        var engine = new GameEngine(state, _randomSourceFactory.Create(seed), _questionSourceFactory.Create(seed));
+        var engine = new GameEngine(state, _randomSourceFactory.Create(seed), _questionSourceFactory.Create(seed, rules.Language));
         var now = Now();
 
         foreach (var seat in occupiedSeats)
@@ -453,6 +466,33 @@ public sealed class RoomActor
         m.Reply.TrySetResult(CommandAck.Ok);
     }
 
+    private async Task HandleSelectAttackTargetAsync(SelectAttackTargetRequest m)
+    {
+        if (_engine is null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameNotStarted"));
+            return;
+        }
+        if (_engine.State.Pending is not PendingActivity.TargetSelection pending)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotAwaitingThisInput"));
+            return;
+        }
+
+        var result = _engine.Execute(new SelectAttackTarget(
+            Now(), new PlayerId(m.RequestingPlayerId), pending.Token, new RegionId(m.TargetRegionId)));
+
+        if (!result.IsAccepted)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject(result.Rejection!.Value.ToString()));
+            return;
+        }
+
+        ArmEngineTimer();
+        await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
     private static QuestionResult? ExtractLastReveal(ImmutableArray<IGameEvent> events) =>
         events.OfType<QuestionResolved>().Select(e => e.Result).LastOrDefault();
 
@@ -516,7 +556,7 @@ public sealed class RoomActor
             .Select(s => new SeatDto(s.Index, s.PlayerId, s.DisplayName, s.IsBot, s.IsConnected,
                 s.PlayerId.HasValue && s.PlayerId == _hostPlayerId))
             .ToArray();
-        return new RoomViewDto(RoomCode, viewerId, viewerId == _hostPlayerId, seats);
+        return new RoomViewDto(RoomCode, viewerId, viewerId == _hostPlayerId, seats, _language);
     }
 
     private GameViewDto BuildGameView(Guid viewerId, QuestionResult? lastReveal = null)
@@ -528,19 +568,36 @@ public sealed class RoomActor
         var players = state.Players.Select(p =>
         {
             seatsByPlayerId.TryGetValue(p.Id.Value, out var seat);
-            return new PlayerViewDto(p.Id.Value, p.Seat, seat?.DisplayName, seat?.IsBot ?? false, p.BaseRegion?.Value, state.ScoreOf(p.Id));
+            // A bot never holds a live SignalR connection, but it never misses a turn either - it
+            // always resolves by timeout like any other bot action. Showing it as "disconnected"
+            // would read as broken, not intentional, so bots are always reported connected here.
+            var isConnected = seat is null || seat.IsBot || seat.IsConnected;
+            return new PlayerViewDto(
+                p.Id.Value, p.Seat, seat?.DisplayName, seat?.IsBot ?? false, isConnected,
+                p.BaseRegion?.Value, state.ScoreOf(p.Id), p.Eliminated, p.BaseRegion is not null ? p.BaseHitPoints : null);
         }).ToArray();
 
         var regions = map.Regions.Select(r =>
         {
             var regionState = state.RegionOf(r.Id);
-            return new RegionViewDto(r.Id.Value, r.Value, r.RenderPath, regionState.OwnerId?.Value, state.IsBase(r.Id));
+            var name = state.Rules.Language == Language.Russian ? r.NameRu : r.NameEn;
+            return new RegionViewDto(
+                r.Id.Value, name, r.Value, r.CenterX, r.CenterY, r.Radius, r.LabelX, r.LabelY,
+                r.AdjacentTo.Select(a => a.Value).ToArray(),
+                regionState.OwnerId?.Value, state.IsBase(r.Id));
         }).ToArray();
 
         var currentPickerId = state.Pending is PendingActivity.BasePick pick ? pick.Player.Value : (Guid?)null;
         var basePickDeadlineUtc = state.Pending is PendingActivity.BasePick basePick
             ? DateTimeOffset.FromUnixTimeMilliseconds(basePick.Deadline.UnixMillis)
             : (DateTimeOffset?)null;
+
+        PendingBasePickViewDto? pendingBasePick = state.Pending is PendingActivity.BasePick basePickActivity
+            ? new PendingBasePickViewDto(
+                basePickActivity.Player.Value,
+                _engine.EligibleBaseRegions().Select(r => r.Value).ToArray(),
+                DateTimeOffset.FromUnixTimeMilliseconds(basePickActivity.Deadline.UnixMillis))
+            : null;
 
         PendingQuestionViewDto? pendingQuestion = null;
         PendingRegionPickViewDto? pendingRegionPick = null;
@@ -568,7 +625,32 @@ public sealed class RoomActor
                 DateTimeOffset.FromUnixTimeMilliseconds(regionPicks.Deadline.UnixMillis));
         }
 
-        var landGrabComplete = state.Phase == GamePhase.LandGrab && state.Pending is null;
+        PendingAttackTargetViewDto? pendingAttackTarget = null;
+        PendingRevealViewDto? pendingReveal = null;
+
+        if (state.Pending is PendingActivity.TargetSelection targetSelection)
+        {
+            var eligibleTargets = _engine.EligibleAttackTargetsFor(targetSelection.Player).Select(r => r.Value).ToArray();
+            pendingAttackTarget = new PendingAttackTargetViewDto(
+                targetSelection.Player.Value,
+                eligibleTargets,
+                DateTimeOffset.FromUnixTimeMilliseconds(targetSelection.Deadline.UnixMillis));
+        }
+        else if (state.Pending is PendingActivity.RevealHold revealHold)
+        {
+            pendingReveal = ToPendingRevealDto(revealHold);
+        }
+
+        var outcome = state.Outcome is not null
+            ? new GameOutcomeDto(state.Outcome.Winners.Select(w => w.Value).ToArray())
+            : null;
+
+        var battle = state.Pending switch
+        {
+            PendingActivity.Question q => ToBattleContext(q.Purpose),
+            PendingActivity.RevealHold r => ToBattleContext(r.Purpose),
+            _ => null,
+        };
 
         return new GameViewDto(
             state.Phase,
@@ -582,8 +664,27 @@ public sealed class RoomActor
             pendingQuestion,
             pendingRegionPick,
             lastReveal is not null ? ToRevealDto(lastReveal) : null,
-            landGrabComplete);
+            state.CurrentRound,
+            pendingAttackTarget,
+            pendingReveal,
+            outcome,
+            pendingBasePick,
+            battle,
+            state.Rules.Language);
     }
+
+    // Every field here is a fact both combatants already know (identities, the contested region,
+    // assault progress) - never an in-flight answer or the correct answer, matching the secrecy
+    // guarantee PendingQuestionViewDto/PendingRevealViewDto already hold for the question itself.
+    private static BattleContextDto? ToBattleContext(QuestionPurpose purpose) => purpose switch
+    {
+        QuestionPurpose.Duel duel => new BattleContextDto(
+            BattleKindDto.Duel, duel.Region.Value, duel.Attacker.Value, duel.Defender.Value, null, null),
+        QuestionPurpose.BaseAssault assault => new BattleContextDto(
+            BattleKindDto.BaseAssault, assault.BaseRegion.Value, assault.Attacker.Value, assault.Defender.Value,
+            assault.QuestionIndex, assault.DamageDealtThisTurn),
+        _ => null,
+    };
 
     private static QuestionPromptDto ToPromptDto(QuestionPrompt prompt) =>
         new(prompt.Id.Value, prompt.Kind, prompt.Text, prompt.Options, prompt.Unit);
@@ -606,6 +707,24 @@ public sealed class RoomActor
             .ToArray();
 
         return new LastRevealDto(ToPromptDto(result.Question.Prompt), correct, answers);
+    }
+
+    private static PendingRevealViewDto ToPendingRevealDto(PendingActivity.RevealHold hold)
+    {
+        var result = hold.Result;
+        var correct = result.Question.Prompt.Kind == QuestionKind.Choice
+            ? AnswerValueDto.OfChoice(result.Question.CorrectOptionIndex ?? 0)
+            : AnswerValueDto.OfNumeric(result.Question.CorrectNumericValue ?? 0);
+
+        var answers = result.Rankings
+            .Select(r => new RevealedAnswerDto(r.Player.Value, ToAnswerDto(r.Answer), r.Rank, (long?)r.Elapsed?.TotalMilliseconds))
+            .ToArray();
+
+        return new PendingRevealViewDto(
+            ToPromptDto(result.Question.Prompt),
+            correct,
+            answers,
+            DateTimeOffset.FromUnixTimeMilliseconds(hold.Deadline.UnixMillis));
     }
 
     private void ArmEngineTimer()

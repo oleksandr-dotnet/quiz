@@ -20,4 +20,6 @@ public sealed record SubmitAnswer(Instant At, PlayerId PlayerId, ActivityToken T
 
 public sealed record PickRegion(Instant At, PlayerId PlayerId, ActivityToken Token, RegionId RegionId) : IGameCommand;
 
+public sealed record SelectAttackTarget(Instant At, PlayerId PlayerId, ActivityToken Token, RegionId TargetRegionId) : IGameCommand;
+
 public sealed record TimeoutElapsed(Instant At, ActivityToken Token) : IGameCommand;

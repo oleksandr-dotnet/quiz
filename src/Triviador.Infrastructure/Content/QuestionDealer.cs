@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Triviador.Application.Content;
 using Triviador.Domain.Abstractions;
 using Triviador.Domain.Questions;
+using Triviador.Domain.State;
 
 namespace Triviador.Infrastructure.Content;
 
@@ -18,12 +19,12 @@ public sealed class QuestionDealer : IQuestionSource
     private readonly Queue<Question> _choiceBag;
     private readonly Queue<Question> _tipBag;
 
-    public QuestionDealer(int seed, IQuestionRepository repository, ILogger<QuestionDealer>? logger = null)
+    public QuestionDealer(int seed, IQuestionRepository repository, Language language, ILogger<QuestionDealer>? logger = null)
     {
         _random = new Random(seed);
         _logger = logger;
 
-        var all = repository.AllQuestions();
+        var all = repository.AllQuestions(language);
         _allChoice = all.Where(q => q.Prompt.Kind == QuestionKind.Choice).ToImmutableArray();
         _allTip = all.Where(q => q.Prompt.Kind == QuestionKind.Tip).ToImmutableArray();
         _choiceBag = new Queue<Question>(Shuffle(_allChoice));
@@ -89,6 +90,6 @@ public sealed class QuestionDealer : IQuestionSource
 public sealed class QuestionSourceFactory(IQuestionRepository repository, ILoggerFactory? loggerFactory = null)
     : IQuestionSourceFactory
 {
-    public IQuestionSource Create(int seed) =>
-        new QuestionDealer(seed, repository, loggerFactory?.CreateLogger<QuestionDealer>());
+    public IQuestionSource Create(int seed, Language language) =>
+        new QuestionDealer(seed, repository, language, loggerFactory?.CreateLogger<QuestionDealer>());
 }

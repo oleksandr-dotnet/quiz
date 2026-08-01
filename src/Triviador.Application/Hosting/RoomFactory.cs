@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Triviador.Application.Content;
+using Triviador.Domain.State;
 
 namespace Triviador.Application.Hosting;
 
@@ -12,7 +13,7 @@ public sealed class RoomFactory(
     RoomOptions options,
     ILoggerFactory? loggerFactory = null) : IRoomFactory
 {
-    public RoomActor Create(string roomCode) =>
+    public RoomActor Create(string roomCode, Language language) =>
         new(roomCode, options, broadcaster, clock, mapRepository, randomSourceFactory, questionSourceFactory,
-            loggerFactory?.CreateLogger<RoomActor>());
+            language, loggerFactory?.CreateLogger<RoomActor>());
 }

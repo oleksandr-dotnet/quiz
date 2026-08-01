@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Triviador.Domain.State;
 
 namespace Triviador.Application.Hosting;
 
@@ -12,7 +13,7 @@ public sealed class RoomRegistry(IRoomFactory factory, IRoomCodeGenerator codeGe
 
     public bool TryGet(string code, out RoomActor room) => _rooms.TryGetValue(Normalize(code), out room!);
 
-    public RoomActor CreateRoom()
+    public RoomActor CreateRoom(Language language = Language.Russian)
     {
         if (_rooms.Count >= options.MaxRooms)
         {
@@ -22,7 +23,7 @@ public sealed class RoomRegistry(IRoomFactory factory, IRoomCodeGenerator codeGe
         for (var attempt = 0; attempt < MaxCreateAttempts; attempt++)
         {
             var code = codeGenerator.NextCode();
-            var room = factory.Create(code);
+            var room = factory.Create(code, language);
             if (_rooms.TryAdd(code, room))
             {
                 return room;

@@ -7,11 +7,14 @@ export interface SeatDto {
   isHost: boolean
 }
 
+export type Language = 'Russian' | 'English'
+
 export interface RoomView {
   roomCode: string
   youPlayerId: string
   youAreHost: boolean
   seats: SeatDto[]
+  language: Language
 }
 
 export interface JoinResult {
@@ -23,12 +26,18 @@ export interface JoinResult {
   view: RoomView | null
 }
 
-export type GamePhase = 'Lobby' | 'BaseSelection' | 'LandGrab' | 'Finished'
+export type GamePhase = 'Lobby' | 'BaseSelection' | 'LandGrab' | 'Battle' | 'Finished'
 
 export interface RegionView {
   regionId: string
+  name: string
   value: number
-  renderPath: string
+  centerX: number
+  centerY: number
+  radius: number
+  labelX: number
+  labelY: number
+  adjacentTo: string[]
   ownerPlayerId: string | null
   isBase: boolean
 }
@@ -38,8 +47,11 @@ export interface PlayerView {
   seat: number
   displayName: string | null
   isBot: boolean
+  isConnected: boolean
   baseRegionId: string | null
   score: number
+  eliminated: boolean
+  baseHitPoints: number | null
 }
 
 export type AnswerKind = 'Choice' | 'Numeric' | 'None'
@@ -87,6 +99,40 @@ export interface LastRevealView {
   answers: RevealedAnswerView[]
 }
 
+export interface PendingAttackTargetView {
+  currentAttackerPlayerId: string
+  eligibleTargetRegionIds: string[]
+  deadline: string
+}
+
+export interface PendingRevealView {
+  prompt: QuestionPromptView
+  correctAnswer: AnswerValueView
+  answers: RevealedAnswerView[]
+  deadline: string
+}
+
+export interface GameOutcomeView {
+  winnerPlayerIds: string[]
+}
+
+export interface PendingBasePickView {
+  currentPickerPlayerId: string
+  eligibleRegionIds: string[]
+  deadline: string
+}
+
+export type BattleKind = 'Duel' | 'BaseAssault'
+
+export interface BattleContextView {
+  kind: BattleKind
+  contestedRegionId: string
+  attackerPlayerId: string
+  defenderPlayerId: string
+  assaultQuestionIndex: number | null
+  damageDealtThisTurn: number | null
+}
+
 export interface GameView {
   phase: GamePhase
   mapViewBox: string
@@ -99,5 +145,11 @@ export interface GameView {
   pendingQuestion: PendingQuestionView | null
   pendingRegionPick: PendingRegionPickView | null
   lastReveal: LastRevealView | null
-  landGrabComplete: boolean
+  currentRound: number
+  pendingAttackTarget: PendingAttackTargetView | null
+  pendingReveal: PendingRevealView | null
+  outcome: GameOutcomeView | null
+  pendingBasePick: PendingBasePickView | null
+  battle: BattleContextView | null
+  language: Language
 }

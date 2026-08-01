@@ -21,13 +21,28 @@ public sealed class MapRepository : IMapRepository
             ?? throw new InvalidOperationException($"'{path}' did not deserialize to a map.");
 
         _viewBox = raw.ViewBox;
+        foreach (var region in raw.Regions)
+        {
+            if (string.IsNullOrWhiteSpace(region.NameEn) || string.IsNullOrWhiteSpace(region.NameRu))
+            {
+                throw new InvalidOperationException(
+                    $"'{path}' has a region '{region.Id}' missing its English or Russian name.");
+            }
+        }
+
         _map = new MapDescriptor(
             raw.Id,
             raw.Regions
                 .Select(r => new RegionDescriptor(
                     new RegionId(r.Id),
+                    r.NameEn,
+                    r.NameRu,
                     r.Value,
-                    r.RenderPath,
+                    r.CenterX,
+                    r.CenterY,
+                    r.Radius,
+                    r.LabelX,
+                    r.LabelY,
                     r.AdjacentTo.Select(a => new RegionId(a)).ToImmutableArray()))
                 .ToImmutableArray());
 
@@ -51,5 +66,8 @@ public sealed class MapRepository : IMapRepository
 
     private sealed record MapJson(string Id, string ViewBox, ImmutableArray<RegionJson> Regions);
 
-    private sealed record RegionJson(string Id, int Value, string RenderPath, ImmutableArray<string> AdjacentTo);
+    private sealed record RegionJson(
+        string Id, string NameEn, string NameRu, int Value,
+        double CenterX, double CenterY, double Radius,
+        double LabelX, double LabelY, ImmutableArray<string> AdjacentTo);
 }

@@ -51,7 +51,7 @@ public sealed partial class GameEngine
             return CommandResult.Rejected(RejectionCode.RegionAlreadyOwned);
         }
 
-        if (IsTooCloseToExistingBase(command.RegionId) && AnyRegionSatisfiesBaseDistance())
+        if (!EligibleBaseRegions().Contains(command.RegionId))
         {
             return CommandResult.Rejected(RejectionCode.BaseTooCloseToExistingBase);
         }
@@ -83,6 +83,8 @@ public sealed partial class GameEngine
             PendingActivity.BasePick pick => CommandResult.Accepted(TimeoutBasePick(pick, command.At)),
             PendingActivity.Question question => CommandResult.Accepted(TimeoutQuestion(question, command.At)),
             PendingActivity.RegionPicks picks => CommandResult.Accepted(TimeoutRegionPick(picks, command.At)),
+            PendingActivity.TargetSelection targetSelection => CommandResult.Accepted(TimeoutTargetSelection(targetSelection, command.At)),
+            PendingActivity.RevealHold reveal => CommandResult.Accepted(ResolveRevealHold(reveal, command.At)),
             _ => CommandResult.Accepted(ImmutableArray<IGameEvent>.Empty),
         };
     }
@@ -99,6 +101,7 @@ public sealed partial class GameEngine
         var region = _state.RegionOf(regionId);
         region.OwnerId = player.Id;
         player.BaseRegion = regionId;
+        player.BaseHitPoints = _state.Rules.BaseHitPointsDefault;
 
         var events = ImmutableArray.CreateBuilder<IGameEvent>();
         events.Add(new BaseSelected(player.Id, regionId));
@@ -149,35 +152,34 @@ public sealed partial class GameEngine
         return null;
     }
 
-    private bool IsTooCloseToExistingBase(RegionId candidate) =>
-        TakenBaseRegions().Any(b => _adjacency.HopDistance(candidate, b) < _state.Rules.MinimumBaseDistance);
-
-    private bool AnyRegionSatisfiesBaseDistance()
+    // Single source of truth for base-pick legality: reused by ExecuteSelectBase's validation, by
+    // PickAutoBaseRegion's timeout auto-pick, and by RoomActor's projection to the client. Regions
+    // within MinimumBaseDistance of every existing base are excluded, unless that would leave no
+    // free region eligible at all - the same "waived when nothing qualifies" fallback the timeout
+    // auto-pick already relied on before this method existed. Order follows MapDescriptor.Regions
+    // declaration order, per the repo's canonical-iteration-order convention.
+    public ImmutableArray<RegionId> EligibleBaseRegions()
     {
-        var takenBases = TakenBaseRegions();
-        return _state.Map.Regions
+        var freeRegions = _state.Map.Regions
             .Where(r => _state.RegionOf(r.Id).OwnerId is null)
-            .Any(r => takenBases.All(b => _adjacency.HopDistance(r.Id, b) >= _state.Rules.MinimumBaseDistance));
+            .Select(r => r.Id)
+            .ToImmutableArray();
+
+        var takenBases = TakenBaseRegions();
+        if (takenBases.Length == 0)
+        {
+            return freeRegions;
+        }
+
+        var distant = freeRegions
+            .Where(r => takenBases.All(b => _adjacency.HopDistance(r, b) >= _state.Rules.MinimumBaseDistance))
+            .ToImmutableArray();
+
+        return distant.Length > 0 ? distant : freeRegions;
     }
 
     private ImmutableArray<RegionId> TakenBaseRegions() =>
         _state.Players.Where(p => p.BaseRegion is not null).Select(p => p.BaseRegion!.Value).ToImmutableArray();
 
-    private RegionId PickAutoBaseRegion()
-    {
-        var freeRegions = _state.Map.Regions.Where(r => _state.RegionOf(r.Id).OwnerId is null).ToImmutableArray();
-        var takenBases = TakenBaseRegions();
-
-        if (takenBases.Length > 0)
-        {
-            var distant = freeRegions.FirstOrDefault(r =>
-                takenBases.All(b => _adjacency.HopDistance(r.Id, b) >= _state.Rules.MinimumBaseDistance));
-            if (distant is not null)
-            {
-                return distant.Id;
-            }
-        }
-
-        return freeRegions[0].Id;
-    }
+    private RegionId PickAutoBaseRegion() => EligibleBaseRegions()[0];
 }

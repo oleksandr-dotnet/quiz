@@ -4,9 +4,6 @@ using Triviador.Domain.Ranking;
 
 namespace Triviador.Domain.State;
 
-// Only BasePick is driven by engine logic in this change. The other cases are declared now so the
-// hierarchy's shape is settled — a future change that implements LandGrab/Battle can freely revise
-// them since no working code depends on their exact fields yet.
 public abstract record PendingActivity(ActivityToken Token, Instant Deadline)
 {
     public sealed record BasePick(ActivityToken Token, Instant Deadline, PlayerId Player)
@@ -31,6 +28,8 @@ public abstract record PendingActivity(ActivityToken Token, Instant Deadline)
     public sealed record TargetSelection(ActivityToken Token, Instant Deadline, PlayerId Player)
         : PendingActivity(Token, Deadline);
 
-    public sealed record RevealHold(ActivityToken Token, Instant Deadline, QuestionResult Result)
+    // Purpose travels with the result so a RevealHold's own TimeoutElapsed knows which effect
+    // (region transfer vs. base hit-point damage/capture) to apply once the reveal window ends.
+    public sealed record RevealHold(ActivityToken Token, Instant Deadline, QuestionResult Result, QuestionPurpose Purpose)
         : PendingActivity(Token, Deadline);
 }

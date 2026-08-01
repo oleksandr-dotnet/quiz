@@ -73,25 +73,27 @@ caller. The engine SHALL never read an ambient clock; elapsed time for an answer
 `Lobby` phase, `GameState` is either in the `Finished` phase or has a non-null pending activity
 carrying a deadline. This invariant is asserted in `DEBUG` builds. It does not apply while
 `Phase == Lobby`: `JoinGame`/`LeaveGame`/a rejected `StartGame` have no activity for anyone to be
-waiting on, since the game has not started yet. The one documented exception once the game has
-started is the moment `BaseSelection` completes (every player has selected a base): `LandGrab` — the
-phase that would supply the next pending activity — is out of scope until a future change adds it,
-so the engine leaves `Phase == BaseSelection` with `Pending == null` at that exact instant, and a
-`BaseSelectionCompleted` event marks it. A future change implementing `LandGrab` closes this gap by
-making that same transition produce the first `LandGrab` pending activity instead, at which point
-the invariant becomes unconditional for every phase past `Lobby`.
+waiting on, since the game has not started yet. There is no longer any documented exception once the
+game has started: `LandGrab` completing (every region on the map has an owner) now transitions
+directly into `Battle`'s first turn instead of leaving `Pending == null`, so the invariant holds
+unconditionally for every phase past `Lobby`.
 
 #### Scenario: A resolved question always leads to a new pending activity or Finished
 - **WHEN** the last outstanding answer to a question is submitted and the engine pumps forward
 - **THEN** the resulting `GameState` has either `Phase == Finished` or a non-null pending activity
   with a deadline
 
-#### Scenario: Base selection completing is the one documented exception
-- **WHEN** the last player selects their base and no further phase is implemented to receive control
-- **THEN** `Execute` returns accepted with a `BaseSelectionCompleted` event, `Phase` remains
-  `BaseSelection`, and `Pending` is `null` — the sole state in this scope where the
-  Finished-or-pending invariant does not hold, and it is documented here rather than silently
-  violated
+#### Scenario: Base selection completing always produces a next pending activity
+- **WHEN** the last player selects their base
+- **THEN** `Execute` returns accepted with a `BaseSelectionCompleted` event followed by land grab's
+  first `QuestionAsked` event, `Phase` becomes `LandGrab`, and `Pending` is a non-null `Question`
+  activity with a deadline
+
+#### Scenario: Land grab completing always produces Battle's first turn
+- **WHEN** the last free region on the map is awarded
+- **THEN** `Execute` returns accepted with a `LandGrabCompleted` event followed by Battle's first
+  turn's events (either an `AttackTargetRequested` for the first player in seat order, or a
+  `TurnSkipped` if they have no legal target), `Phase` becomes `Battle`, and `Pending` is non-null
 
 ### Requirement: The pump advances until external input is required
 After a command is applied, `GameEngine` SHALL repeatedly advance the state machine (resolving
@@ -139,9 +141,47 @@ no region satisfies that distance, in which case the requirement relaxes automat
 
 #### Scenario: Base selection proceeds in seat order
 - **WHEN** a player selects a valid base
-- **THEN** the pending `BasePick` activity advances to the next player in seat order, or — if every
-  player has selected — the phase transitions onward (added by a future change implementing
-  `LandGrab`)
+- **THEN** the pending `BasePick` activity advances to the next player in seat order, or - if every
+  player has selected - the phase transitions into `LandGrab` and its first question is asked, and
+  that player's base hit points are initialized to `GameRules.BaseHitPointsDefault`
+
+### Requirement: LandGrab phase legal commands
+In the `LandGrab` phase, `GameEngine` SHALL accept only `SubmitAnswer` while a `Question` is pending
+(from any active participant who has not yet answered that question) and only `PickRegion` while
+`RegionPicks` is pending (from the player named at the award queue's current position), plus
+`TimeoutElapsed` at any time, rejecting every other command with `WrongPhase` or the appropriate
+pending-activity rejection.
+
+#### Scenario: SubmitAnswer while a region pick is pending is rejected
+- **WHEN** `SubmitAnswer` is submitted while the current pending activity is `RegionPicks`, not
+  `Question`
+- **THEN** the command is rejected with `NotAwaitingThisInput`
+
+#### Scenario: PickRegion while a question is pending is rejected
+- **WHEN** `PickRegion` is submitted while the current pending activity is `Question`, not
+  `RegionPicks`
+- **THEN** the command is rejected with `NotAwaitingThisInput`
+
+### Requirement: Battle phase legal commands
+In the `Battle` phase, `GameEngine` SHALL accept only `SelectAttackTarget` while `TargetSelection` is
+pending (from the player named on it) and only `SubmitAnswer` while a `Question` is pending (from an
+attacker or defender who has not yet answered that question), plus `TimeoutElapsed` at any time,
+rejecting every other command with `WrongPhase` or the appropriate pending-activity rejection. A
+`RevealHold` pending activity accepts only `TimeoutElapsed`.
+
+#### Scenario: SelectAttackTarget while a question is pending is rejected
+- **WHEN** `SelectAttackTarget` is submitted while the current pending activity is `Question`, not
+  `TargetSelection`
+- **THEN** the command is rejected with `NotAwaitingThisInput`
+
+#### Scenario: SubmitAnswer while a reveal is pending is rejected
+- **WHEN** `SubmitAnswer` is submitted while the current pending activity is `RevealHold`
+- **THEN** the command is rejected with `NotAwaitingThisInput`
+
+#### Scenario: A command from a player not part of the current duel or assault is rejected
+- **WHEN** `SubmitAnswer` is submitted by a known player who is neither the attacker nor the defender
+  of the current Battle question
+- **THEN** the command is rejected with `NotYourTurn`
 
 ### Requirement: IsBase is derived, never stored
 Whether a region is a base SHALL be computed as `owner.BaseRegion == region.Id` at read time. No
