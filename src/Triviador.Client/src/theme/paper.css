@@ -24,7 +24,27 @@ body::before {
 }
 
 body::after {
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(43, 35, 24, 0.14) 100%);
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(43, 35, 24, 0.16) 100%),
+    radial-gradient(ellipse 60% 45% at 50% 8%, var(--glow-gilt), transparent 70%);
+}
+
+/* A near-imperceptible breathing glow layered under the grain/vignette - the same single ::after
+   element just gains a slow opacity drift, so no new fixed-position element is added to every
+   screen. Deliberately subtle: a light hint of warmth near the top of the page, not a spotlight. */
+@media (prefers-reduced-motion: no-preference) {
+  body::after {
+    animation: ambient-glow-breathe 14s ease-in-out infinite;
+  }
+}
+
+@keyframes ambient-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .paper-card {
@@ -34,6 +54,26 @@ body::after {
   border-radius: var(--r-md);
   box-shadow: var(--shadow-card);
   padding: 1rem 1.25rem;
+  /* A once-per-mount settle - a card that just appeared eases into place instead of popping in at
+     full size, matching the same fade+rise language used elsewhere (banner-in, dock transitions). */
+  animation: paper-card-settle var(--dur-mid) var(--ease-paper);
+}
+
+@keyframes paper-card-settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paper-card {
+    animation: none;
+  }
 }
 
 /* A torn/deckle top edge: a strip of paper-colored teeth masked into a zigzag, tiled along the

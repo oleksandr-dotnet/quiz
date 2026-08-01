@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AnimatePresence } from 'motion/react'
 import { setSeat, leaveRoom, startGame } from '../api/commands'
 import { useGameStore } from '../store/gameStore'
 import { Toast } from '../components/Toast'
@@ -86,7 +87,7 @@ export function LobbyScreen() {
           {!canStart && t('lobby.needMoreSeats')}
         </button>
       )}
-      {startError && <Toast message={startError} />}
+      <AnimatePresence>{startError && <Toast key="lobby-start-error" message={startError} />}</AnimatePresence>
       <button onClick={onLeave}>{t('lobby.leaveRoom')}</button>
 
       {/* Hidden SVG carrying the hatch pattern defs referenced by the seat swatches above. */}

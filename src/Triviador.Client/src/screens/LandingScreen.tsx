@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AnimatePresence } from 'motion/react'
 import { createRoom, joinRoom } from '../api/commands'
 import { useGameStore } from '../store/gameStore'
 import { Toast } from '../components/Toast'
@@ -103,7 +104,10 @@ export function LandingScreen() {
           {t('landing.languageEnglish')}
         </button>
       </div>
-      <h1>{t('app.title')}</h1>
+      <div className="landing-brand">
+        <h1>{t('app.title')}</h1>
+        <p className="landing-tagline">{t('landing.tagline')}</p>
+      </div>
       <input
         placeholder={t('landing.namePlaceholder')}
         value={displayName}
@@ -118,6 +122,9 @@ export function LandingScreen() {
         <button onClick={onPlayVsBots} disabled={busy} data-testid="play-vs-bots">
           {t('landing.playVsBots')}
         </button>
+      </div>
+      <div className="landing-divider" role="presentation">
+        <span>{t('landing.orJoinExisting')}</span>
       </div>
       <div className="landing-join">
         <div className="code-input" data-testid="join-code">
@@ -137,7 +144,7 @@ export function LandingScreen() {
           {t('landing.join')}
         </button>
       </div>
-      {error && <Toast message={error} />}
+      <AnimatePresence>{error && <Toast key="landing-error" message={error} />}</AnimatePresence>
     </main>
   )
 }

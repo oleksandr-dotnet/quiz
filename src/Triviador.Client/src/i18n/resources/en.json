@@ -17,6 +17,8 @@
   "landing.errorNameAndCodeRequired": "Enter a name and a 4-character room code.",
   "landing.languageRussian": "Русский",
   "landing.languageEnglish": "English",
+  "landing.tagline": "Answer fast. Claim territory. Rule the map.",
+  "landing.orJoinExisting": "or join an existing room",
 
   "lobby.titleLabel": "Room",
   "lobby.copyInviteLink": "Copy invite link",

@@ -28,8 +28,10 @@ export function Timer({ remainingMs, totalMs }: TimerProps) {
 
   const color = critical ? 'var(--danger)' : warning ? 'var(--gilt-500)' : 'var(--ink-500)'
 
+  const timerClass = ['timer', critical && 'timer-critical', warning && 'timer-warning'].filter(Boolean).join(' ')
+
   return (
-    <div className={critical ? 'timer timer-critical' : 'timer'} data-testid="timer">
+    <div className={timerClass} data-testid="timer">
       <svg width={36} height={36} viewBox="0 0 36 36" aria-hidden="true">
         <circle cx={18} cy={18} r={RADIUS} fill="none" stroke="var(--paper-300)" strokeWidth={3} />
         <circle

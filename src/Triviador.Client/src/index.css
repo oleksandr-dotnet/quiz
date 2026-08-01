@@ -44,10 +44,19 @@ button {
      double-tap-to-zoom gesture - safe on every button since none of them are meant to be
      double-tapped. */
   touch-action: manipulation;
-  transition: border-color var(--dur-fast) var(--ease-paper), background-color var(--dur-fast) var(--ease-paper);
+  transition: border-color var(--dur-fast) var(--ease-paper), background-color var(--dur-fast) var(--ease-paper),
+    transform var(--dur-fast) var(--ease-paper), box-shadow var(--dur-fast) var(--ease-paper);
 }
 button:hover:not(:disabled) {
   border-color: var(--gilt-500);
+  transform: translateY(var(--lift-y));
+  box-shadow: var(--shadow-button-hover);
+}
+/* A tactile "click" - a quick scale-down that reads as a physical press rather than a flat color
+   swap - independent of hover, so it still fires on touch devices with no hover state. */
+button:active:not(:disabled) {
+  transform: scale(var(--press-scale));
+  box-shadow: none;
 }
 button:disabled {
   cursor: not-allowed;
@@ -66,6 +75,13 @@ button.primary {
 button.primary:hover:not(:disabled) {
   background-color: var(--gilt-500);
   border-color: var(--gilt-500);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:hover:not(:disabled),
+  button:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 input {
