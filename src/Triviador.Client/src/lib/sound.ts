@@ -38,6 +38,14 @@ export function playIncorrect() {
   tone(196, 0.12, 0.28, 'sawtooth', 0.08) // G3
 }
 
+// A duel or an assault on someone else's base beginning (never the calm self-heal case) - a low,
+// percussive double-stab distinct in register and timbre from playCorrect/playIncorrect's
+// higher-pitched reveal cues, since this fires at the start of a fight, not its resolution.
+export function playAttackStarted() {
+  tone(146.83, 0, 0.16, 'square', 0.12) // D3
+  tone(110, 0.09, 0.22, 'square', 0.12) // A2
+}
+
 export function isMuted(): boolean {
   return muted
 }

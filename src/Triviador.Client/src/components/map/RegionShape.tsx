@@ -11,6 +11,9 @@ export interface RegionShapeProps {
   interactive: boolean
   eligible: boolean
   contested: boolean
+  // A duel or an assault on someone else's base (never the calm self-heal case) - a stronger
+  // pulse than the plain contested marker below.
+  escalated?: boolean
   onSelect?: (regionId: string) => void
 }
 
@@ -26,7 +29,16 @@ function RegionOutline({
   return <circle cx={region.centerX} cy={region.centerY} r={region.radius} {...rest} />
 }
 
-export function RegionShape({ region, ownerSeat, ownerName, interactive, eligible, contested, onSelect }: RegionShapeProps) {
+export function RegionShape({
+  region,
+  ownerSeat,
+  ownerName,
+  interactive,
+  eligible,
+  contested,
+  escalated = false,
+  onSelect,
+}: RegionShapeProps) {
   const { t } = useTranslation()
   const clickable = interactive && eligible && !!onSelect
   const geometry = REGION_GEOMETRY[region.regionId]
@@ -82,8 +94,17 @@ export function RegionShape({ region, ownerSeat, ownerName, interactive, eligibl
         />
       )}
       {contested && (
-        <g transform={`translate(${markerX} ${markerY})`} className="contested-marker">
-          <circle r={13} fill="var(--paper-050)" fillOpacity={0.85} stroke="var(--danger)" strokeWidth={1.5} />
+        <g
+          transform={`translate(${markerX} ${markerY})`}
+          className={escalated ? 'contested-marker contested-marker-escalated' : 'contested-marker'}
+        >
+          <circle
+            r={escalated ? 16 : 13}
+            fill="var(--paper-050)"
+            fillOpacity={0.85}
+            stroke="var(--danger)"
+            strokeWidth={escalated ? 2 : 1.5}
+          />
           <path
             d="M-6,-6 L6,6 M6,-6 L-6,6"
             stroke="var(--danger)"

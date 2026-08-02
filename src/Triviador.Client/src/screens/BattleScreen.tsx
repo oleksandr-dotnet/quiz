@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18next from '../i18n'
 import { selectAttackTarget, submitChoiceAnswer, submitNumericAnswer } from '../api/commands'
@@ -7,6 +8,7 @@ import { AnswerRoster } from '../components/AnswerRoster'
 import { RevealOverlay } from '../components/RevealOverlay'
 import { Timer } from '../components/Timer'
 import { findPlayer, playerLabel, secondsRemaining } from '../lib/format'
+import { playAttackStarted } from '../lib/sound'
 import { TIMER_TOTALS_MS, questionTotalMs } from '../lib/timers'
 import type { GameView } from '../api/contracts'
 
@@ -42,6 +44,11 @@ function battleHeadline(view: GameView): string | null {
   const hitIndex = battle.assaultQuestionIndex ?? 1
 
   if (battle.kind === 'BaseAssault') {
+    if (battle.attackerPlayerId === battle.defenderPlayerId) {
+      return youAreAttacker
+        ? i18next.t('battle.headlineSelfHeal')
+        : i18next.t('battle.headlineSelfHealOthers', { playerName: attackerName })
+    }
     if (youAreAttacker) return i18next.t('battle.headlineAssaultSelfAttack', { defenderName, hitIndex })
     if (youAreDefender) return i18next.t('battle.headlineAssaultSelfDefend', { attackerName, hitIndex })
     return i18next.t('battle.headlineAssaultOthers', { attackerName, defenderName, hitIndex })
@@ -78,6 +85,20 @@ export function BattleDock({ view, onError }: { view: GameView; onError: (messag
   const question = view.pendingQuestion
   const reveal = view.pendingReveal
   const headline = battleHeadline(view)
+
+  // A duel or an assault on someone else's base (never the calm self-heal case, where attacker and
+  // defender are the same player) - keyed without assaultQuestionIndex so a later question in the
+  // same multi-question assault chain against the same target doesn't replay the cue.
+  const battle = view.battle
+  const attackStartedKey =
+    battle && battle.attackerPlayerId !== battle.defenderPlayerId
+      ? `${battle.attackerPlayerId}:${battle.defenderPlayerId}:${battle.contestedRegionId}`
+      : null
+
+  useEffect(() => {
+    if (!attackStartedKey) return
+    playAttackStarted()
+  }, [attackStartedKey])
 
   return (
     <div className="battle-dock" data-testid="battle-dock">

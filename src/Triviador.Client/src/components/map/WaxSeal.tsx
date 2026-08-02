@@ -9,11 +9,15 @@ export interface WaxSealProps {
   seat: number
   hitPoints: number | null
   monogram: string
+  // True only while this base is the target of another player's assault (never the calm self-heal
+  // case) - draws a pulsing danger ring distinctly more intense than the map's general
+  // contested-region marker, since elimination is on the line for this base's owner.
+  underAttack?: boolean
 }
 
 // A wax seal marks a base region: a radial-gradient disc in the owner's colour, an embossed
 // monogram, and hit points shown as pips around the rim that go hollow as HP drains.
-export function WaxSeal({ x, y, seat, hitPoints, monogram }: WaxSealProps) {
+export function WaxSeal({ x, y, seat, hitPoints, monogram, underAttack = false }: WaxSealProps) {
   const color = SEAT_COLORS[seat % SEAT_COLORS.length]
   const hp = hitPoints ?? 0
   const pipAngles = Array.from({ length: MAX_BASE_HIT_POINTS }, (_, i) => (i / MAX_BASE_HIT_POINTS) * 2 * Math.PI - Math.PI / 2)
@@ -28,6 +32,9 @@ export function WaxSeal({ x, y, seat, hitPoints, monogram }: WaxSealProps) {
       exit={{ scale: 0, rotate: 8, opacity: 0 }}
       transition={{ type: 'spring', stiffness: 260, damping: 14 }}
     >
+      {underAttack && (
+        <circle r={24} fill="none" stroke="var(--danger)" strokeWidth={3} className="wax-seal-danger-ring" aria-hidden="true" />
+      )}
       <circle r={15} fill="url(#wax-seal-gradient)" stroke={color} strokeWidth={2} />
       <text x={0} y={4} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--paper-050)" aria-hidden="true">
         {monogram}

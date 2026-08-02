@@ -8,6 +8,8 @@
   "app.phase.gameOver": "Game Over",
   "app.baseFallsProclamation": "{{defenderName}}'s banner falls",
   "app.ownEliminationProclamation": "Your banner has fallen - you can keep watching until the game ends.",
+  "app.leaveGame": "Leave game",
+  "app.leaveGameConfirm": "Leave this game? A bot will take over your seat for the rest of the match.",
 
   "errorBoundary.title": "Something tore the parchment",
   "errorBoundary.message": "The game hit an unexpected snag. Reloading the page will get you back on track.",
@@ -70,6 +72,8 @@
   "battle.headlineDuelSelfAttack": "You are dueling for {{regionName}} against {{defenderName}}",
   "battle.headlineDuelSelfDefend": "{{attackerName}} is dueling for {{regionName}} against you",
   "battle.headlineDuelOthers": "{{attackerName}} is dueling for {{regionName}} against {{defenderName}}",
+  "battle.headlineSelfHeal": "You are reinforcing your own capital",
+  "battle.headlineSelfHealOthers": "{{playerName}} is reinforcing their capital",
   "battle.unknownTerritory": "a territory",
 
   "results.copyResult": "Copy result",

@@ -51,6 +51,9 @@
 
   /* ambient parchment glow - a slow-breathing radial highlight layered under the page grain */
   --glow-gilt: rgba(217, 180, 90, 0.16);
+  /* under-attack accents - a duel/enemy assault in progress, escalated further for the viewer's
+     own base specifically */
+  --glow-danger: rgba(168, 51, 44, 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {

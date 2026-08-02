@@ -8,6 +8,8 @@
   "app.phase.gameOver": "Игра окончена",
   "app.baseFallsProclamation": "Знамя игрока {{defenderName}} пало",
   "app.ownEliminationProclamation": "Ваше знамя пало — вы можете продолжить наблюдать до конца игры.",
+  "app.leaveGame": "Покинуть игру",
+  "app.leaveGameConfirm": "Покинуть эту игру? Бот займёт ваше место до конца матча.",
 
   "errorBoundary.title": "Пергамент порвался",
   "errorBoundary.message": "В игре произошёл сбой. Перезагрузите страницу, чтобы продолжить игру.",
@@ -70,6 +72,8 @@
   "battle.headlineDuelSelfAttack": "Вы сражаетесь за {{regionName}} против {{defenderName}}",
   "battle.headlineDuelSelfDefend": "{{attackerName}} сражается за {{regionName}} против вас",
   "battle.headlineDuelOthers": "{{attackerName}} сражается за {{regionName}} против {{defenderName}}",
+  "battle.headlineSelfHeal": "Вы укрепляете собственную столицу",
+  "battle.headlineSelfHealOthers": "{{playerName}} укрепляет свою столицу",
   "battle.unknownTerritory": "территорию",
 
   "results.copyResult": "Скопировать результат",

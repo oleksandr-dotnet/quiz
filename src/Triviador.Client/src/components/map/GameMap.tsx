@@ -30,6 +30,13 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
   const { t } = useTranslation()
   const eligible = new Set(eligibleRegionIds ?? [])
   const byId = new Map(view.regions.map((region) => [region.regionId, region]))
+  // A duel or an assault on someone else's base - never the calm self-heal case, where attacker
+  // and defender are the same player and nothing is actually at risk.
+  const isRealFight = view.battle !== null && view.battle.attackerPlayerId !== view.battle.defenderPlayerId
+  const ownBaseUnderAssault =
+    isRealFight &&
+    view.battle?.kind === 'BaseAssault' &&
+    view.battle.defenderPlayerId === view.youPlayerId
   const connectors = view.regions.flatMap((region) =>
     region.adjacentTo
       .filter((neighborId) => region.regionId < neighborId)
@@ -77,6 +84,7 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
               interactive={interactive}
               eligible={eligible.has(region.regionId)}
               contested={contestedRegionId === region.regionId}
+              escalated={isRealFight && contestedRegionId === region.regionId}
               onSelect={onSelect}
             />
           )
@@ -121,6 +129,7 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
                 seat={ownerSeat}
                 hitPoints={owner.baseHitPoints}
                 monogram={playerDisplayName(owner).charAt(0).toUpperCase()}
+                underAttack={ownBaseUnderAssault && region.regionId === view.battle?.contestedRegionId}
               />
             )
           })}

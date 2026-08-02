@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import './App.css'
 import { ensureConnected } from './api/connection'
-import { joinRoom } from './api/commands'
+import { joinRoom, leaveRoom } from './api/commands'
 import { applyRoomLanguage } from './i18n'
 import { useGameStore } from './store/gameStore'
 import { LandingScreen } from './screens/LandingScreen'
@@ -52,9 +52,20 @@ function phaseLabelKey(phase: GameView['phase']): string {
 
 function TopBar({ view }: { view: GameView }) {
   const { t } = useTranslation()
+  const setSession = useGameStore((s) => s.setSession)
   const phaseKey = phaseLabelKey(view.phase)
   const roundsRemaining = Math.max(0, view.roundLimit - view.currentRound)
   const progressPercent = view.roundLimit > 0 ? Math.min(100, (view.currentRound / view.roundLimit) * 100) : 0
+
+  async function onLeaveGame() {
+    if (!window.confirm(t('app.leaveGameConfirm'))) return
+    try {
+      await leaveRoom()
+    } finally {
+      setSession(null)
+    }
+  }
+
   return (
     <>
       <h1>{t('app.title')}</h1>
@@ -89,6 +100,11 @@ function TopBar({ view }: { view: GameView }) {
         </>
       )}
       <MuteToggle />
+      {view.phase !== 'Finished' && (
+        <button type="button" className="leave-game-button" onClick={() => void onLeaveGame()}>
+          {t('app.leaveGame')}
+        </button>
+      )}
     </>
   )
 }
@@ -162,6 +178,14 @@ function App() {
       document.title = t('app.title')
     }
   }, [gameView, t])
+
+  // Sustained (not edge-triggered) danger indicator: on for as long as the viewer's own base is
+  // the target of another player's assault, distinct from the self-heal case (attacker === defender)
+  // where nothing is actually at risk.
+  const ownBaseUnderAssault =
+    gameView?.battle?.kind === 'BaseAssault' &&
+    gameView.battle.defenderPlayerId === gameView.youPlayerId &&
+    gameView.battle.attackerPlayerId !== gameView.battle.defenderPlayerId
 
   const urlCode = urlRoomCode()
   const sessionUsable = session !== null && (!urlCode || urlCode === session.roomCode)
@@ -278,6 +302,7 @@ function App() {
       <AppShell
         dockKey={dockKey}
         mapShaking={mapShaking}
+        mapDanger={ownBaseUnderAssault}
         topBar={<TopBar view={gameView} />}
         map={
           <GameMap

@@ -302,6 +302,25 @@ public sealed class RoomActor
             return;
         }
 
+        if (_engine is not null)
+        {
+            // Mid-game: hand the seat to permanent bot control rather than freeing it — the domain
+            // engine's GameState.Players still needs this PlayerId as an active participant, so
+            // clearing the seat (as the lobby-only path below does) would desync BuildGameView's
+            // seatsByPlayerId lookup from the engine's own view of who's still playing.
+            seat.IsBot = true;
+            seat.ConnectionId = null;
+
+            if (_engine.State.Pending is { } pending)
+            {
+                ScheduleBotMoves(pending);
+            }
+
+            await BroadcastGameViewAsync();
+            m.Reply.TrySetResult(CommandAck.Ok);
+            return;
+        }
+
         var wasHost = _hostPlayerId == m.PlayerId;
         seat.Clear();
 

@@ -76,7 +76,7 @@ public sealed partial class GameEngine
         var ownedRegionIds = _state.Regions.Where(r => r.OwnerId == attacker).Select(r => r.Id).ToImmutableHashSet();
         var baseAssaultsUnlocked = BaseAssaultsUnlocked();
 
-        return _state.Map.Regions
+        var enemyTargets = _state.Map.Regions
             .Where(rd =>
             {
                 var ownerId = _state.RegionOf(rd.Id).OwnerId;
@@ -84,8 +84,18 @@ public sealed partial class GameEngine
                 if (!_adjacency.NeighborsOf(rd.Id).Any(ownedRegionIds.Contains)) return false;
                 return baseAssaultsUnlocked || !_state.IsBase(rd.Id);
             })
-            .Select(rd => rd.Id)
-            .ToImmutableArray();
+            .Select(rd => rd.Id);
+
+        var self = PlayerById(attacker);
+        // A player may spend their turn shoring up their own damaged base instead of attacking
+        // someone else's — a one-question self-heal (see ResolveRevealHold). Only offered once base
+        // assaults are unlocked (the same window governing every other base target) and only while
+        // damaged, so it never appears as a no-op option.
+        var selfHealTarget = baseAssaultsUnlocked && self.BaseRegion is not null && self.BaseHitPoints < _state.Rules.BaseHitPointsDefault
+            ? ImmutableArray.Create(self.BaseRegion.Value)
+            : ImmutableArray<RegionId>.Empty;
+
+        return enemyTargets.Concat(selfHealTarget).ToImmutableArray();
     }
 
     // Capitals are only assaultable during the closing stretch of the game — the last
@@ -161,7 +171,12 @@ public sealed partial class GameEngine
             ? _state.Rules.ChoiceQuestionDurationSeconds
             : _state.Rules.TipQuestionDurationSeconds;
         var deadline = at.Add(TimeSpan.FromSeconds(durationSeconds));
-        var participants = ImmutableArray.Create(attacker, defender);
+        // A self-heal (attacker targeting their own base) has exactly one participant — a duplicate
+        // two-element array here would break every consumer that keys off Participants by PlayerId
+        // (e.g. RoomActor's per-participant hasAnswered dictionary).
+        var participants = attacker == defender
+            ? ImmutableArray.Create(attacker)
+            : ImmutableArray.Create(attacker, defender);
 
         _state.Pending = new PendingActivity.Question(
             token, deadline, at, question, purpose, participants,
@@ -201,6 +216,28 @@ public sealed partial class GameEngine
 
                 var ended = CheckEndConditions();
                 events.AddRange(ended ?? AdvanceTurn(at));
+                break;
+            }
+
+            case QuestionPurpose.BaseAssault assault when assault.Attacker == assault.Defender:
+            {
+                // Self-heal: exactly one question, no chain, and success heals rather than damages.
+                // AttackerWon can't apply here — it compares the attacker's and defender's ranks,
+                // which are the same single ranked answer when attacker == defender, so it would
+                // always evaluate to "attacker did not win". Correctness is instead read straight off
+                // that one ranked answer: Tier 0 means an exactly-right Choice answer; for a Tip
+                // (numeric) answer, Penalty (the absolute distance from the correct value) must also
+                // be exactly 0, since numeric answers are otherwise ranked by closeness, not
+                // exactness, and "closer than no one" isn't a meaningful heal condition.
+                var score = pending.Result.Rankings.First(r => r.Player == assault.Attacker).Score;
+                if (score is { Tier: 0, Penalty: 0 })
+                {
+                    var self = PlayerById(assault.Attacker);
+                    self.BaseHitPoints = Math.Min(self.BaseHitPoints + 1, _state.Rules.BaseHitPointsDefault);
+                    events.Add(new BaseHitPointsChanged(assault.Attacker, self.BaseHitPoints));
+                }
+
+                events.AddRange(AdvanceTurn(at));
                 break;
             }
 
