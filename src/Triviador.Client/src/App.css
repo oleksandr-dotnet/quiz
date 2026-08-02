@@ -115,10 +115,16 @@
 @media (max-width: 900px), (max-height: 500px) {
   /* Backstop against iOS rubber-banding/pull-to-refresh visually "scrolling" the page even though
      the grid below is height-capped and can't grow past the viewport. Scoped to this breakpoint
-     only - desktop keeps normal document scroll. */
-  html,
-  body,
-  #root {
+     only - desktop keeps normal document scroll. Also scoped with :has(.app-shell) - Landing and
+     Lobby (rendered with no .app-shell wrapper and no height cap of their own, per
+     mobile-viewport-interaction's spec, which only requires the fitted no-scroll layout for actual
+     gameplay phases) can be taller than a short landscape viewport; a bare html/body/#root selector
+     here trapped their Join/Start buttons below the fold with no way to scroll to them at all on
+     exactly the large landscape phones this breakpoint's second arm was added for - confirmed live
+     via getBoundingClientRect + a scrollTo() attempt that never moved scrollY. */
+  html:has(.app-shell),
+  body:has(.app-shell),
+  #root:has(.app-shell) {
     height: 100%;
     overflow: hidden;
     overscroll-behavior: none;
