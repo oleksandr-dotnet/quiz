@@ -56,6 +56,25 @@
 
 ## 7. Phase 2 — content authoring backlog (future follow-up sessions, NOT part of this apply)
 
+- [x] 7.0 (2026-08-02, deviation from the original batch plan below) Before tackling geography/
+      history — already reasonably covered at 12/14 questions each — prioritized the **six choice
+      categories that had zero questions**: `arts-literature`, `mythology-religion`, `food-drink`,
+      `language-wordplay`, `space-astronomy`, `economy-business` (12 each, 72 total), plus the one
+      empty tip category, `economy-business` (10 questions). Every fact used is long-established
+      and non-time-sensitive (historical dates, mythology, classic literature/art, physical
+      constants) specifically to avoid authoring something that reads as correct today but goes
+      stale (population figures, current-holder records, membership counts). Ran
+      `find-duplicates.mjs` after authoring: found and fixed 3 genuine near/exact duplicates
+      against existing questions (Mona Lisa vs. an existing pop-culture question, Red Planet and
+      orbital-gravity vs. existing science questions) by swapping in different facts; remaining
+      flagged pairs (e.g. "closest"/"second-closest" planet, wine/cider both being fruit-fermented)
+      are same-subject-different-fact pairs, consistent with several already-accepted pairs
+      elsewhere in the bank (e.g. `geo-0006`/`geo-0007`, smallest vs. largest country). All 182
+      questions (bank grew from 100 to 182) validated against the exact rules
+      `QuestionRepository`'s constructor enforces (known+matching category, valid difficulty,
+      globally unique id, non-empty bilingual text, distinct options, options-length match,
+      in-range `correctOptionIndex`) via a mirrored Node script, since a live host restart wasn't
+      done this session (see verification section 8 below).
 - [ ] 7.1 Batch 1 (choice): geography + history, ~200 new questions
 - [ ] 7.2 Batch 2 (choice): science + nature, ~200 new questions
 - [ ] 7.3 Batch 3 (choice): sports + pop-culture, ~200 new questions
