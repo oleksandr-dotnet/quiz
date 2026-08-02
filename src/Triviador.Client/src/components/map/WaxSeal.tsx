@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { SEAT_COLORS } from '../../lib/seats'
 
-const MAX_BASE_HIT_POINTS = 3 // matches GameRules.BaseHitPointsDefault
+const MAX_BASE_HIT_POINTS = 5 // matches GameRules.BaseHitPointsDefault
 
 export interface WaxSealProps {
   x: number
@@ -32,6 +32,19 @@ export function WaxSeal({ x, y, seat, hitPoints, monogram }: WaxSealProps) {
       <text x={0} y={4} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--paper-050)" aria-hidden="true">
         {monogram}
       </text>
+      {/* The capital's crown: marks this seat's base region apart from ordinary owned territory. */}
+      <g transform="translate(0 -30)" aria-hidden="true">
+        <path
+          d="M -9,5 L -9,1.5 L -6,-6 L -3,1.5 L 0,-6 L 3,1.5 L 6,-6 L 9,1.5 L 9,5 Z"
+          fill="var(--gilt-500)"
+          stroke="var(--ink-700)"
+          strokeWidth={1}
+          strokeLinejoin="round"
+        />
+        <circle cx={-6} cy={-6} r={1.3} fill="#c24b3e" />
+        <circle cx={0} cy={-6} r={1.3} fill="#c24b3e" />
+        <circle cx={6} cy={-6} r={1.3} fill="#c24b3e" />
+      </g>
       {pipAngles.map((angle, i) => {
         const px = Math.cos(angle) * 20
         const py = Math.sin(angle) * 20

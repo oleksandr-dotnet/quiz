@@ -11,8 +11,9 @@ public sealed record GameRules(
     int TipQuestionDurationSeconds = 20,
     int LandGrabDeadRoundThreshold = 3,
     int AttackTargetSelectionDurationSeconds = 15,
-    int BaseHitPointsDefault = 3,
+    int BaseHitPointsDefault = 5,
     int RevealHoldDurationSeconds = 4,
+    int BaseAssaultFinalRoundsWindow = 5,
     Language Language = Language.Russian)
 {
     public static readonly GameRules Default = new();

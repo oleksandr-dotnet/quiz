@@ -99,7 +99,7 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
               >
                 {region.name}
               </text>
-              <ValueBadge x={x} y={y} value={region.value} />
+              <ValueBadge x={x} y={y} value={region.isBase && region.ownerPlayerId ? 1000 : region.value} />
             </g>
           )
         })}

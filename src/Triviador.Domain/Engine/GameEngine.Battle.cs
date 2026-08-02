@@ -74,16 +74,25 @@ public sealed partial class GameEngine
     public ImmutableArray<RegionId> EligibleAttackTargetsFor(PlayerId attacker)
     {
         var ownedRegionIds = _state.Regions.Where(r => r.OwnerId == attacker).Select(r => r.Id).ToImmutableHashSet();
+        var baseAssaultsUnlocked = BaseAssaultsUnlocked();
 
         return _state.Map.Regions
             .Where(rd =>
             {
                 var ownerId = _state.RegionOf(rd.Id).OwnerId;
-                return ownerId is not null && ownerId != attacker && _adjacency.NeighborsOf(rd.Id).Any(ownedRegionIds.Contains);
+                if (ownerId is null || ownerId == attacker) return false;
+                if (!_adjacency.NeighborsOf(rd.Id).Any(ownedRegionIds.Contains)) return false;
+                return baseAssaultsUnlocked || !_state.IsBase(rd.Id);
             })
             .Select(rd => rd.Id)
             .ToImmutableArray();
     }
+
+    // Capitals are only assaultable during the closing stretch of the game — the last
+    // BaseAssaultFinalRoundsWindow rounds of RoundLimit — so early rounds stay about grabbing
+    // regular territory instead of rushing straight for an elimination.
+    private bool BaseAssaultsUnlocked() =>
+        _state.CurrentRound > _state.Rules.RoundLimit - _state.Rules.BaseAssaultFinalRoundsWindow;
 
     private CommandResult ExecuteSelectAttackTarget(SelectAttackTarget command)
     {
@@ -181,7 +190,10 @@ public sealed partial class GameEngine
         {
             case QuestionPurpose.Duel duel:
             {
-                if (AttackerWon(pending.Result, duel.Attacker, duel.Defender))
+                // A duel where neither side answered correctly is not an attacker win by rank alone
+                // — the territory stays put rather than changing hands on two wrong guesses.
+                if (!BothAnsweredIncorrectly(pending.Result, duel.Attacker, duel.Defender)
+                    && AttackerWon(pending.Result, duel.Attacker, duel.Defender))
                 {
                     _state.RegionOf(duel.Region).OwnerId = duel.Attacker;
                     events.Add(new RegionCaptured(duel.Attacker, duel.Defender, duel.Region));
@@ -208,8 +220,8 @@ public sealed partial class GameEngine
                     }
                     else
                     {
-                        // Base HP starts at GameRules.BaseHitPointsDefault (3) and never regenerates,
-                        // so it can never exceed 3 here — the rule's "up to 3 questions" cap is
+                        // Base HP starts at GameRules.BaseHitPointsDefault (5) and never regenerates,
+                        // so it can never exceed 5 here — the rule's "up to 5 questions" cap is
                         // automatically satisfied by "keep going until HP hits 0", with no separate
                         // counter needed. QuestionIndex/DamageDealtThisTurn still advance for anyone
                         // inspecting the purpose (e.g. a future view/event consumer).
@@ -241,6 +253,13 @@ public sealed partial class GameEngine
         var attackerRank = result.Rankings.First(r => r.Player == attacker).Rank;
         var defenderRank = result.Rankings.First(r => r.Player == defender).Rank;
         return attackerRank < defenderRank;
+    }
+
+    private static bool BothAnsweredIncorrectly(QuestionResult result, PlayerId attacker, PlayerId defender)
+    {
+        var attackerTier = result.Rankings.First(r => r.Player == attacker).Score.Tier;
+        var defenderTier = result.Rankings.First(r => r.Player == defender).Score.Tier;
+        return attackerTier > 0 && defenderTier > 0;
     }
 
     private PlayerState PlayerById(PlayerId id) => _state.Players.First(p => p.Id == id);
