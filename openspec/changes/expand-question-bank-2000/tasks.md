@@ -85,6 +85,12 @@
       an existing tip/science one) plus 1 during the empty-category pass (a language-wordplay
       question duplicating an existing pop-culture one) - all swapped for distinct fresh facts
       rather than left in or simply deleted.
+- [x] 7.0c (2026-08-02, same session) Third top-up round: +2 (science, history choice to 12 each),
+      then +8 geography, +7 science, +6 nature, +5 sports, +6 technology, +6 pop-culture (all
+      choice). Bank now at 260 questions. Same discipline throughout: `find-duplicates.mjs` after
+      each file edit, one genuine duplicate caught and fixed (a new boiling-point-of-water science
+      question restating an existing tip/science fact exactly - swapped for freezing point
+      instead).
 - [ ] 7.1 Batch 1 (choice): geography + history, ~200 new questions
 - [ ] 7.2 Batch 2 (choice): science + nature, ~200 new questions
 - [ ] 7.3 Batch 3 (choice): sports + pop-culture, ~200 new questions
