@@ -14,8 +14,6 @@ import { BattleDock, battleMapProps, battleOnSelect } from './screens/BattleScre
 import { ResultsDock } from './screens/ResultsScreen'
 import { AppShell } from './components/AppShell'
 import { GameMap } from './components/map/GameMap'
-import { MapViewport } from './components/map/MapViewport'
-import { RotateDeviceGate } from './components/RotateDeviceGate'
 import { PlayerRoster } from './components/PlayerRoster'
 import { ConnectionBadge } from './components/ConnectionBadge'
 import { MuteToggle } from './components/MuteToggle'
@@ -55,6 +53,8 @@ function phaseLabelKey(phase: GameView['phase']): string {
 function TopBar({ view }: { view: GameView }) {
   const { t } = useTranslation()
   const phaseKey = phaseLabelKey(view.phase)
+  const roundsRemaining = Math.max(0, view.roundLimit - view.currentRound)
+  const progressPercent = view.roundLimit > 0 ? Math.min(100, (view.currentRound / view.roundLimit) * 100) : 0
   return (
     <>
       <h1>{t('app.title')}</h1>
@@ -63,20 +63,28 @@ function TopBar({ view }: { view: GameView }) {
       {view.phase === 'Battle' && (
         <>
           <span>&middot;</span>
-          <span className="round-flip-frame tabular-nums">
-            {t('app.roundLabel')}{' '}
-            <AnimatePresence mode="popLayout">
-              <motion.span
-                key={view.currentRound}
-                initial={{ rotateX: -90, opacity: 0 }}
-                animate={{ rotateX: 0, opacity: 1 }}
-                exit={{ rotateX: 90, opacity: 0 }}
-                transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
-                style={{ display: 'inline-block' }}
-              >
-                {view.currentRound}
-              </motion.span>
-            </AnimatePresence>
+          <span className="round-progress">
+            <span className="round-flip-frame tabular-nums">
+              <AnimatePresence mode="popLayout">
+                <motion.span
+                  key={view.currentRound}
+                  initial={{ rotateX: -90, opacity: 0 }}
+                  animate={{ rotateX: 0, opacity: 1 }}
+                  exit={{ rotateX: 90, opacity: 0 }}
+                  transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
+                  style={{ display: 'inline-block' }}
+                >
+                  {t('app.roundProgress', {
+                    current: view.currentRound,
+                    total: view.roundLimit,
+                    remaining: roundsRemaining,
+                  })}
+                </motion.span>
+              </AnimatePresence>
+            </span>
+            <span className="round-progress-track" aria-hidden="true">
+              <span className="round-progress-fill" style={{ width: `${progressPercent}%` }} />
+            </span>
           </span>
         </>
       )}
@@ -267,21 +275,18 @@ function App() {
   return (
     <>
       <ConnectionBadge status={status} closedReason={closedReason} />
-      <RotateDeviceGate phase={gameView.phase} />
       <AppShell
         dockKey={dockKey}
         mapShaking={mapShaking}
         topBar={<TopBar view={gameView} />}
         map={
-          <MapViewport>
-            <GameMap
-              view={gameView}
-              interactive={mapProps.interactive}
-              eligibleRegionIds={mapProps.eligibleRegionIds}
-              contestedRegionId={mapProps.contestedRegionId}
-              onSelect={onSelect}
-            />
-          </MapViewport>
+          <GameMap
+            view={gameView}
+            interactive={mapProps.interactive}
+            eligibleRegionIds={mapProps.eligibleRegionIds}
+            contestedRegionId={mapProps.contestedRegionId}
+            onSelect={onSelect}
+          />
         }
         roster={<PlayerRoster view={gameView} activePlayerId={activePlayerId} />}
         dock={

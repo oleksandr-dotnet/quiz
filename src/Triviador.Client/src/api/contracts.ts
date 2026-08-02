@@ -152,4 +152,5 @@ export interface GameView {
   pendingBasePick: PendingBasePickView | null
   battle: BattleContextView | null
   language: Language
+  roundLimit: number
 }

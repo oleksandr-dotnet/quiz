@@ -42,6 +42,39 @@
   gap: 0.75rem;
   font-family: var(--font-display);
   color: var(--ink-700);
+  /* See .shell-roster's mobile min-width: 0 comment - every row shares one grid column at the
+     mobile breakpoint, so any one row's content blowing out past the viewport would otherwise
+     widen that shared column (and get clipped, not fitted) for every other row too. */
+  min-width: 0;
+}
+
+.round-progress {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  justify-content: center;
+  /* Without this, a narrow flex leftover (e.g. next to the title on a phone-width top bar) wraps
+     the text word-by-word into a tall, ragged column instead of the whole phrase moving as one
+     unit to its own line (see .shell-top-bar's mobile flex-wrap). */
+  white-space: nowrap;
+}
+
+/* Decorative only - the round-progress text above is the accessible source of truth, so this is
+   hidden from assistive tech (aria-hidden on the element itself). */
+.round-progress-track {
+  display: block;
+  width: 4.5rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--paper-300);
+  overflow: hidden;
+}
+
+.round-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--gilt-500);
+  transition: width var(--dur-mid) var(--ease-paper);
 }
 
 .mute-toggle {
@@ -61,6 +94,9 @@
      is always narrower than that, which otherwise leaves a blank gap below the map before the
      next slot. */
   align-self: start;
+  /* Only takes effect where the row track has a definite size (the mobile minmax(0, 1fr) row) -
+     under desktop's auto-sized row this resolves to the content's own intrinsic height, a no-op. */
+  height: 100%;
 }
 
 .shell-roster {
@@ -69,20 +105,44 @@
 
 .shell-dock {
   grid-area: dock;
+  min-width: 0;
 }
 
 @media (max-width: 900px) {
+  /* Backstop against iOS rubber-banding/pull-to-refresh visually "scrolling" the page even though
+     the grid below is height-capped and can't grow past the viewport. Scoped to this breakpoint
+     only - desktop keeps normal document scroll. */
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .shell-top-bar {
+    /* The title plus phase label already fill most of a phone-width row; letting the round-progress
+       text (paired with white-space: nowrap above) wrap down as a whole unit reads far better than
+       either squeezing it word-by-word onto the same line or letting it force horizontal overflow. */
+    flex-wrap: wrap;
+    row-gap: 0.2rem;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
-    /* Every row sizes to its own content here - the desktop `1fr` map row would otherwise stretch
-       to fill the shell's min-height:100vh, leaving a blank gap below the map's own aspect-ratio
-       height before the roster/dock. */
-    grid-template-rows: auto auto auto auto;
+    /* top|map|roster|dock: the map is the one row that shrinks (minmax(0, 1fr)) when the other
+       three need more room, so the shell's total height is hard-capped by `height: 100dvh` below
+       no matter how tall the dock's content gets - never `min-height`, which would let content
+       grow past the cap and silently reopen scroll. `dvh` (not `vh`/`svh`) tracks the mobile
+       browser chrome collapsing/expanding as the page would otherwise scroll. */
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
     grid-template-areas:
       'top'
       'map'
       'roster'
       'dock';
+    height: 100dvh;
+    overflow: hidden;
     /* Notched phones in landscape put content under the camera cutout/home-indicator bar without
        this - env() resolves to 0 on devices with no notch, so the extra padding is free elsewhere. */
     padding-top: calc(1rem + env(safe-area-inset-top));
@@ -92,21 +152,40 @@
   }
 
   .shell-dock {
-    position: sticky;
-    bottom: 0;
     background: var(--paper-100);
     padding-top: 0.5rem;
   }
 
   .shell-roster {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.4rem;
+    /* A grid item's automatic minimum width defaults to its content's max-content size, which lets
+       a wide-enough row blow out past a 1fr column instead of shrinking to fit it (then get
+       silently clipped by .app-shell's overflow: hidden above, rather than actually fitting) -
+       min-width: 0 on the grid item itself is what allows the column, and everything inside it, to
+       actually shrink down to the viewport's width. */
+    min-width: 0;
   }
 
   .shell-roster .player-roster {
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* GameRules.MaxPlayers = 4 caps the roster at 4 cards, which always fits one row at this
+     breakpoint once each card can shrink below its content width; the existing .player-name
+     ellipsis truncation already handles long names. */
+  .shell-roster .player-card {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .results {
+    margin: 0;
+    max-width: none;
   }
 
   /* Touch-target floor: 44x44 CSS px (WCAG/Apple/Material guideline) for everything the viewer
@@ -360,68 +439,17 @@
   color: var(--gilt-600);
 }
 
-/* ---------- Rotate-device nudge ---------- */
-
-.rotate-device-gate {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.72);
-}
-
-.rotate-device-gate-card {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: center;
-  max-width: 22rem;
-  padding: 1.5rem;
-  border-radius: var(--r-md);
-  background: var(--paper-050);
-  text-align: center;
-}
-
-.rotate-device-gate-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-}
-
 /* ---------- Map ---------- */
-
-.map-viewport {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  /* touch-action is set imperatively by MapViewport (pan-y unzoomed, none mid-pinch/zoomed) since
-     it must react to live pointer count within the same event that starts a gesture. */
-}
-
-.map-viewport-content {
-  width: 100%;
-  transform-origin: center center;
-  will-change: transform;
-}
-
-.map-viewport-reset {
-  position: absolute;
-  right: 0.75rem;
-  bottom: 0.75rem;
-  z-index: 1;
-  padding: 0.4em 0.9em;
-  border-radius: var(--r-md);
-  background: var(--paper-050);
-  border: 1px solid var(--paper-300);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-}
 
 .game-map {
   width: 100%;
+  /* Matches .shell-map above: only meaningfully constrains height where the parent row has a
+     definite size (mobile). The SVG's default preserveAspectRatio (xMidYMid meet) then letterboxes
+     rather than overflows when the row is shorter than the map's native aspect ratio; the
+     background fills those letterbox bars with the same sea tone the map itself paints behind its
+     territories, so they read as part of the map rather than as empty space. */
+  height: 100%;
+  background: var(--sea);
   display: block;
 }
 

@@ -670,7 +670,8 @@ public sealed class RoomActor
             outcome,
             pendingBasePick,
             battle,
-            state.Rules.Language);
+            state.Rules.Language,
+            state.Rules.RoundLimit);
     }
 
     // Every field here is a fact both combatants already know (identities, the contested region,

@@ -8,11 +8,11 @@ function focusableElements(container: HTMLElement): HTMLElement[] {
   )
 }
 
-// HowToPlayModal and RotateDeviceGate both stay mounted as React components across visibility
-// toggles (their parents render them unconditionally; only their own `if (!shown) return null`
-// changes) - so this can't key off mount/unmount. It keys off the `active` flag instead: the
-// effect re-runs its setup/teardown each time `active` flips, and by the time it runs the
-// container ref is already populated since the dialog's JSX rendered in the same commit.
+// HowToPlayModal stays mounted as a React component across visibility toggles (its parent renders
+// it unconditionally; only its own `if (!open) return null` changes) - so this can't key off
+// mount/unmount. It keys off the `active` flag instead: the effect re-runs its setup/teardown each
+// time `active` flips, and by the time it runs the container ref is already populated since the
+// dialog's JSX rendered in the same commit.
 export function useModalFocusTrap(containerRef: RefObject<HTMLElement | null>, active: boolean) {
   useEffect(() => {
     if (!active) return

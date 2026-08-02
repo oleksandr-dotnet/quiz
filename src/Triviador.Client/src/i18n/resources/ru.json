@@ -1,7 +1,7 @@
 {
   "app.title": "Triviador",
   "app.yourTurnTitle": "Ваш ход! · Triviador",
-  "app.roundLabel": "Раунд",
+  "app.roundProgress": "Раунд {{current}}/{{total}} · осталось {{remaining}}",
   "app.phase.baseSelection": "Выбор базы",
   "app.phase.landGrab": "Захват территорий",
   "app.phase.battle": "Битва",
@@ -103,10 +103,6 @@
   "map.regionLabelClaimed": "{{name}}, {{value}} очков, принадлежит {{ownerName}}",
   "map.regionLabelUnclaimed": "{{name}}, {{value}} очков, свободна",
   "map.resetView": "Сбросить масштаб",
-
-  "orientation.rotateMessage": "Поверните устройство горизонтально для лучшего обзора карты.",
-  "orientation.goFullscreenAndRotate": "Во весь экран и повернуть",
-  "orientation.continueInPortrait": "Продолжить вертикально",
 
   "keypad.backspace": "Стереть",
   "keypad.submit": "Отправить",

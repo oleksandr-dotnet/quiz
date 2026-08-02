@@ -26,7 +26,8 @@ public sealed record GameViewDto(
     GameOutcomeDto? Outcome,
     PendingBasePickViewDto? PendingBasePick,
     BattleContextDto? Battle,
-    Language Language);
+    Language Language,
+    int RoundLimit);
 
 public sealed record RegionViewDto(
     string RegionId, string Name, int Value, double CenterX, double CenterY, double Radius,

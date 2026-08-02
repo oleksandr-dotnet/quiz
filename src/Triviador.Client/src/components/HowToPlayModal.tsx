@@ -9,8 +9,8 @@ export interface HowToPlayModalProps {
 
 const PHASE_KEYS = ['baseSelection', 'landGrab', 'battle', 'winCondition'] as const
 
-// Overlay/card markup mirrors RotateDeviceGate's dialog pattern (role="dialog" aria-modal, a
-// centered paper-themed card) so the client has one consistent modal shape rather than two.
+// Overlay/card markup uses a standard dialog pattern (role="dialog" aria-modal, a centered
+// paper-themed card) shared with the client's other modal-style overlays.
 export function HowToPlayModal({ open, onClose }: HowToPlayModalProps) {
   const { t } = useTranslation()
   const dialogRef = useRef<HTMLDivElement>(null)

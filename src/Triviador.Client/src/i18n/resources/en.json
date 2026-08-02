@@ -1,7 +1,7 @@
 {
   "app.title": "Triviador",
   "app.yourTurnTitle": "Your turn! · Triviador",
-  "app.roundLabel": "Round",
+  "app.roundProgress": "Round {{current}}/{{total}} · {{remaining}} left",
   "app.phase.baseSelection": "Picking bases",
   "app.phase.landGrab": "Land Grab",
   "app.phase.battle": "Battle",
@@ -103,10 +103,6 @@
   "map.regionLabelClaimed": "{{name}}, {{value}} points, held by {{ownerName}}",
   "map.regionLabelUnclaimed": "{{name}}, {{value}} points, unclaimed",
   "map.resetView": "Reset view",
-
-  "orientation.rotateMessage": "Rotate your device to landscape for a better view of the map.",
-  "orientation.goFullscreenAndRotate": "Go fullscreen & rotate",
-  "orientation.continueInPortrait": "Continue in portrait",
 
   "keypad.backspace": "Backspace",
   "keypad.submit": "Submit",
