@@ -15,7 +15,7 @@ export function ValueBadge({ x, y, value }: ValueBadgeProps) {
         stroke="var(--ink-500)"
         strokeWidth={1}
       />
-      <text x={0} y={2.5} textAnchor="middle" fontSize={9} fontWeight={600} fill="var(--ink-700)">
+      <text x={0} y={2.5} textAnchor="middle" fontSize={9} fontWeight={600} fill="var(--ink-700)" aria-hidden="true">
         {value}
       </text>
     </g>

@@ -29,7 +29,7 @@ export function WaxSeal({ x, y, seat, hitPoints, monogram }: WaxSealProps) {
       transition={{ type: 'spring', stiffness: 260, damping: 14 }}
     >
       <circle r={15} fill="url(#wax-seal-gradient)" stroke={color} strokeWidth={2} />
-      <text x={0} y={4} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--paper-050)">
+      <text x={0} y={4} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--paper-050)" aria-hidden="true">
         {monogram}
       </text>
       {pipAngles.map((angle, i) => {

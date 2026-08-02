@@ -83,7 +83,7 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
         })}
       </g>
 
-      <g pointerEvents="none">
+      <g pointerEvents="none" aria-hidden="true">
         {view.regions.map((region) => {
           const { x, y } = markerPosition(region)
           return (
@@ -95,6 +95,7 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
                 className="region-name"
                 fontSize={11}
                 fill="var(--ink-700)"
+                aria-hidden="true"
               >
                 {region.name}
               </text>
@@ -104,7 +105,7 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
         })}
       </g>
 
-      <g pointerEvents="none">
+      <g pointerEvents="none" aria-hidden="true">
         {view.regions
           .filter((region) => region.isBase && region.ownerPlayerId)
           .map((region) => {
