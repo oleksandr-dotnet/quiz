@@ -240,12 +240,24 @@ export function MapViewport({ children }: MapViewportProps) {
   const endPointer = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       pointersRef.current.delete(e.pointerId)
-      pinchStartRef.current = null
-      panStartRef.current = null
 
-      if (pointersRef.current.size === 1 && transformRef.current.scale > 1) {
+      if (pointersRef.current.size >= 2) {
+        // A stray extra pointer (palm graze, two-handed tablet use) just lifted, but at least two
+        // real pinch pointers are still down - re-baseline the pinch from here instead of nulling
+        // it, or handlePointerMove's pinch branch would stop matching until every pointer lifted
+        // and the whole gesture restarted.
+        const [a, b] = [...pointersRef.current.values()]
+        pinchStartRef.current = {
+          distance: distanceBetween(a, b),
+          scale: transformRef.current.scale,
+          offsetX: transformRef.current.x,
+          offsetY: transformRef.current.y,
+        }
+        panStartRef.current = null
+      } else if (pointersRef.current.size === 1 && transformRef.current.scale > 1) {
         // A pinch that just dropped to one finger is already mid-gesture, not a fresh tap -
         // capturing immediately (rather than deferring to a drag threshold) is correct here.
+        pinchStartRef.current = null
         const [remaining] = [...pointersRef.current.entries()]
         const [pointerId, point] = remaining
         tryCapturePointer(e.currentTarget, pointerId)
@@ -257,6 +269,9 @@ export function MapViewport({ children }: MapViewportProps) {
           offsetY: transformRef.current.y,
           dragging: true,
         }
+      } else {
+        pinchStartRef.current = null
+        panStartRef.current = null
       }
       applyTouchAction()
     },
