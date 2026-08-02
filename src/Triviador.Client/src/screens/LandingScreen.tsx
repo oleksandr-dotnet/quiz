@@ -46,7 +46,12 @@ export function LandingScreen() {
     }
     setBusy(true)
     setError(null)
-    handleResult(await createRoom(displayName.trim(), 0, localeToLanguage(i18n.language as Locale)))
+    try {
+      handleResult(await createRoom(displayName.trim(), 0, localeToLanguage(i18n.language as Locale)))
+    } catch {
+      setError(t('landing.errorGeneric'))
+      setBusy(false)
+    }
   }
 
   async function onPlayVsBots() {
@@ -56,7 +61,12 @@ export function LandingScreen() {
     }
     setBusy(true)
     setError(null)
-    handleResult(await createRoom(displayName.trim(), 3, localeToLanguage(i18n.language as Locale)))
+    try {
+      handleResult(await createRoom(displayName.trim(), 3, localeToLanguage(i18n.language as Locale)))
+    } catch {
+      setError(t('landing.errorGeneric'))
+      setBusy(false)
+    }
   }
 
   async function onJoin() {
@@ -67,7 +77,12 @@ export function LandingScreen() {
     }
     setBusy(true)
     setError(null)
-    handleResult(await joinRoom(code, displayName.trim(), null))
+    try {
+      handleResult(await joinRoom(code, displayName.trim(), null))
+    } catch {
+      setError(t('landing.errorGeneric'))
+      setBusy(false)
+    }
   }
 
   function onCodeCellChange(index: number, raw: string) {
