@@ -1,11 +1,4 @@
-# mobile-viewport-interaction Specification
-
-## Purpose
-Governs how the map and surrounding chrome behave on narrow/touch viewports: fitting the whole
-game screen within one viewport with no scroll in any phase, rendering the map at a fixed
-non-zoomable scale, and a minimum touch-target size for interactive controls.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: The game screen fits the viewport without scrolling
 The client SHALL lay out the map, player roster, and phase dock together so they fit entirely
@@ -62,31 +55,3 @@ scrollable rather than clipping content the viewer needs unreachable.
   zero can accommodate
 - **THEN** the dock becomes internally scrollable so the next question's controls remain reachable,
   rather than being clipped past the viewport with no way to reach them
-
-### Requirement: The map renders at a fixed, non-zoomable scale
-The client SHALL render the map at a fixed scale with no user-driven zoom or pan; a tap or click on
-a region SHALL select that region directly, with no gesture layer intervening.
-
-#### Scenario: No gesture changes the map's scale or pan offset
-- **WHEN** the viewer pinches, drags, or scrolls the mouse wheel over the map
-- **THEN** the map's scale and position do not change
-
-#### Scenario: Region selection is unaffected by the removed gesture layer
-- **WHEN** the viewer taps or clicks a region
-- **THEN** that region is selected, exactly as before this change
-
-### Requirement: Interactive controls meet a minimum touch-target size on narrow viewports
-The client SHALL give every interactive control the viewer taps to act (dock buttons, answer
-options, the numeric keypad) a tappable area of at least 44 by 44 CSS pixels, on viewports narrower
-than the client's phone breakpoint, and SHALL keep each roster card's player-name field wide enough
-to render a short (3-8 character) player name in full without ellipsis truncation at the narrowest
-viewport widths this breakpoint covers.
-
-#### Scenario: Dock buttons meet the minimum size on a phone viewport
-- **WHEN** the viewport is narrower than the phone breakpoint
-- **THEN** every dock button's rendered tappable area is at least 44x44 CSS pixels
-
-#### Scenario: A short default name renders in full on the narrowest supported phone widths
-- **WHEN** the viewport is as narrow as 430-450px wide (the narrowest phones this project targets)
-  and a roster card shows a short name such as the default bot label
-- **THEN** the full name renders without ellipsis truncation
