@@ -24,6 +24,18 @@
   "landing.tagline": "Answer fast. Claim territory. Rule the map.",
   "landing.orJoinExisting": "or join an existing room",
 
+  "howToPlay.openButton": "How to play?",
+  "howToPlay.title": "How to play",
+  "howToPlay.close": "Close",
+  "howToPlay.baseSelection.heading": "1. Pick a base",
+  "howToPlay.baseSelection.body": "Each player picks one region as their home base, in turn order.",
+  "howToPlay.landGrab.heading": "2. Land grab",
+  "howToPlay.landGrab.body": "Everyone answers the same trivia question at once. The fastest correct answers claim the remaining regions on the map, until every region has an owner.",
+  "howToPlay.battle.heading": "3. Battle",
+  "howToPlay.battle.body": "Take turns attacking a neighboring region: win a trivia duel to capture an ordinary region, or chip away at an enemy base's hit points across up to three questions to capture it and eliminate its owner.",
+  "howToPlay.winCondition.heading": "4. Win",
+  "howToPlay.winCondition.body": "The last player left standing wins. If the round limit is reached first, whoever holds the most points wins.",
+
   "lobby.titleLabel": "Room",
   "lobby.copyInviteLink": "Copy invite link",
   "lobby.seatBot": "Bot",

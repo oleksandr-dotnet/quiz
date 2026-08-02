@@ -160,6 +160,69 @@
   font-size: 0.95rem;
 }
 
+.landing-how-to-play {
+  margin-top: 0.25rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink-500);
+  text-decoration: underline;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* ---------- How to play modal ---------- */
+
+.how-to-play-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.how-to-play-card {
+  position: relative;
+  max-width: 30rem;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding-top: 1.75rem;
+}
+
+.how-to-play-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--paper-100);
+  color: var(--ink-500);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.how-to-play-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.how-to-play-phases h3 {
+  margin: 0 0 0.25rem;
+}
+
+.how-to-play-phases p {
+  margin: 0;
+  color: var(--ink-500);
+}
+
 .language-toggle {
   display: flex;
   gap: 0.5rem;

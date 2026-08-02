@@ -4,6 +4,7 @@ import { AnimatePresence } from 'motion/react'
 import { createRoom, joinRoom } from '../api/commands'
 import { useGameStore } from '../store/gameStore'
 import { Toast } from '../components/Toast'
+import { HowToPlayModal } from '../components/HowToPlayModal'
 import { setLocalePreference, type Locale } from '../i18n'
 import type { JoinResult, Language } from '../api/contracts'
 
@@ -22,6 +23,7 @@ export function LandingScreen() {
   const [joinCode, setJoinCode] = useState(() => (urlRoomCode() ?? '').padEnd(4, ' ').split(''))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [howToPlayOpen, setHowToPlayOpen] = useState(false)
   const setSession = useGameStore((s) => s.setSession)
   const applyView = useGameStore((s) => s.applyView)
   const codeInputRefs = useRef<(HTMLInputElement | null)[]>([])
@@ -107,6 +109,14 @@ export function LandingScreen() {
       <div className="landing-brand">
         <h1>{t('app.title')}</h1>
         <p className="landing-tagline">{t('landing.tagline')}</p>
+        <button
+          type="button"
+          className="landing-how-to-play"
+          onClick={() => setHowToPlayOpen(true)}
+          data-testid="how-to-play-open"
+        >
+          {t('howToPlay.openButton')}
+        </button>
       </div>
       <input
         placeholder={t('landing.namePlaceholder')}
@@ -145,6 +155,7 @@ export function LandingScreen() {
         </button>
       </div>
       <AnimatePresence>{error && <Toast key="landing-error" message={error} />}</AnimatePresence>
+      <HowToPlayModal open={howToPlayOpen} onClose={() => setHowToPlayOpen(false)} />
     </main>
   )
 }
