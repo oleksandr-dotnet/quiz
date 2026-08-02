@@ -4,9 +4,7 @@
 Once every seat has picked a base, players claim the rest of the map by answering trivia questions:
 all active players answer simultaneously, ranked answers earn region picks, and the phase repeats
 until every region on the map has an owner.
-
 ## Requirements
-
 ### Requirement: Land grab starts the instant base selection ends
 Once every occupied seat has picked a base, the engine SHALL transition into the `LandGrab` phase and
 ask the first land-grab question, with no intervening state where the game is neither finishing base
@@ -83,19 +81,34 @@ anywhere on the map is adjacent to any region that player owns, in which case an
 ### Requirement: An unresponsive question or region pick resolves on its own
 If a participant does not answer a land-grab question before its deadline, they SHALL be scored as
 having submitted no answer. If the current award-queue picker does not pick a region before their
-deadline, a region SHALL be picked for them automatically using the same eligibility rule a manual pick
-would follow.
+deadline, a region SHALL be picked for them automatically using the same eligibility rule a manual
+pick would follow. A bot participant SHALL NOT rely on either fallback in the normal case: per
+`bot-gameplay`, a bot actively submits its own answer and, when it is the award-queue picker, its
+own region pick, before the respective deadline. These fallbacks remain the resolution path for a
+disconnected or unresponsive human, and remain a bot's own safety net if its scheduled submission
+is somehow not accepted in time.
 
-#### Scenario: A bot or disconnected player is scored as silent
-- **WHEN** a participant's land-grab question deadline passes via `TimeoutElapsed` without their having
-  submitted an answer
+#### Scenario: A disconnected player is scored as silent
+- **WHEN** a disconnected or otherwise unresponsive human participant's land-grab question deadline
+  passes via `TimeoutElapsed` without their having submitted an answer
 - **THEN** that participant is ranked as if they submitted no answer, with no error and no rejection
 
-#### Scenario: An unresponsive picker's turn resolves automatically
-- **WHEN** the current award-queue picker's deadline passes via `TimeoutElapsed` without a `PickRegion`
-  command
-- **THEN** a region is picked for them automatically, preferring a region bordering their territory when
-  one exists, and the award queue advances exactly as a manual pick would
+#### Scenario: A bot answers a land-grab question
+- **WHEN** a bot seat is an active participant in a pending land-grab question
+- **THEN** the bot submits its own answer before the question's deadline in the normal case; it is
+  still scored as silent if, for any reason, it has not answered once the deadline passes
+
+#### Scenario: An unresponsive human picker's turn resolves automatically
+- **WHEN** the current award-queue picker is a disconnected or otherwise unresponsive human and
+  their deadline passes via `TimeoutElapsed` without a `PickRegion` command
+- **THEN** a region is picked for them automatically, preferring a region bordering their territory
+  when one exists, and the award queue advances exactly as a manual pick would
+
+#### Scenario: A bot picker's turn resolves via its own pick
+- **WHEN** the current award-queue picker is a bot seat
+- **THEN** the bot submits its own `PickRegion` choice before the deadline in the normal case, and
+  the award queue advances exactly as a manual pick would; a region is still picked for it
+  automatically if, for any reason, it has not acted once the deadline passes
 
 ### Requirement: A question with no engagement re-asks, then auto-awards
 A land-grab question where every participant's recorded answer is the absence of a submission SHALL be
@@ -140,3 +153,4 @@ question's `QuestionResolved` event has fired.
 #### Scenario: A player sees their own answer echoed
 - **WHEN** a player has submitted an answer to the current question and requests their own view
 - **THEN** they see their own submitted answer reflected back, so a refresh shows they are "locked in"
+

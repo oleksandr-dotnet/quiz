@@ -4,6 +4,7 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using Triviador.Application.Content;
 using Triviador.Application.Contracts;
+using Triviador.Domain.Abstractions;
 using Triviador.Domain.Commands;
 using Triviador.Domain.Engine;
 using Triviador.Domain.Events;
@@ -36,6 +37,11 @@ public sealed class RoomActor
     private Timer? _engineTimer;
     private DateTimeOffset _lastActivityUtc;
     private volatile bool _faulted;
+
+    private IRandomSource? _botRandom;
+    private ActivityToken? _botScheduleToken;
+    private readonly HashSet<Guid> _scheduledBotPlayers = [];
+    private readonly List<Timer> _botTimers = [];
 
     public RoomActor(string roomCode, RoomOptions options, IRoomBroadcaster broadcaster, IRoomClock clock,
         IMapRepository mapRepository, IRandomSourceFactory randomSourceFactory,
@@ -365,6 +371,12 @@ public sealed class RoomActor
         var engine = new GameEngine(state, _randomSourceFactory.Create(seed), _questionSourceFactory.Create(seed, rules.Language));
         var now = Now();
 
+        // A separate seed/source dedicated to bot choices and thinking-delays, kept independent of
+        // the engine's own random source so bot behavior never perturbs the engine's draw sequence
+        // (part of what keeps a game replayable from (seed, command log)).
+        var botSeed = RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue);
+        _botRandom = _randomSourceFactory.Create(botSeed);
+
         foreach (var seat in occupiedSeats)
         {
             engine.Execute(new JoinGame(now, new PlayerId(seat.PlayerId!.Value)));
@@ -528,6 +540,7 @@ public sealed class RoomActor
     private async Task HandleShutdownAsync(ShutdownRequest m)
     {
         _engineTimer?.Dispose();
+        ClearBotSchedule();
         foreach (var seat in _seats.Where(s => s.IsConnected))
         {
             await _broadcaster.SendClosedAsync(seat.ConnectionId!, "Room closed due to inactivity.");
@@ -736,6 +749,7 @@ public sealed class RoomActor
         var pending = _engine?.State.Pending;
         if (pending is null)
         {
+            ClearBotSchedule();
             return;
         }
 
@@ -743,6 +757,91 @@ public sealed class RoomActor
         var delay = pending.Deadline.Since(Now());
         var dueTime = delay < TimeSpan.Zero ? TimeSpan.Zero : delay;
         _engineTimer = new Timer(_ => TryPost(new EngineTimerElapsed(token)), null, dueTime, Timeout.InfiniteTimeSpan);
+
+        ScheduleBotMoves(pending);
+    }
+
+    // Bots submit through the same public methods a human client uses (SelectBaseAsync,
+    // PickRegionAsync, SubmitAnswerAsync, SelectAttackTargetAsync), so they get the exact same
+    // validation for free and can never do anything a human couldn't. A stale/rejected bot
+    // submission is a harmless no-op, the same way a stale TimeoutElapsed already is.
+    private void ScheduleBotMoves(PendingActivity pending)
+    {
+        if (_botScheduleToken != pending.Token)
+        {
+            ClearBotSchedule();
+            _botScheduleToken = pending.Token;
+        }
+
+        switch (pending)
+        {
+            case PendingActivity.BasePick basePick:
+                ScheduleBotRegionChoice(basePick.Player.Value, pending.Deadline,
+                    () => _engine!.EligibleBaseRegions(),
+                    (playerId, regionId) => SelectBaseAsync(playerId, regionId));
+                break;
+
+            case PendingActivity.RegionPicks regionPicks:
+                var picker = regionPicks.AwardQueue[regionPicks.NextIndex];
+                ScheduleBotRegionChoice(picker.Value, pending.Deadline,
+                    () => _engine!.EligibleRegionsFor(picker),
+                    (playerId, regionId) => PickRegionAsync(playerId, regionId));
+                break;
+
+            case PendingActivity.TargetSelection targetSelection:
+                ScheduleBotRegionChoice(targetSelection.Player.Value, pending.Deadline,
+                    () => _engine!.EligibleAttackTargetsFor(targetSelection.Player),
+                    (playerId, regionId) => SelectAttackTargetAsync(playerId, regionId));
+                break;
+
+            case PendingActivity.Question question:
+                foreach (var participant in question.Participants)
+                {
+                    if (!question.Submissions.ContainsKey(participant))
+                    {
+                        ScheduleBotAnswer(participant.Value, pending.Deadline, question.Q.Prompt);
+                    }
+                }
+                break;
+        }
+    }
+
+    private void ScheduleBotRegionChoice(
+        Guid playerId, Instant deadline, Func<ImmutableArray<RegionId>> eligible, Func<Guid, string, Task> submit)
+    {
+        if (!IsBotPlayer(playerId) || !_scheduledBotPlayers.Add(playerId))
+        {
+            return;
+        }
+
+        var regionId = BotChoice.PickRegion(eligible(), _botRandom!);
+        var delay = BotChoice.ThinkingDelay(deadline.Since(Now()), _botRandom!);
+        _botTimers.Add(new Timer(_ => submit(playerId, regionId.Value), null, delay, Timeout.InfiniteTimeSpan));
+    }
+
+    private void ScheduleBotAnswer(Guid playerId, Instant deadline, QuestionPrompt prompt)
+    {
+        if (!IsBotPlayer(playerId) || !_scheduledBotPlayers.Add(playerId))
+        {
+            return;
+        }
+
+        var answer = BotChoice.Answer(prompt, _botRandom!);
+        var delay = BotChoice.ThinkingDelay(deadline.Since(Now()), _botRandom!);
+        _botTimers.Add(new Timer(_ => SubmitAnswerAsync(playerId, answer), null, delay, Timeout.InfiniteTimeSpan));
+    }
+
+    private bool IsBotPlayer(Guid playerId) => _seats.Any(s => s.PlayerId == playerId && s.IsBot);
+
+    private void ClearBotSchedule()
+    {
+        foreach (var timer in _botTimers)
+        {
+            timer.Dispose();
+        }
+        _botTimers.Clear();
+        _scheduledBotPlayers.Clear();
+        _botScheduleToken = null;
     }
 
     private Instant Now() => new(_clock.UtcNow.ToUnixTimeMilliseconds());
