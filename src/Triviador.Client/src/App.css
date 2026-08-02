@@ -685,6 +685,21 @@
   gap: 0.5rem;
 }
 
+/* The bare browser default width for a number input (~240px) plus the submit button's natural
+   width together exceed the question card's content box on the narrowest phones this project
+   targets (393px) - confirmed by the row's own scrollWidth exceeding its clientWidth - so the
+   button rendered partly clipped past the card's edge. Letting the input shrink and pinning the
+   button to its natural width keeps both fully visible at any card width. */
+.numeric-input-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+
+.numeric-input-row button {
+  flex-shrink: 0;
+}
+
 .numeric-unit {
   color: var(--ink-500);
 }
@@ -933,10 +948,24 @@
 
 /* ---------- Connection badge ---------- */
 
+/* Rendered as a sibling before .app-shell, not inside it - in normal document flow that would add
+   its own height on top of .app-shell's fixed `height: 100dvh` at the mobile breakpoint, pushing
+   the total past the viewport and clipping the bottom of the dock under `overflow: hidden` (see
+   the `html, body, #root` rule above). Fixed positioning takes it out of flow entirely so it
+   floats above the game instead of growing past the viewport; env(safe-area-inset-top) keeps it
+   clear of a notch/Dynamic-Island/punch-hole camera. */
 .connection-badge {
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: calc(100vw - 1.5rem - env(safe-area-inset-left) - env(safe-area-inset-right));
   padding: 0.4em 0.9em;
   border-radius: var(--r-md);
   font-weight: 500;
+  box-shadow: var(--shadow-card);
+  text-align: center;
 }
 
 .connection-badge.reconnecting {
