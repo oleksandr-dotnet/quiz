@@ -1,5 +1,6 @@
 {
   "app.title": "Triviador",
+  "app.yourTurnTitle": "Your turn! · Triviador",
   "app.roundLabel": "Round",
   "app.phase.baseSelection": "Picking bases",
   "app.phase.landGrab": "Land Grab",

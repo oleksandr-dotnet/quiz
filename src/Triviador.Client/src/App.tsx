@@ -29,6 +29,14 @@ function urlRoomCode(): string | null {
   return match ? match[1].toUpperCase() : null
 }
 
+function isYourTurn(view: GameView): boolean {
+  if (view.youAreCurrentPicker) return true
+  if (view.pendingAttackTarget?.currentAttackerPlayerId === view.youPlayerId) return true
+  const q = view.pendingQuestion
+  if (q && q.participantPlayerIds.includes(view.youPlayerId) && !q.hasAnswered[view.youPlayerId]) return true
+  return false
+}
+
 function phaseLabelKey(phase: GameView['phase']): string {
   switch (phase) {
     case 'BaseSelection':
@@ -112,6 +120,14 @@ function App() {
     return () => {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transitions])
+
+  useEffect(() => {
+    const yourTurn = gameView !== null && gameView.phase !== 'Finished' && isYourTurn(gameView)
+    document.title = yourTurn ? t('app.yourTurnTitle') : t('app.title')
+    return () => {
+      document.title = t('app.title')
+    }
+  }, [gameView, t])
 
   const urlCode = urlRoomCode()
   const sessionUsable = session !== null && (!urlCode || urlCode === session.roomCode)

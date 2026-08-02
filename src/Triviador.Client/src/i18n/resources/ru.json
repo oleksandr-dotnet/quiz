@@ -1,5 +1,6 @@
 {
   "app.title": "Triviador",
+  "app.yourTurnTitle": "Ваш ход! · Triviador",
   "app.roundLabel": "Раунд",
   "app.phase.baseSelection": "Выбор базы",
   "app.phase.landGrab": "Захват территорий",
