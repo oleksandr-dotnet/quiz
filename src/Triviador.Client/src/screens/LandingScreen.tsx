@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence } from 'motion/react'
 import { createRoom, joinRoom } from '../api/commands'
@@ -88,6 +88,23 @@ export function LandingScreen() {
     }
   }
 
+  function onCodeCellPaste(index: number, e: ClipboardEvent<HTMLInputElement>) {
+    const pasted = e.clipboardData.getData('text').replace(/[^a-z0-9]/gi, '').toUpperCase()
+    if (!pasted) return
+    e.preventDefault()
+    setJoinCode((prev) => {
+      const next = [...prev]
+      let lastFilled = index - 1
+      for (let i = 0; i < pasted.length && index + i < next.length; i++) {
+        next[index + i] = pasted[i]
+        lastFilled = index + i
+      }
+      const focusIndex = lastFilled + 1 < next.length ? lastFilled + 1 : lastFilled
+      codeInputRefs.current[focusIndex]?.focus()
+      return next
+    })
+  }
+
   return (
     <main className="landing paper-card">
       <div className="language-toggle" role="group" aria-label="Language" data-testid="language-toggle">
@@ -146,6 +163,7 @@ export function LandingScreen() {
               maxLength={1}
               onChange={(e) => onCodeCellChange(index, e.target.value)}
               onKeyDown={(e) => onCodeCellKeyDown(index, e)}
+              onPaste={(e) => onCodeCellPaste(index, e)}
               aria-label={t('landing.roomCodeCharAriaLabel', { n: index + 1 })}
             />
           ))}
