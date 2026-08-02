@@ -91,6 +91,9 @@
       each file edit, one genuine duplicate caught and fixed (a new boiling-point-of-water science
       question restating an existing tip/science fact exactly - swapped for freezing point
       instead).
+- [x] 7.0d (2026-08-02, same session) Evened out the tip categories too: +4 nature, +5 sports, +3
+      pop-culture, +4 technology, +2 history (18 more, bank now at 278). Every tip category now
+      sits at 8-14. Same discipline; zero new duplicates this round.
 - [ ] 7.1 Batch 1 (choice): geography + history, ~200 new questions
 - [ ] 7.2 Batch 2 (choice): science + nature, ~200 new questions
 - [ ] 7.3 Batch 3 (choice): sports + pop-culture, ~200 new questions
