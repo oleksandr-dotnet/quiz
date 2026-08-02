@@ -108,7 +108,11 @@
   min-width: 0;
 }
 
-@media (max-width: 900px) {
+/* Width alone doesn't catch a phone held in landscape: its CSS width is the portrait height, which
+   for the larger 2025/2026 phones (iPhone 16 Plus/Pro Max, OnePlus 13) is comfortably over 900px
+   even though the viewport is only ~430-450px tall - short enough that the desktop layout below
+   (no height cap) overflows and scrolls. The max-height arm catches that case regardless of width. */
+@media (max-width: 900px), (max-height: 500px) {
   /* Backstop against iOS rubber-banding/pull-to-refresh visually "scrolling" the page even though
      the grid below is height-capped and can't grow past the viewport. Scoped to this breakpoint
      only - desktop keeps normal document scroll. */
