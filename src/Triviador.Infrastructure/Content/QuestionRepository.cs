@@ -10,75 +10,156 @@ namespace Triviador.Infrastructure.Content;
 
 public sealed class QuestionRepository : IQuestionRepository
 {
+    // The 13-category choice taxonomy and its 8-category tip subset, locked in by
+    // openspec/changes/expand-question-bank-2000. Tip is restricted to categories that produce
+    // genuinely estimable numeric facts - see that change's design.md for the rationale.
+    private static readonly ImmutableHashSet<string> ChoiceCategories = ImmutableHashSet.Create(
+        "geography", "history", "science", "nature", "sports", "pop-culture", "technology",
+        "arts-literature", "mythology-religion", "space-astronomy", "food-drink",
+        "economy-business", "language-wordplay");
+
+    private static readonly ImmutableHashSet<string> TipCategories = ImmutableHashSet.Create(
+        "geography", "history", "science", "nature", "sports", "pop-culture", "technology",
+        "economy-business");
+
+    private static readonly ImmutableHashSet<string> Difficulties = ImmutableHashSet.Create(
+        "easy", "medium", "hard");
+
     private readonly ImmutableArray<ChoiceQuestionJson> _choice;
     private readonly ImmutableArray<TipQuestionJson> _tip;
 
     public QuestionRepository(IHostEnvironment environment)
     {
-        var path = Path.Combine(environment.ContentRootPath, "Data", "questions", "questions.json");
-        var json = File.ReadAllText(path);
-        var raw = JsonSerializer.Deserialize<QuestionsJson>(json, JsonOptions)
-            ?? throw new InvalidOperationException($"'{path}' did not deserialize to a question bank.");
+        var choiceDir = Path.Combine(environment.ContentRootPath, "Data", "questions", "choice");
+        var tipDir = Path.Combine(environment.ContentRootPath, "Data", "questions", "tip");
 
         var errors = new List<string>();
         var seenIds = new HashSet<string>();
 
-        foreach (var q in raw.Choice)
+        var choiceBuilder = ImmutableArray.CreateBuilder<ChoiceQuestionJson>();
+        foreach (var file in EnumerateJsonFiles(choiceDir))
         {
-            if (!seenIds.Add(q.Id))
-            {
-                errors.Add($"Duplicate question id '{q.Id}'.");
-                continue;
-            }
+            var category = Path.GetFileNameWithoutExtension(file);
+            var questions = DeserializeFile<ImmutableArray<ChoiceQuestionJson>>(file);
 
-            if (string.IsNullOrWhiteSpace(q.Text) || string.IsNullOrWhiteSpace(q.TextRu))
+            foreach (var q in questions)
             {
-                errors.Add($"Choice question '{q.Id}' is missing its English or Russian text.");
-                continue;
-            }
+                ValidateCategory(q.Id, q.Category, category, ChoiceCategories, "choice", errors);
+                ValidateDifficulty(q.Id, q.Difficulty, errors);
 
-            var distinctOptions = q.Options.Where(o => !string.IsNullOrWhiteSpace(o)).Distinct().Count();
-            if (distinctOptions < 2)
-            {
-                errors.Add($"Choice question '{q.Id}' needs at least 2 distinct non-empty options.");
-                continue;
-            }
+                if (!seenIds.Add(q.Id))
+                {
+                    errors.Add($"Duplicate question id '{q.Id}'.");
+                    continue;
+                }
 
-            if (q.OptionsRu.Length != q.Options.Length)
-            {
-                errors.Add($"Choice question '{q.Id}' has a Russian options list of different length than English.");
-                continue;
-            }
+                if (string.IsNullOrWhiteSpace(q.Text) || string.IsNullOrWhiteSpace(q.TextRu))
+                {
+                    errors.Add($"Choice question '{q.Id}' is missing its English or Russian text.");
+                    continue;
+                }
 
-            if (q.CorrectOptionIndex < 0 || q.CorrectOptionIndex >= q.Options.Length)
-            {
-                errors.Add($"Choice question '{q.Id}' has a correctOptionIndex out of range.");
-                continue;
+                var distinctOptions = q.Options.Where(o => !string.IsNullOrWhiteSpace(o)).Distinct().Count();
+                if (distinctOptions < 2)
+                {
+                    errors.Add($"Choice question '{q.Id}' needs at least 2 distinct non-empty options.");
+                    continue;
+                }
+
+                if (q.OptionsRu.Length != q.Options.Length)
+                {
+                    errors.Add($"Choice question '{q.Id}' has a Russian options list of different length than English.");
+                    continue;
+                }
+
+                if (q.CorrectOptionIndex < 0 || q.CorrectOptionIndex >= q.Options.Length)
+                {
+                    errors.Add($"Choice question '{q.Id}' has a correctOptionIndex out of range.");
+                    continue;
+                }
+
+                choiceBuilder.Add(q);
             }
         }
 
-        foreach (var q in raw.Tip)
+        var tipBuilder = ImmutableArray.CreateBuilder<TipQuestionJson>();
+        foreach (var file in EnumerateJsonFiles(tipDir))
         {
-            if (!seenIds.Add(q.Id))
-            {
-                errors.Add($"Duplicate question id '{q.Id}'.");
-                continue;
-            }
+            var category = Path.GetFileNameWithoutExtension(file);
+            var questions = DeserializeFile<ImmutableArray<TipQuestionJson>>(file);
 
-            if (string.IsNullOrWhiteSpace(q.Text) || string.IsNullOrWhiteSpace(q.TextRu))
+            foreach (var q in questions)
             {
-                errors.Add($"Tip question '{q.Id}' is missing its English or Russian text.");
+                ValidateCategory(q.Id, q.Category, category, TipCategories, "tip", errors);
+                ValidateDifficulty(q.Id, q.Difficulty, errors);
+
+                if (!seenIds.Add(q.Id))
+                {
+                    errors.Add($"Duplicate question id '{q.Id}'.");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(q.Text) || string.IsNullOrWhiteSpace(q.TextRu))
+                {
+                    errors.Add($"Tip question '{q.Id}' is missing its English or Russian text.");
+                    continue;
+                }
+
+                tipBuilder.Add(q);
             }
         }
 
         if (errors.Count > 0)
         {
             throw new InvalidOperationException(
-                $"'{path}' failed question validation:\n" + string.Join('\n', errors));
+                $"Question bank under '{Path.Combine(environment.ContentRootPath, "Data", "questions")}' failed validation:\n"
+                + string.Join('\n', errors));
         }
 
-        _choice = raw.Choice;
-        _tip = raw.Tip;
+        _choice = choiceBuilder.ToImmutable();
+        _tip = tipBuilder.ToImmutable();
+    }
+
+    private static void ValidateCategory(
+        string id, string category, string expectedCategory, ImmutableHashSet<string> knownCategories,
+        string kind, List<string> errors)
+    {
+        if (!knownCategories.Contains(category))
+        {
+            errors.Add($"{kind} question '{id}' declares unknown category '{category}'.");
+            return;
+        }
+
+        if (category != expectedCategory)
+        {
+            errors.Add(
+                $"{kind} question '{id}' declares category '{category}' but was loaded from file '{expectedCategory}.json'.");
+        }
+    }
+
+    private static void ValidateDifficulty(string id, string difficulty, List<string> errors)
+    {
+        if (!Difficulties.Contains(difficulty))
+        {
+            errors.Add($"Question '{id}' declares unknown difficulty '{difficulty}'.");
+        }
+    }
+
+    private static IEnumerable<string> EnumerateJsonFiles(string directory)
+    {
+        if (!Directory.Exists(directory))
+        {
+            throw new InvalidOperationException($"Question directory '{directory}' does not exist.");
+        }
+
+        return Directory.EnumerateFiles(directory, "*.json").OrderBy(f => f, StringComparer.Ordinal);
+    }
+
+    private static T DeserializeFile<T>(string path)
+    {
+        var json = File.ReadAllText(path);
+        return JsonSerializer.Deserialize<T>(json, JsonOptions)
+            ?? throw new InvalidOperationException($"'{path}' did not deserialize to a question array.");
     }
 
     public ImmutableArray<Question> AllQuestions(Language language)
@@ -113,12 +194,11 @@ public sealed class QuestionRepository : IQuestionRepository
         PropertyNameCaseInsensitive = true,
     };
 
-    private sealed record QuestionsJson(ImmutableArray<ChoiceQuestionJson> Choice, ImmutableArray<TipQuestionJson> Tip);
-
     private sealed record ChoiceQuestionJson(
         string Id, string Text, string TextRu, ImmutableArray<string> Options, ImmutableArray<string> OptionsRu,
-        int CorrectOptionIndex);
+        int CorrectOptionIndex, string Category, string Difficulty);
 
     private sealed record TipQuestionJson(
-        string Id, string Text, string TextRu, string? Unit, string? UnitRu, long CorrectNumericValue);
+        string Id, string Text, string TextRu, string? Unit, string? UnitRu, long CorrectNumericValue,
+        string Category, string Difficulty);
 }
