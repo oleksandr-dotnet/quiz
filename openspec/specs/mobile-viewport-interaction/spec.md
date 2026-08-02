@@ -91,6 +91,11 @@ viewport widths this breakpoint covers.
   and a roster card shows a short name such as the default bot label
 - **THEN** the full name renders without ellipsis truncation
 
+#### Scenario: A long unbroken lobby seat name truncates instead of displacing its action button
+- **WHEN** a lobby seat shows a long, unbroken (no-space) display name on a narrow phone viewport
+- **THEN** the name truncates with an ellipsis and the seat's action button (fill-with-bot/open
+  seat) remains fully visible within the row
+
 ### Requirement: Landing and Lobby remain scrollable when their content exceeds the viewport
 The client SHALL NOT apply the in-game fitted-viewport's document-level scroll lockout to the
 landing screen or the lobby screen — neither renders the gameplay shell the lockout exists to

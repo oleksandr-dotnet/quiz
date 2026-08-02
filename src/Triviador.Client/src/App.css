@@ -440,11 +440,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   padding: 0.6em 1em;
   border-radius: var(--r-md);
   border: 1px solid var(--paper-300);
   background: var(--paper-050);
   transition: border-color var(--dur-mid) var(--ease-paper), box-shadow var(--dur-mid) var(--ease-paper);
+}
+
+/* A long unbroken display name (no spaces to wrap on) had no shrink handling, so it could push the
+   host's "fill with bot" button out of the row on a narrow phone - same fix as .player-name below. */
+.seat-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .seat:hover {
