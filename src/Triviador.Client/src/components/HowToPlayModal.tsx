@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useModalFocusTrap } from '../hooks/useModalFocusTrap'
 
 export interface HowToPlayModalProps {
   open: boolean
@@ -12,6 +13,8 @@ const PHASE_KEYS = ['baseSelection', 'landGrab', 'battle', 'winCondition'] as co
 // centered paper-themed card) so the client has one consistent modal shape rather than two.
 export function HowToPlayModal({ open, onClose }: HowToPlayModalProps) {
   const { t } = useTranslation()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(dialogRef, open)
 
   useEffect(() => {
     if (!open) return
@@ -26,7 +29,7 @@ export function HowToPlayModal({ open, onClose }: HowToPlayModalProps) {
 
   return (
     <div className="how-to-play-overlay" role="dialog" aria-modal="true" aria-label={t('howToPlay.title')}>
-      <div className="how-to-play-card paper-card">
+      <div ref={dialogRef} tabIndex={-1} className="how-to-play-card paper-card">
         <button
           type="button"
           className="how-to-play-close"

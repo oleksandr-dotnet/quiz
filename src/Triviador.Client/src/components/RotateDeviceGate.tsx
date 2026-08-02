@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useModalFocusTrap } from '../hooks/useModalFocusTrap'
 import type { GamePhase } from '../api/contracts'
 
 // screen.orientation.lock is Android-Chrome-family only and isn't part of TS's standard DOM lib
@@ -42,7 +43,11 @@ export function RotateDeviceGate({ phase }: RotateDeviceGateProps) {
     if (!isPortrait) setDismissed(false)
   }, [isPortrait])
 
-  if (!isNarrow || !isPortrait || !GATED_PHASES.has(phase) || dismissed) return null
+  const shown = isNarrow && isPortrait && GATED_PHASES.has(phase) && !dismissed
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(dialogRef, shown)
+
+  if (!shown) return null
 
   async function handleFullscreenAndRotate() {
     try {
@@ -60,7 +65,7 @@ export function RotateDeviceGate({ phase }: RotateDeviceGateProps) {
 
   return (
     <div className="rotate-device-gate" role="dialog" aria-modal="true">
-      <div className="rotate-device-gate-card">
+      <div ref={dialogRef} tabIndex={-1} className="rotate-device-gate-card">
         <p>{t('orientation.rotateMessage')}</p>
         <div className="rotate-device-gate-actions">
           <button type="button" onClick={() => void handleFullscreenAndRotate()}>
