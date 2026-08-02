@@ -41,7 +41,36 @@ public sealed class QuestionDealer : IQuestionSource
             _ => throw new ArgumentOutOfRangeException(nameof(draw), draw.Kind, "Unknown question kind request."),
         };
 
-        return kind == QuestionKind.Choice ? PopFrom(_choiceBag, _allChoice) : PopFrom(_tipBag, _allTip);
+        return kind == QuestionKind.Choice
+            ? ShuffleOptions(PopFrom(_choiceBag, _allChoice))
+            : PopFrom(_tipBag, _allTip);
+    }
+
+    // The question bank stores the correct option at a fixed (usually first) index, so it must be
+    // shuffled per draw or the UI would always show the answer in the same spot.
+    private Question ShuffleOptions(Question question)
+    {
+        if (question.CorrectOptionIndex is not { } correctIndex)
+        {
+            return question;
+        }
+
+        var options = question.Prompt.Options;
+        var order = Enumerable.Range(0, options.Length).ToArray();
+        for (var i = order.Length - 1; i > 0; i--)
+        {
+            var j = _random.Next(i + 1);
+            (order[i], order[j]) = (order[j], order[i]);
+        }
+
+        var shuffledOptions = ImmutableArray.CreateRange(order.Select(i => options[i]));
+        var shuffledCorrectIndex = Array.IndexOf(order, correctIndex);
+
+        return question with
+        {
+            Prompt = question.Prompt with { Options = shuffledOptions },
+            CorrectOptionIndex = shuffledCorrectIndex,
+        };
     }
 
     private QuestionKind PickKindWeightedByRemaining()
