@@ -13,7 +13,7 @@ RUN npm run build --prefix src/Triviador.Client
 # --- Stage 2: publish the .NET host ------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS server-build
 WORKDIR /src
-COPY Triviador.sln ./
+COPY Triviador.sln Directory.Build.props ./
 COPY src/Triviador.Domain/Triviador.Domain.csproj src/Triviador.Domain/
 COPY src/Triviador.Application/Triviador.Application.csproj src/Triviador.Application/
 COPY src/Triviador.Infrastructure/Triviador.Infrastructure.csproj src/Triviador.Infrastructure/
