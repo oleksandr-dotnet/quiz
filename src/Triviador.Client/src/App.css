@@ -949,6 +949,26 @@
   }
 }
 
+/* ---------- Error boundary fallback ---------- */
+
+.error-boundary-fallback {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.error-boundary-card {
+  max-width: 28rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .win-celebration {
     display: none;

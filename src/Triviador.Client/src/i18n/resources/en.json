@@ -7,6 +7,10 @@
   "app.phase.gameOver": "Game Over",
   "app.baseFallsProclamation": "{{defenderName}}'s banner falls",
 
+  "errorBoundary.title": "Something tore the parchment",
+  "errorBoundary.message": "The game hit an unexpected snag. Reloading the page will get you back on track.",
+  "errorBoundary.reload": "Reload",
+
   "landing.namePlaceholder": "Your name",
   "landing.createRoom": "Create room",
   "landing.playVsBots": "Play vs 3 bots",
