@@ -181,10 +181,26 @@
 
   /* GameRules.MaxPlayers = 4 caps the roster at 4 cards, which always fits one row at this
      breakpoint once each card can shrink below its content width; the existing .player-name
-     ellipsis truncation already handles long names. */
+     ellipsis truncation already handles long names. On the narrowest widths in this breakpoint
+     (~360-450px), 4 equal cards leave so little room per card that the swatch+padding+gaps alone
+     used to consume nearly all of it, ellipsizing even short default names like "Bot" down to a
+     single letter - the tighter padding/gap/swatch/font sizes below claw back enough width that a
+     short name reliably fits, while a genuinely long custom name still truncates gracefully. */
   .shell-roster .player-card {
     flex: 1 1 0;
     min-width: 0;
+    padding: 0.35em 0.4em;
+    gap: 0.3rem;
+  }
+
+  .shell-roster .seat-swatch {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .shell-roster .player-name {
+    font-size: 0.85rem;
   }
 
   .results {
