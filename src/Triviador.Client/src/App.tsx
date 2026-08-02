@@ -192,6 +192,12 @@ function App() {
     setActionError(null)
   }, [currentActorKey])
 
+  useEffect(() => {
+    if (actionError === null) return
+    const id = window.setTimeout(() => setActionError(null), 4000)
+    return () => window.clearTimeout(id)
+  }, [actionError])
+
   if (!sessionUsable || !view) {
     return (
       <>
@@ -280,8 +286,8 @@ function App() {
         roster={<PlayerRoster view={gameView} activePlayerId={activePlayerId} />}
         dock={
           <>
-            {proclamation && <Toast message={proclamation} tone="info" />}
-            {actionError && <Toast message={actionError} />}
+            <AnimatePresence>{proclamation && <Toast key="proclamation" message={proclamation} tone="info" />}</AnimatePresence>
+            <AnimatePresence>{actionError && <Toast key="action-error" message={actionError} />}</AnimatePresence>
             {dock}
           </>
         }
