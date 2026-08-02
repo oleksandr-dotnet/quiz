@@ -1,98 +1,43 @@
 # mobile-viewport-interaction Specification
 
 ## Purpose
-Governs how the map and surrounding chrome behave on narrow/touch viewports: zoom/pan gestures, a
-landscape nudge during active gameplay, an optional fullscreen-landscape lock, and a minimum
-touch-target size for interactive controls.
+Governs how the map and surrounding chrome behave on narrow/touch viewports: fitting the whole
+game screen within one viewport with no scroll in any phase, rendering the map at a fixed
+non-zoomable scale, and a minimum touch-target size for interactive controls.
 
 ## Requirements
 
-### Requirement: The map supports pinch-zoom and drag-pan
-The client SHALL let the viewer zoom the map in and out with a two-pointer pinch gesture (or mouse
-wheel on desktop) within a fixed scale range, and pan the zoomed map with a single-pointer drag,
-without changing the underlying `GameView` or region click semantics. A stray extra pointer landing
-and lifting during an active pinch SHALL NOT interrupt that pinch, as long as at least two pointers
-remain down throughout.
+### Requirement: The game screen fits the viewport without scrolling
+On narrow viewports, the client SHALL lay out the map, player roster, and phase dock together so
+they fit entirely within the visual viewport height, with no vertical or horizontal scroll, in
+every gameplay phase (`BaseSelection`, `LandGrab`, `Battle`, `Finished`).
 
-#### Scenario: Pinching zooms the map
-- **WHEN** the viewer places two pointers on the map and increases the distance between them
-- **THEN** the map's visual scale increases up to the maximum supported zoom level, centered on the
-  pinch midpoint
+#### Scenario: The map shrinks to fit rather than the page growing
+- **WHEN** the combined natural height of the top bar, roster, and dock leaves less room than the
+  map's natural aspect ratio would otherwise take
+- **THEN** the map's rendered height shrinks to whatever space remains, rather than the page
+  growing taller than the viewport
 
-#### Scenario: Dragging pans a zoomed map
-- **WHEN** the map's scale is greater than 1 and the viewer drags with a single pointer
-- **THEN** the map's visible offset follows the drag, clamped so no empty space beyond the map's
-  edge is ever revealed
+#### Scenario: A long question with a full set of answer options produces no scrollbar
+- **WHEN** a `Choice` question with lengthy text and four answer options is the pending activity on
+  a narrow viewport
+- **THEN** the game screen shows no scrollbar in either direction, in any phase
 
-#### Scenario: Dragging at default zoom does not pan the map
-- **WHEN** the map's scale is exactly 1 (not zoomed in) and the viewer drags with a single pointer
-  starting on the map
-- **THEN** the map does not pan, and the surrounding page scrolls normally instead
+#### Scenario: Rotating the device re-fits without introducing scroll
+- **WHEN** the viewport's orientation changes while a gameplay phase is active
+- **THEN** the layout re-fits the new viewport dimensions with no scroll appearing
 
-#### Scenario: A region tap still selects correctly while zoomed
-- **WHEN** the map is zoomed and/or panned and the viewer taps a region
-- **THEN** the same region under the viewer's finger is selected, exactly as it would be at default
-  zoom
+### Requirement: The map renders at a fixed, non-zoomable scale
+The client SHALL render the map at a fixed scale with no user-driven zoom or pan; a tap or click on
+a region SHALL select that region directly, with no gesture layer intervening.
 
-#### Scenario: A stray third pointer does not freeze an active pinch
-- **WHEN** a pinch is active with two pointers down, a third pointer lands and then lifts, and the
-  original two pointers continue moving
-- **THEN** the pinch continues responding to the two remaining pointers' movement without needing
-  every pointer to lift and the gesture to restart
+#### Scenario: No gesture changes the map's scale or pan offset
+- **WHEN** the viewer pinches, drags, or scrolls the mouse wheel over the map
+- **THEN** the map's scale and position do not change
 
-### Requirement: A reset-view control returns the map to default zoom
-Once the map's scale is not 1, the client SHALL show a control that immediately returns the map to
-its default scale and centered position.
-
-#### Scenario: Reset view appears only when zoomed
-- **WHEN** the map's scale is exactly 1
-- **THEN** no reset-view control is shown
-
-#### Scenario: Reset view restores default framing
-- **WHEN** the viewer activates the reset-view control after zooming and/or panning
-- **THEN** the map's scale returns to 1 and its pan offset returns to centered, in one action
-
-### Requirement: A landscape nudge appears on narrow portrait viewports during active gameplay
-The client SHALL show a dismissible overlay suggesting the viewer rotate their device to landscape
-when the viewport is portrait-oriented and narrower than the client's phone breakpoint, and the
-current game phase is one where the map is the primary interaction (base selection, land grab, or
-battle) — not in the lobby, landing screen, or results screen.
-
-#### Scenario: The nudge shows on a narrow portrait viewport during gameplay
-- **WHEN** the viewport is portrait-oriented and narrower than the phone breakpoint, and the current
-  `GameView.phase` is `BaseSelection`, `LandGrab`, or `Battle`
-- **THEN** the client shows the rotate-device overlay
-
-#### Scenario: The nudge does not show outside active gameplay phases
-- **WHEN** the viewport is portrait-oriented and narrower than the phone breakpoint, but the viewer
-  is on the landing screen, in the lobby, or viewing results
-- **THEN** the client does not show the rotate-device overlay
-
-#### Scenario: Dismissing the nudge reveals the game underneath
-- **WHEN** the viewer dismisses the rotate-device overlay
-- **THEN** the overlay closes and the game beneath it is fully usable, for the remainder of that
-  orientation
-
-#### Scenario: Rotating back to portrait re-prompts after a dismissal in landscape
-- **WHEN** the viewer dismissed the overlay, then rotated to landscape, then rotated back to
-  portrait while still in an active gameplay phase
-- **THEN** the rotate-device overlay is shown again
-
-### Requirement: A fullscreen landscape lock is attempted on request, without being required
-When the viewer requests it from the rotate-device overlay, the client SHALL attempt to enter
-fullscreen and lock the screen orientation to landscape, but SHALL NOT treat failure or absence of
-either browser API as an error condition visible to the viewer.
-
-#### Scenario: The lock attempt succeeds on a supporting browser
-- **WHEN** the viewer requests fullscreen-and-lock on a browser supporting both the Fullscreen API
-  and `screen.orientation.lock`
-- **THEN** the client enters fullscreen and the device orientation locks to landscape
-
-#### Scenario: The lock attempt is a silent no-op on an unsupporting browser
-- **WHEN** the viewer requests fullscreen-and-lock on a browser missing the Fullscreen API or the
-  Orientation Lock API (for example iOS Safari)
-- **THEN** the client does not show an error, and the rotate-device overlay's manual "continue in
-  portrait" dismissal remains available
+#### Scenario: Region selection is unaffected by the removed gesture layer
+- **WHEN** the viewer taps or clicks a region
+- **THEN** that region is selected, exactly as before this change
 
 ### Requirement: Interactive controls meet a minimum touch-target size on narrow viewports
 The client SHALL give every interactive control the viewer taps to act (dock buttons, answer
@@ -102,21 +47,3 @@ than the client's phone breakpoint.
 #### Scenario: Dock buttons meet the minimum size on a phone viewport
 - **WHEN** the viewport is narrower than the phone breakpoint
 - **THEN** every dock button's rendered tappable area is at least 44x44 CSS pixels
-
-### Requirement: The landscape nudge manages keyboard focus correctly
-The rotate-device overlay SHALL move keyboard focus into itself when it appears, trap Tab/Shift+Tab
-navigation among its own focusable elements while shown, and restore focus to whatever had it
-before the overlay appeared once it is dismissed.
-
-#### Scenario: The overlay appearing moves focus inside it
-- **WHEN** the rotate-device overlay appears
-- **THEN** keyboard focus is on an element inside the overlay, not on any element behind it
-
-#### Scenario: Tab does not leave the overlay while it is shown
-- **WHEN** the rotate-device overlay is shown and the viewer repeatedly presses Tab or Shift+Tab
-- **THEN** focus cycles only among the overlay's own focusable elements, never reaching an element
-  on the page behind it
-
-#### Scenario: Dismissing the overlay returns focus sensibly
-- **WHEN** the rotate-device overlay is dismissed
-- **THEN** keyboard focus returns to whatever element had it before the overlay appeared
