@@ -1,3 +1,7 @@
 [
-  { "id": "num-0026", "text": "How many Grand Slam tennis tournaments are held each year?", "textRu": "Сколько турниров Большого шлема по теннису проводится каждый год?", "unit": null, "unitRu": null, "correctNumericValue": 4, "category": "sports", "difficulty": "easy" }
+  { "id": "num-0026", "text": "How many Grand Slam tennis tournaments are held each year?", "textRu": "Сколько турниров Большого шлема по теннису проводится каждый год?", "unit": null, "unitRu": null, "correctNumericValue": 4, "category": "sports", "difficulty": "easy" },
+  { "id": "num-0051", "text": "How many minutes long is a standard soccer match's regulation time (excluding stoppage)?", "textRu": "Сколько минут длится основное время футбольного матча (без учёта добавленного времени)?", "unit": "min", "unitRu": "мин", "correctNumericValue": 90, "category": "sports", "difficulty": "easy" },
+  { "id": "num-0052", "text": "How many holes are played in a standard round of golf?", "textRu": "Сколько лунок играется в стандартном раунде гольфа?", "unit": null, "unitRu": null, "correctNumericValue": 18, "category": "sports", "difficulty": "easy" },
+  { "id": "num-0053", "text": "In what year were the first modern Olympic Games held?", "textRu": "В каком году состоялись первые Олимпийские игры современности?", "unit": null, "unitRu": null, "correctNumericValue": 1896, "category": "sports", "difficulty": "hard" },
+  { "id": "num-0054", "text": "How many players are on a standard rugby union team on the field, per side?", "textRu": "Сколько игроков одной команды находится на поле в регби-15?", "unit": null, "unitRu": null, "correctNumericValue": 15, "category": "sports", "difficulty": "medium" }
 ]

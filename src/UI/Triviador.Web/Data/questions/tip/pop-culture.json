@@ -1,5 +1,9 @@
 [
   { "id": "num-0021", "text": "How many strings does a standard guitar have?", "textRu": "Сколько струн у стандартной гитары?", "unit": null, "unitRu": null, "correctNumericValue": 6, "category": "pop-culture", "difficulty": "easy" },
   { "id": "num-0024", "text": "How many books are in the main Harry Potter series?", "textRu": "Сколько книг входит в основную серию романов о Гарри Поттере?", "unit": null, "unitRu": null, "correctNumericValue": 7, "category": "pop-culture", "difficulty": "easy" },
-  { "id": "num-0030", "text": "How many squares are on a chessboard?", "textRu": "Сколько клеток на шахматной доске?", "unit": null, "unitRu": null, "correctNumericValue": 64, "category": "pop-culture", "difficulty": "easy" }
+  { "id": "num-0030", "text": "How many squares are on a chessboard?", "textRu": "Сколько клеток на шахматной доске?", "unit": null, "unitRu": null, "correctNumericValue": 64, "category": "pop-culture", "difficulty": "easy" },
+  { "id": "num-0061", "text": "How many members were in the Beatles?", "textRu": "Сколько участников было в группе The Beatles?", "unit": null, "unitRu": null, "correctNumericValue": 4, "category": "pop-culture", "difficulty": "easy" },
+  { "id": "num-0062", "text": "How many Infinity Stones are there in the Marvel Cinematic Universe?", "textRu": "Сколько Камней Бесконечности существует во вселенной Marvel?", "unit": null, "unitRu": null, "correctNumericValue": 6, "category": "pop-culture", "difficulty": "medium" },
+  { "id": "num-0063", "text": "In what year did the first Star Wars film premiere?", "textRu": "В каком году состоялась премьера первого фильма «Звёздные войны»?", "unit": null, "unitRu": null, "correctNumericValue": 1977, "category": "pop-culture", "difficulty": "medium" },
+  { "id": "num-0064", "text": "How many dwarves accompany Bilbo Baggins in \"The Hobbit\"?", "textRu": "Сколько гномов сопровождают Бильбо Бэггинса в «Хоббите»?", "unit": null, "unitRu": null, "correctNumericValue": 13, "category": "pop-culture", "difficulty": "medium" }
 ]

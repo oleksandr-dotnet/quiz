@@ -75,6 +75,16 @@
       globally unique id, non-empty bilingual text, distinct options, options-length match,
       in-range `correctOptionIndex`) via a mirrored Node script, since a live host restart wasn't
       done this session (see verification section 8 below).
+- [x] 7.0b (2026-08-02, same session) Topped up the remaining thin categories so every choice
+      category has 11-12 questions and every tip category has 5-14 (previously several tip
+      categories had just 1): +6 choice/technology, +4 choice/sports, +4 choice/nature, +3
+      choice/pop-culture, +5 tip/nature, +4 tip/sports, +5 tip/technology, +4 tip/pop-culture, +3
+      tip/history (38 more questions, bank now at 220). Same fact-stability discipline as 7.0. The
+      dedup pass this round caught 3 genuine duplicates before commit (a tip/history question
+      re-asking an existing choice/history fact twice, and a tip/nature bones question duplicating
+      an existing tip/science one) plus 1 during the empty-category pass (a language-wordplay
+      question duplicating an existing pop-culture one) - all swapped for distinct fresh facts
+      rather than left in or simply deleted.
 - [ ] 7.1 Batch 1 (choice): geography + history, ~200 new questions
 - [ ] 7.2 Batch 2 (choice): science + nature, ~200 new questions
 - [ ] 7.3 Batch 3 (choice): sports + pop-culture, ~200 new questions

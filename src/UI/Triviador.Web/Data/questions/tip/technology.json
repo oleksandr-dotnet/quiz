@@ -1,3 +1,8 @@
 [
-  { "id": "num-0025", "text": "In what year was the first iPhone released?", "textRu": "В каком году был выпущен первый iPhone?", "unit": null, "unitRu": null, "correctNumericValue": 2007, "category": "technology", "difficulty": "easy" }
+  { "id": "num-0025", "text": "In what year was the first iPhone released?", "textRu": "В каком году был выпущен первый iPhone?", "unit": null, "unitRu": null, "correctNumericValue": 2007, "category": "technology", "difficulty": "easy" },
+  { "id": "num-0056", "text": "In what year was Google founded?", "textRu": "В каком году была основана компания Google?", "unit": null, "unitRu": null, "correctNumericValue": 1998, "category": "technology", "difficulty": "medium" },
+  { "id": "num-0057", "text": "In what year was Facebook founded?", "textRu": "В каком году была основана компания Facebook?", "unit": null, "unitRu": null, "correctNumericValue": 2004, "category": "technology", "difficulty": "medium" },
+  { "id": "num-0058", "text": "How many bits are in a byte?", "textRu": "Сколько бит в одном байте?", "unit": null, "unitRu": null, "correctNumericValue": 8, "category": "technology", "difficulty": "easy" },
+  { "id": "num-0059", "text": "In what year did Tim Berners-Lee invent the World Wide Web?", "textRu": "В каком году Тим Бернерс-Ли изобрёл Всемирную паутину (World Wide Web)?", "unit": null, "unitRu": null, "correctNumericValue": 1989, "category": "technology", "difficulty": "hard" },
+  { "id": "num-0060", "text": "In what year was Microsoft founded?", "textRu": "В каком году была основана компания Microsoft?", "unit": null, "unitRu": null, "correctNumericValue": 1975, "category": "technology", "difficulty": "hard" }
 ]

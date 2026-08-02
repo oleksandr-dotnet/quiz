@@ -1,3 +1,8 @@
 [
-  { "id": "num-0017", "text": "What is the average weight of an adult blue whale, in tonnes?", "textRu": "Какова средняя масса взрослого синего кита, в тоннах?", "unit": "t", "unitRu": "т", "correctNumericValue": 150, "category": "nature", "difficulty": "medium" }
+  { "id": "num-0017", "text": "What is the average weight of an adult blue whale, in tonnes?", "textRu": "Какова средняя масса взрослого синего кита, в тоннах?", "unit": "t", "unitRu": "т", "correctNumericValue": 150, "category": "nature", "difficulty": "medium" },
+  { "id": "num-0046", "text": "How many humps does a Bactrian camel have?", "textRu": "Сколько горбов у двугорбого верблюда (бактриана)?", "unit": null, "unitRu": null, "correctNumericValue": 2, "category": "nature", "difficulty": "easy" },
+  { "id": "num-0047", "text": "How many hearts does an octopus have?", "textRu": "Сколько сердец у осьминога?", "unit": null, "unitRu": null, "correctNumericValue": 3, "category": "nature", "difficulty": "medium" },
+  { "id": "num-0048", "text": "What is the approximate gestation period of an elephant, in months?", "textRu": "Какова приблизительная продолжительность беременности у слонов, в месяцах?", "unit": "months", "unitRu": "мес.", "correctNumericValue": 22, "category": "nature", "difficulty": "hard" },
+  { "id": "num-0049", "text": "How many legs does an insect have?", "textRu": "Сколько ног у насекомого?", "unit": null, "unitRu": null, "correctNumericValue": 6, "category": "nature", "difficulty": "easy" },
+  { "id": "num-0050", "text": "How many chambers does a human heart have?", "textRu": "Сколько камер в сердце человека?", "unit": null, "unitRu": null, "correctNumericValue": 4, "category": "nature", "difficulty": "easy" }
 ]
