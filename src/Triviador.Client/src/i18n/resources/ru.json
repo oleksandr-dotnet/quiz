@@ -92,7 +92,6 @@
   "reveal.correctAnswerLabel": "Правильный ответ:",
   "reveal.noAnswer": "нет ответа",
   "reveal.nextIn": "Далее через {{seconds}} с...",
-  "reveal.correctTitle": "Правильный ответ: {{value}}",
 
   "timer.secondsRemainingAnnouncement": "Осталось {{seconds}} секунд",
 

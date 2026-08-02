@@ -97,35 +97,54 @@ function App() {
   const setSession = useGameStore((s) => s.setSession)
   const [actionError, setActionError] = useState<string | null>(null)
   const [proclamation, setProclamation] = useState<string | null>(null)
+  const [proclamationQueue, setProclamationQueue] = useState<string[]>([])
   const [mapShaking, setMapShaking] = useState(false)
 
   const transitions = useGameTransitions(gameView, previousGameView)
+
+  // Enqueue every proclamation-worthy transition from this batch, in priority order - never just
+  // the first match. useGameTransitions documents that one snapshot can carry several of these at
+  // once (e.g. a base assault's final hit both captures a base and eliminates its owner); picking
+  // only one and dropping the rest would silently lose whichever fired second.
   useEffect(() => {
-    if (transitions.length === 0) return () => {}
+    if (transitions.length === 0) return
+
+    const messages: string[] = []
 
     const ownElimination = transitions.find((t) => t.kind === 'playerEliminated' && t.playerId === gameView?.youPlayerId)
-    if (ownElimination) {
-      setProclamation(t('app.ownEliminationProclamation'))
-      const id = window.setTimeout(() => setProclamation(null), 4000)
-      return () => window.clearTimeout(id)
-    }
+    if (ownElimination) messages.push(t('app.ownEliminationProclamation'))
 
     const captured = transitions.find((t) => t.kind === 'baseCaptured')
     if (captured && captured.kind === 'baseCaptured' && gameView) {
       const defender = findPlayer(gameView, captured.defenderPlayerId)
-      setProclamation(t('app.baseFallsProclamation', { defenderName: playerDisplayName(defender) }))
-      const id = window.setTimeout(() => setProclamation(null), 4000)
-      return () => window.clearTimeout(id)
+      messages.push(t('app.baseFallsProclamation', { defenderName: playerDisplayName(defender) }))
     }
 
-    if (transitions.some((t) => t.kind === 'baseDamaged')) {
-      setMapShaking(true)
-      const id = window.setTimeout(() => setMapShaking(false), 420)
-      return () => window.clearTimeout(id)
+    if (messages.length > 0) {
+      setProclamationQueue((prev) => [...prev, ...messages])
     }
-
-    return () => {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transitions])
+
+  // Drains proclamationQueue one message at a time: shows the next queued message only once
+  // nothing is currently showing, so a fast follow-up batch queues up behind an in-progress
+  // proclamation instead of cutting it off.
+  useEffect(() => {
+    if (proclamation !== null || proclamationQueue.length === 0) return
+    const [next, ...rest] = proclamationQueue
+    setProclamation(next)
+    setProclamationQueue(rest)
+    const id = window.setTimeout(() => setProclamation(null), 4000)
+    return () => window.clearTimeout(id)
+  }, [proclamationQueue, proclamation])
+
+  // Map-shake feedback for base damage is independent of whichever proclamation (if any) also
+  // fires from the same batch - a shake and a banner don't visually conflict.
+  useEffect(() => {
+    if (!transitions.some((t) => t.kind === 'baseDamaged')) return
+    setMapShaking(true)
+    const id = window.setTimeout(() => setMapShaking(false), 420)
+    return () => window.clearTimeout(id)
   }, [transitions])
 
   useEffect(() => {

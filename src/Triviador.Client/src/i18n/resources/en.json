@@ -92,7 +92,6 @@
   "reveal.correctAnswerLabel": "Correct answer:",
   "reveal.noAnswer": "no answer",
   "reveal.nextIn": "Next in {{seconds}}s...",
-  "reveal.correctTitle": "Correct: {{value}}",
 
   "timer.secondsRemainingAnnouncement": "{{seconds}} seconds remaining",
 

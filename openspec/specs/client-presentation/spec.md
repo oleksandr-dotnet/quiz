@@ -50,12 +50,27 @@ fill-color update - whenever a new `GameView` snapshot differs from the previous
 affects the viewing player: a region they own changing hands, their base taking damage, their score
 changing, or their elimination. This applies equally to a numeric answer entered through the on-screen
 keypad or through direct keyboard input - both paths SHALL produce the same visible submitted-answer
-feedback.
+feedback. When a single snapshot carries more than one such change at once (for example a base
+assault's final hit that both captures a base and eliminates its owner), the client SHALL still
+surface every one of them rather than only the highest-priority one, queuing proclamations that
+cannot be shown simultaneously so each is still eventually seen.
 
 #### Scenario: A captured region does not change silently
 - **WHEN** a snapshot shows a region's owner changed from the previous snapshot
 - **THEN** the client plays a visible transition for that region rather than swapping its fill color
   between renders with no indication anything happened
+
+#### Scenario: Concurrent significant transitions are all surfaced, not just one
+- **WHEN** a single snapshot produces more than one proclamation-worthy transition (for example a
+  `baseCaptured` and a `playerEliminated` from the same final hit)
+- **THEN** the client eventually shows a proclamation for each of them, in the order they were
+  produced, rather than showing only one and silently discarding the rest
+
+#### Scenario: A map shake is not skipped because a proclamation is also showing
+- **WHEN** a snapshot produces a `baseDamaged` transition in the same batch as a transition that
+  also triggers a proclamation
+- **THEN** the client still plays the map-shake feedback for the base damage, independent of
+  whether a proclamation is shown for that same batch
 
 ### Requirement: Connection loss and room closure are surfaced
 The client SHALL render the room connection's `status` and `closedReason` fields whenever they
