@@ -18,6 +18,7 @@ import { MapViewport } from './components/map/MapViewport'
 import { RotateDeviceGate } from './components/RotateDeviceGate'
 import { PlayerRoster } from './components/PlayerRoster'
 import { ConnectionBadge } from './components/ConnectionBadge'
+import { MuteToggle } from './components/MuteToggle'
 import { Toast } from './components/Toast'
 import { useGameTransitions } from './hooks/useGameTransitions'
 import { findPlayer, playerDisplayName } from './lib/format'
@@ -71,6 +72,7 @@ function TopBar({ view }: { view: GameView }) {
           </span>
         </>
       )}
+      <MuteToggle />
     </>
   )
 }

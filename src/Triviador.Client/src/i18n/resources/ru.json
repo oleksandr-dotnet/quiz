@@ -11,6 +11,9 @@
   "errorBoundary.message": "В игре произошёл сбой. Перезагрузите страницу, чтобы продолжить игру.",
   "errorBoundary.reload": "Перезагрузить",
 
+  "sound.mute": "Выключить звук",
+  "sound.unmute": "Включить звук",
+
   "landing.namePlaceholder": "Ваше имя",
   "landing.createRoom": "Создать комнату",
   "landing.playVsBots": "Играть против 3 ботов",

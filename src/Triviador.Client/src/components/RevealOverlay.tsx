@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18next from '../i18n'
 import type { AnswerValueView, GameView, QuestionPromptView, RevealedAnswerView } from '../api/contracts'
 import { findPlayer, laurelNumeral, playerDisplayName } from '../lib/format'
 import { colorForPlayer } from '../lib/seats'
+import { playCorrect, playIncorrect } from '../lib/sound'
 import { ArcheryTargetReveal } from './ArcheryTargetReveal'
 
 export interface RevealOverlayProps {
@@ -22,6 +24,16 @@ export function RevealOverlay({ view, prompt, correctAnswer, answers, secondsRem
   const { t } = useTranslation()
   const correctText = answerText(prompt, correctAnswer)
   const ranked = [...answers].sort((a, b) => a.rank - b.rank)
+
+  useEffect(() => {
+    const own = ranked.find((a) => a.playerId === view.youPlayerId)
+    if (!own || own.answer.kind === 'None') return
+    if (answerText(prompt, own.answer) === correctText) playCorrect()
+    else playIncorrect()
+    // Fire exactly once per resolved question, not on every re-render (e.g. a ticking
+    // secondsRemaining) while this reveal stays mounted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prompt.questionId])
 
   return (
     <section className="paper-card reveal-overlay" data-testid="reveal-overlay">

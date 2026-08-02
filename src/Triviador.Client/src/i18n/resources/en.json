@@ -11,6 +11,9 @@
   "errorBoundary.message": "The game hit an unexpected snag. Reloading the page will get you back on track.",
   "errorBoundary.reload": "Reload",
 
+  "sound.mute": "Mute sound",
+  "sound.unmute": "Unmute sound",
+
   "landing.namePlaceholder": "Your name",
   "landing.createRoom": "Create room",
   "landing.playVsBots": "Play vs 3 bots",
