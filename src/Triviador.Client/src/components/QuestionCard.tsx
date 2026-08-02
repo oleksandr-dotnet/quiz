@@ -27,6 +27,18 @@ export function QuestionCard({ prompt, yourAnswer, remainingMs, totalMs, onSubmi
     setNumericInput('')
   }, [prompt.questionId])
 
+  useEffect(() => {
+    if (prompt.kind !== 'Choice' || yourAnswer) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey || e.altKey || e.metaKey) return
+      if (e.key < '1' || e.key > '4') return
+      const index = Number(e.key) - 1
+      if (prompt.kind === 'Choice' && index < prompt.options.length) onSubmitChoice(index)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [prompt, yourAnswer, onSubmitChoice])
+
   function submitNumeric() {
     const value = Number(numericInput)
     if (!Number.isFinite(value)) return
