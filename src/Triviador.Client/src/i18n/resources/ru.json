@@ -113,6 +113,7 @@
   "keypad.submit": "Отправить",
 
   "common.copied": "Скопировано!",
+  "common.copyFailed": "Не удалось скопировать в буфер обмена.",
   "common.pickRejected": "Этот выбор отклонён.",
   "common.answerRejected": "Этот ответ отклонён.",
   "common.submit": "Отправить",

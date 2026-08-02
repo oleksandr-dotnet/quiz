@@ -46,9 +46,13 @@ export function LobbyScreen() {
   }
 
   async function onCopyLink() {
-    await navigator.clipboard.writeText(deepLink)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(deepLink)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setStartError(t('common.copyFailed'))
+    }
   }
 
   return (

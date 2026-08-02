@@ -235,3 +235,19 @@ resolved rejection reason from the server).
 #### Scenario: A server-side rejection still recovers the UI
 - **WHEN** the create/join-room call resolves with a rejection reason
 - **THEN** the client shows that reason and every landing-screen action button becomes usable again
+
+### Requirement: A failed clipboard-copy action is never silent
+The client SHALL show a visible error whenever a clipboard-copy attempt (an invite link or a result
+summary) fails, rather than leaving the click with no observable effect.
+
+#### Scenario: A failed invite-link copy shows an error
+- **WHEN** the player activates "Copy invite link" and the clipboard write rejects
+- **THEN** the client shows a visible error instead of no feedback at all
+
+#### Scenario: A failed result copy shows an error
+- **WHEN** the player activates "Copy result" and the clipboard write rejects
+- **THEN** the client shows a visible error instead of no feedback at all
+
+#### Scenario: A successful copy is unaffected
+- **WHEN** the clipboard write succeeds
+- **THEN** the client shows the existing "Copied!" confirmation exactly as before

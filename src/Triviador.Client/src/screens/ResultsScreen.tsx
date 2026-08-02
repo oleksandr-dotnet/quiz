@@ -1,9 +1,11 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AnimatePresence } from 'motion/react'
 import i18next from '../i18n'
 import { leaveRoom } from '../api/commands'
 import { useGameStore } from '../store/gameStore'
 import { PlayerRoster } from '../components/PlayerRoster'
+import { Toast } from '../components/Toast'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { playerDisplayName } from '../lib/format'
 import type { GameView } from '../api/contracts'
@@ -57,6 +59,7 @@ export function ResultsDock() {
   const view = useGameStore((s) => s.gameView)
   const setSession = useGameStore((s) => s.setSession)
   const [copied, setCopied] = useState(false)
+  const [copyError, setCopyError] = useState<string | null>(null)
   const reducedMotion = usePrefersReducedMotion()
   if (!view) return null
   const currentView = view
@@ -70,9 +73,13 @@ export function ResultsDock() {
   }
 
   async function onCopyResult() {
-    await navigator.clipboard.writeText(resultSummary(currentView, winnerIds))
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(resultSummary(currentView, winnerIds))
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopyError(t('common.copyFailed'))
+    }
   }
 
   return (
@@ -90,6 +97,7 @@ export function ResultsDock() {
           {t('results.returnToStart')}
         </button>
       </div>
+      <AnimatePresence>{copyError && <Toast key="results-copy-error" message={copyError} />}</AnimatePresence>
     </div>
   )
 }

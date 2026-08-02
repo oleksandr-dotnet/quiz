@@ -113,6 +113,7 @@
   "keypad.submit": "Submit",
 
   "common.copied": "Copied!",
+  "common.copyFailed": "Couldn't copy to clipboard.",
   "common.pickRejected": "That pick was rejected.",
   "common.answerRejected": "That answer was rejected.",
   "common.submit": "Submit",
