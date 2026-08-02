@@ -103,6 +103,13 @@ function App() {
   useEffect(() => {
     if (transitions.length === 0) return () => {}
 
+    const ownElimination = transitions.find((t) => t.kind === 'playerEliminated' && t.playerId === gameView?.youPlayerId)
+    if (ownElimination) {
+      setProclamation(t('app.ownEliminationProclamation'))
+      const id = window.setTimeout(() => setProclamation(null), 4000)
+      return () => window.clearTimeout(id)
+    }
+
     const captured = transitions.find((t) => t.kind === 'baseCaptured')
     if (captured && captured.kind === 'baseCaptured' && gameView) {
       const defender = findPlayer(gameView, captured.defenderPlayerId)

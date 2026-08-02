@@ -7,6 +7,7 @@
   "app.phase.battle": "Battle",
   "app.phase.gameOver": "Game Over",
   "app.baseFallsProclamation": "{{defenderName}}'s banner falls",
+  "app.ownEliminationProclamation": "Your banner has fallen - you can keep watching until the game ends.",
 
   "errorBoundary.title": "Something tore the parchment",
   "errorBoundary.message": "The game hit an unexpected snag. Reloading the page will get you back on track.",

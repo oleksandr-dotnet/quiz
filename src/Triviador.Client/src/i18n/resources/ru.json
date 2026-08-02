@@ -7,6 +7,7 @@
   "app.phase.battle": "Битва",
   "app.phase.gameOver": "Игра окончена",
   "app.baseFallsProclamation": "Знамя игрока {{defenderName}} пало",
+  "app.ownEliminationProclamation": "Ваше знамя пало — вы можете продолжить наблюдать до конца игры.",
 
   "errorBoundary.title": "Пергамент порвался",
   "errorBoundary.message": "В игре произошёл сбой. Перезагрузите страницу, чтобы продолжить игру.",
