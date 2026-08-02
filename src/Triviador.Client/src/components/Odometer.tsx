@@ -9,28 +9,31 @@ function prefersReducedMotion(): boolean {
 // instant jump under reduced motion.
 export function useAnimatedNumber(value: number, durationMs = 320): number {
   const [displayed, setDisplayed] = useState(value)
-  const fromRef = useRef(value)
+  // Mirrors `displayed` on every tick (not just at natural completion) so that if a new `value`
+  // arrives mid-animation, the restarted animation's origin is wherever the number currently sits
+  // on screen - not a stale pre-interruption value, which used to cause a visible backward jump.
+  const displayedRef = useRef(value)
   const frameRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (value === fromRef.current) return
+    if (value === displayedRef.current) return
     if (prefersReducedMotion()) {
-      fromRef.current = value
+      displayedRef.current = value
       setDisplayed(value)
       return
     }
 
-    const from = fromRef.current
+    const from = displayedRef.current
     const start = performance.now()
 
     function tick(now: number) {
       const t = Math.min(1, (now - start) / durationMs)
       const eased = 1 - Math.pow(1 - t, 3)
-      setDisplayed(Math.round(from + (value - from) * eased))
+      const next = Math.round(from + (value - from) * eased)
+      displayedRef.current = next
+      setDisplayed(next)
       if (t < 1) {
         frameRef.current = requestAnimationFrame(tick)
-      } else {
-        fromRef.current = value
       }
     }
 
