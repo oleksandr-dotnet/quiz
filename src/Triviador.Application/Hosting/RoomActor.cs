@@ -58,6 +58,7 @@ public sealed class RoomActor
         _seats = Enumerable.Range(0, options.MaxSeats).Select(i => new Seat(i)).ToArray();
         _lastActivityUtc = clock.UtcNow;
         _pump = Task.Run(PumpAsync);
+        _logger?.LogInformation("Room {RoomCode} created", RoomCode);
     }
 
     public string RoomCode { get; }
@@ -404,6 +405,7 @@ public sealed class RoomActor
             seat.ConnectionId = null;
             seat.PlayerToken = null;
 
+            LogNotableEvents(result.Events);
             ArmEngineTimer();
             await BroadcastGameViewAsync();
         }
@@ -494,6 +496,7 @@ public sealed class RoomActor
         }
 
         _engine = engine;
+        _logger?.LogInformation("Room {RoomCode} started with {PlayerCount} players", RoomCode, occupiedSeats.Length);
         ArmEngineTimer();
         await BroadcastGameViewAsync();
         m.Reply.TrySetResult(CommandAck.Ok);
@@ -521,6 +524,7 @@ public sealed class RoomActor
             return;
         }
 
+        LogNotableEvents(result.Events);
         ArmEngineTimer();
         await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
         m.Reply.TrySetResult(CommandAck.Ok);
@@ -548,6 +552,7 @@ public sealed class RoomActor
             return;
         }
 
+        LogNotableEvents(result.Events);
         ArmEngineTimer();
         await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
         m.Reply.TrySetResult(CommandAck.Ok);
@@ -575,6 +580,7 @@ public sealed class RoomActor
             return;
         }
 
+        LogNotableEvents(result.Events);
         ArmEngineTimer();
         await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
         m.Reply.TrySetResult(CommandAck.Ok);
@@ -602,6 +608,7 @@ public sealed class RoomActor
             return;
         }
 
+        LogNotableEvents(result.Events);
         ArmEngineTimer();
         await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
         m.Reply.TrySetResult(CommandAck.Ok);
@@ -609,6 +616,36 @@ public sealed class RoomActor
 
     private static QuestionResult? ExtractLastReveal(ImmutableArray<IGameEvent> events) =>
         events.OfType<QuestionResolved>().Select(e => e.Result).LastOrDefault();
+
+    // Only the rare, high-value events get an Information log here - a region captured in an
+    // ordinary duel, a round advancing, or a question asked/resolved happen many times per game and
+    // would dominate the log if logged at this level; a rejected command is logged separately by
+    // GameHub regardless of frequency.
+    private void LogNotableEvents(ImmutableArray<IGameEvent> events)
+    {
+        if (_logger is null)
+        {
+            return;
+        }
+
+        foreach (var e in events)
+        {
+            switch (e)
+            {
+                case PlayerEliminated pe:
+                    _logger.LogInformation("Room {RoomCode}: player {PlayerId} eliminated", RoomCode, pe.PlayerId.Value);
+                    break;
+                case BaseCaptured bc:
+                    _logger.LogInformation("Room {RoomCode}: {Attacker} captured {Defender}'s base {Region}",
+                        RoomCode, bc.AttackerId.Value, bc.DefenderId.Value, bc.BaseRegionId.Value);
+                    break;
+                case GameFinished gf:
+                    _logger.LogInformation("Room {RoomCode}: game finished, winner(s) {Winners}",
+                        RoomCode, string.Join(", ", gf.Outcome.Winners.Select(w => w.Value)));
+                    break;
+            }
+        }
+    }
 
     private Task HandleGameViewRequest(GameViewRequest m)
     {
@@ -635,12 +672,14 @@ public sealed class RoomActor
 
         if (result.IsAccepted && result.Events.Length > 0)
         {
+            LogNotableEvents(result.Events);
             await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
         }
     }
 
     private async Task HandleShutdownAsync(ShutdownRequest m)
     {
+        _logger?.LogInformation("Room {RoomCode} shutting down", RoomCode);
         _engineTimer?.Dispose();
         ClearBotSchedule();
         foreach (var seat in _seats.Where(s => s.IsConnected))
