@@ -112,6 +112,21 @@
   /* Only takes effect where the row track has a definite size (the mobile minmax(0, 1fr) row) -
      under desktop's auto-sized row this resolves to the content's own intrinsic height, a no-op. */
   height: 100%;
+  background: var(--sea);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+/* Desktop only (mobile's own max-height:100dvh cap + flexible map row already fits the viewport
+   on its own terms - see the max-width:900px block below). Capping the map's height here keeps it
+   compact and near the top of the shell instead of ballooning to whatever its native aspect ratio
+   demands at wide viewports, which is what was pushing the dock (and a vertically-stacked answer
+   list in particular) down past the fold. The SVG's own preserveAspectRatio letterboxes into the
+   shorter box, and the sea background above fills the letterbox bars seamlessly. */
+@media (min-width: 901px) {
+  .shell-map {
+    max-height: clamp(13rem, 27vh, 23rem);
+  }
 }
 
 .shell-roster {
@@ -251,8 +266,8 @@
   }
 
   .numeric-keypad-key {
-    width: 44px;
-    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
@@ -498,7 +513,7 @@
 }
 
 .battle-headline {
-  margin: 0.5rem 0;
+  margin: 0 0 0.6rem;
 }
 
 /* ---------- Lobby ---------- */
@@ -830,21 +845,25 @@
   clip: rect(0 0 0 0);
 }
 
+/* A single vertical column, always - top-to-bottom reads far better under time pressure than a
+   multi-column row that forces the eye to scan sideways as well as down, and it lets each plate's
+   text wrap onto its own full-width line instead of getting squeezed into a narrow column. */
 .choice-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 0.6rem;
 }
 
 .option-plate {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.7rem;
   text-align: left;
   background: var(--paper-050);
-  font-size: 1.1rem;
-  line-height: 1.35;
-  padding: 0.7em 1em;
+  font-size: clamp(1.05rem, 0.95rem + 0.5vw, 1.3rem);
+  line-height: 1.4;
+  padding: 0.85em 1.1em;
+  width: 100%;
   transition: background-color var(--dur-fast) var(--ease-paper), border-color var(--dur-fast) var(--ease-paper),
     transform var(--dur-fast) var(--ease-paper), box-shadow var(--dur-fast) var(--ease-paper);
 }
@@ -855,14 +874,16 @@
 }
 
 .option-hint {
+  flex-shrink: 0;
   color: var(--gilt-600);
   font-family: var(--font-display);
+  font-size: 1.15em;
 }
 
 .numeric-input {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .numeric-input-row {
@@ -880,8 +901,9 @@
   flex: 1 1 auto;
   min-width: 0;
   width: 100%;
-  font-size: 1.3rem;
+  font-size: clamp(1.2rem, 1.05rem + 0.5vw, 1.5rem);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .numeric-input-row button {
@@ -890,31 +912,76 @@
 
 .numeric-unit {
   color: var(--ink-500);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  font-weight: 500;
 }
 
+/* Styled as an actual pocket calculator: a compact, centered pad (not stretched to the dock's
+   full width) with keycap-style buttons - a resting drop shadow that flattens flush on press, the
+   same physical-press language buttons use elsewhere via --press-scale, so pressing a digit reads
+   as pressing a key rather than clicking a plain rectangle. */
 .numeric-keypad {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
   align-items: center;
+  width: 100%;
+  max-width: 11.5rem;
+  margin: 0 auto;
 }
 
 .numeric-keypad-grid {
   display: grid;
-  grid-template-columns: repeat(3, 2.75rem);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.4rem;
+  width: 100%;
 }
 
 .numeric-keypad-key {
-  width: 2.75rem;
-  height: 2.75rem;
+  aspect-ratio: 1;
+  width: 100%;
+  height: auto;
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  box-shadow: 0 2px 0 var(--paper-300);
+}
+
+.numeric-keypad-key:hover:not(:disabled) {
+  transform: none;
+  box-shadow: 0 2px 0 var(--gilt-500);
+}
+
+.numeric-keypad-key:active:not(:disabled) {
+  box-shadow: none;
+  transform: translateY(2px) scale(var(--press-scale));
 }
 
 .numeric-keypad-submit {
   width: 100%;
+  font-size: 1.05rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .numeric-keypad-key:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* A desktop-width viewport already has the fastest path to a numeric answer - type into the
+   field, hit Enter - and comes with a physical keyboard in practice. Rendering a full onscreen
+   calculator underneath it too was pure vertical weight with no upside, and on a numeric duel
+   question (whose headline + input + keypad + submit is the tallest dock state in the game) it
+   was exactly what pushed Submit below the fold. Below the same 900px breakpoint every other
+   touch-oriented rule in this file switches on, the keypad is the primary way to enter digits, so
+   it stays - the mobile dock's own internal scroll (max-height:70dvh below) is still there as a
+   backstop for a particularly long prompt. Width-based (not `pointer: fine/coarse`) to stay
+   consistent with how every other adaptive rule here keys off viewport size, and to not be fooled
+   by a hybrid touchscreen laptop that is desktop-width but coarse-pointer. */
+@media (min-width: 901px) {
+  .numeric-keypad {
+    display: none;
+  }
 }
 
 .sealed-plate {
@@ -930,30 +997,109 @@
 
 /* ---------- Answer roster ---------- */
 
+.answer-roster-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.answer-roster-progress {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink-700);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
 .answer-roster {
   list-style: none;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.5rem;
   justify-content: center;
   margin: 0;
 }
 
+/* Two states must read apart at a glance, not on close inspection: waiting is an outlined plate
+   with a pulsing gilt ring around an ellipsis mark, answered is a solid green plate with a filled
+   white check that pops in the moment it lands. Text color alone (the old ink-500 on paper-050)
+   was too close in contrast to double as the primary signal. */
 .answer-stamp {
   display: flex;
   align-items: center;
-  gap: 0.3em;
-  padding: 0.2em 0.7em;
+  gap: 0.45em;
+  padding: 0.25em 0.85em 0.25em 0.3em;
   border-radius: 999px;
-  border: 1px solid var(--ink-300);
-  color: var(--ink-500);
+  border: 1.5px solid var(--ink-300);
+  color: var(--ink-700);
+  font-size: 0.95rem;
+  font-weight: 500;
+  background: var(--paper-050);
+  transition: border-color var(--dur-mid) var(--ease-paper), background-color var(--dur-mid) var(--ease-paper),
+    color var(--dur-mid) var(--ease-paper);
+}
+
+.stamp-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.answer-stamp.waiting .stamp-mark {
+  border: 1.5px solid var(--gilt-500);
+  color: var(--gilt-600);
+  background: var(--paper-100);
+  animation: waiting-stamp-pulse 1.4s ease-in-out infinite;
 }
 
 .answer-stamp.answered {
   border-color: var(--seat-2);
-  background: rgba(63, 107, 67, 0.12);
+  background: rgba(63, 107, 67, 0.14);
   color: var(--ink-900);
+  font-weight: 600;
+}
+
+.answer-stamp.answered .stamp-mark {
+  background: var(--seat-2);
+  color: var(--paper-050);
+  animation: stamp-pop var(--dur-mid) var(--ease-paper);
+}
+
+@keyframes waiting-stamp-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes stamp-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .answer-stamp.waiting .stamp-mark,
+  .answer-stamp.answered .stamp-mark {
+    animation: none;
+  }
 }
 
 /* ---------- Reveal overlay ---------- */

@@ -102,7 +102,9 @@ export function BattleDock({ view, onError }: { view: GameView; onError: (messag
 
   return (
     <div className="battle-dock" data-testid="battle-dock">
-      <h2>{t('battle.roundHeading', { n: view.currentRound })}</h2>
+      {/* The round number already lives in the persistent top bar (round-progress) - repeating it
+          here as its own heading was pure vertical bloat, one of the main reasons a numeric duel
+          question could push its keypad below the fold. */}
       {headline && <p className="turn-banner battle-headline">{headline}</p>}
 
       {reveal && (

@@ -73,7 +73,6 @@
   "landGrab.turnBannerYours": "Your pick - claim a highlighted territory",
   "landGrab.turnBannerWaiting": "Waiting for {{playerName}} to pick",
 
-  "battle.roundHeading": "Round {{n}}",
   "battle.turnBannerYours": "Your turn - attack a highlighted enemy territory",
   "battle.turnBannerWaiting": "Waiting for {{playerName}} to choose a target",
   "battle.targetRejected": "That target was rejected.",
@@ -99,6 +98,8 @@
   "question.sealed": "SEALED - waiting for the others",
   "question.answerPlaceholder": "your answer",
   "question.answerAriaLabel": "Your answer",
+
+  "answerRoster.progress": "{{answered}}/{{total}} answered",
 
   "playerRoster.hitPointsAriaLabel": "{{hp}} base hit points",
   "playerRoster.fallen": "fallen",

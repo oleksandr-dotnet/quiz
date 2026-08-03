@@ -73,7 +73,6 @@
   "landGrab.turnBannerYours": "Ваш выбор - захватите подсвеченную территорию",
   "landGrab.turnBannerWaiting": "Ожидаем выбора игрока {{playerName}}",
 
-  "battle.roundHeading": "Раунд {{n}}",
   "battle.turnBannerYours": "Ваш ход - атакуйте подсвеченную территорию противника",
   "battle.turnBannerWaiting": "Ожидаем, пока {{playerName}} выберет цель",
   "battle.targetRejected": "Эта цель отклонена.",
@@ -99,6 +98,8 @@
   "question.sealed": "ОТПРАВЛЕНО - ждём остальных",
   "question.answerPlaceholder": "ваш ответ",
   "question.answerAriaLabel": "Ваш ответ",
+
+  "answerRoster.progress": "Ответили {{answered}}/{{total}}",
 
   "playerRoster.hitPointsAriaLabel": "{{hp}} очков прочности базы",
   "playerRoster.fallen": "пал",
