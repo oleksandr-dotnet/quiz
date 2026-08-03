@@ -32,11 +32,13 @@ interface GameStore {
   previousGameView: GameView | null
   session: Session | null
   closedReason: string | null
+  kickedReason: string | null
   setStatus: (status: Status) => void
   applyView: (view: RoomView) => void
   applyGameView: (view: GameView) => void
   setSession: (session: Session | null) => void
   roomClosed: (reason: string) => void
+  kicked: (reason: string) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -46,6 +48,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   previousGameView: null,
   session: loadSession(),
   closedReason: null,
+  kickedReason: null,
   setStatus: (status) => set({ status }),
   applyView: (view) => set({ view }),
   // The previous snapshot is kept alongside the new one so useGameTransitions can diff
@@ -59,5 +62,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   roomClosed: (reason) => {
     saveSession(null)
     set({ session: null, view: null, gameView: null, previousGameView: null, closedReason: reason })
+  },
+  kicked: (reason) => {
+    saveSession(null)
+    set({ session: null, view: null, gameView: null, previousGameView: null, kickedReason: reason })
   },
 }))

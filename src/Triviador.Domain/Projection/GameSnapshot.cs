@@ -5,7 +5,7 @@ using Triviador.Domain.State;
 
 namespace Triviador.Domain.Projection;
 
-public sealed record PlayerSnapshot(PlayerId Id, int Seat, RegionId? BaseRegion, bool Eliminated);
+public sealed record PlayerSnapshot(PlayerId Id, int Seat, RegionId? BaseRegion, bool Eliminated, bool Withdrawn);
 
 public sealed record RegionSnapshot(RegionId Id, PlayerId? OwnerId, bool IsBase);
 
@@ -27,7 +27,8 @@ public sealed record GameSnapshot(
         foreach (var player in Players)
         {
             builder.Append(player.Id).Append(':').Append(player.Seat).Append(':')
-                .Append(player.BaseRegion).Append(':').Append(player.Eliminated).Append(';');
+                .Append(player.BaseRegion).Append(':').Append(player.Eliminated).Append(':')
+                .Append(player.Withdrawn).Append(';');
         }
 
         foreach (var region in Regions)

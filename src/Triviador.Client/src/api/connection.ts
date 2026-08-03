@@ -19,6 +19,10 @@ export function getConnection(): HubConnection {
   conn.on('State', (view: RoomView) => store.applyView(view))
   conn.on('GameState', (view: GameView) => store.applyGameView(view))
   conn.on('RoomClosed', (reason: string) => store.roomClosed(reason))
+  conn.on('Kicked', (reason: string) => {
+    store.kicked(reason)
+    conn?.stop()
+  })
   conn.onreconnecting(() => store.setStatus('reconnecting'))
   conn.onreconnected(() => store.setStatus('connected'))
   conn.onclose(() => store.setStatus('closed'))

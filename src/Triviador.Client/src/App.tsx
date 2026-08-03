@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import './App.css'
 import { ensureConnected } from './api/connection'
-import { joinRoom, leaveRoom } from './api/commands'
+import { joinRoom, leaveRoom, kickPlayer } from './api/commands'
 import { applyRoomLanguage } from './i18n'
 import { useGameStore } from './store/gameStore'
 import { LandingScreen } from './screens/LandingScreen'
@@ -18,9 +18,10 @@ import { PlayerRoster } from './components/PlayerRoster'
 import { ConnectionBadge } from './components/ConnectionBadge'
 import { MuteToggle } from './components/MuteToggle'
 import { Toast } from './components/Toast'
+import { KickConfirmModal } from './components/KickConfirmModal'
 import { useGameTransitions } from './hooks/useGameTransitions'
 import { findPlayer, playerDisplayName } from './lib/format'
-import type { GameView } from './api/contracts'
+import type { GameView, PlayerView } from './api/contracts'
 
 function urlRoomCode(): string | null {
   const match = /^#\/room\/([A-Za-z0-9]{4})/.exec(window.location.hash)
@@ -113,6 +114,7 @@ function App() {
   const { t } = useTranslation()
   const status = useGameStore((s) => s.status)
   const closedReason = useGameStore((s) => s.closedReason)
+  const kickedReason = useGameStore((s) => s.kickedReason)
   const session = useGameStore((s) => s.session)
   const view = useGameStore((s) => s.view)
   const gameView = useGameStore((s) => s.gameView)
@@ -123,6 +125,18 @@ function App() {
   const [proclamation, setProclamation] = useState<string | null>(null)
   const [proclamationQueue, setProclamationQueue] = useState<string[]>([])
   const [mapShaking, setMapShaking] = useState(false)
+  const [kickTarget, setKickTarget] = useState<PlayerView | null>(null)
+
+  async function onConfirmKick(landPolicy: 'ReleaseLand' | 'BotTakeover') {
+    if (!kickTarget) return
+    const target = kickTarget
+    setKickTarget(null)
+    try {
+      await kickPlayer(target.playerId, landPolicy)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : t('kick.kickFailed'))
+    }
+  }
 
   const transitions = useGameTransitions(gameView, previousGameView)
 
@@ -233,7 +247,7 @@ function App() {
   if (!sessionUsable || !view) {
     return (
       <>
-        <ConnectionBadge status={status} closedReason={closedReason} />
+        <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
         <LandingScreen />
       </>
     )
@@ -242,7 +256,7 @@ function App() {
   if (!gameView) {
     return (
       <>
-        <ConnectionBadge status={status} closedReason={closedReason} />
+        <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
         <LobbyScreen />
       </>
     )
@@ -298,7 +312,7 @@ function App() {
 
   return (
     <>
-      <ConnectionBadge status={status} closedReason={closedReason} />
+      <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
       <AppShell
         dockKey={dockKey}
         mapShaking={mapShaking}
@@ -313,7 +327,15 @@ function App() {
             onSelect={onSelect}
           />
         }
-        roster={<PlayerRoster view={gameView} activePlayerId={activePlayerId} />}
+        roster={
+          <PlayerRoster
+            view={gameView}
+            activePlayerId={activePlayerId}
+            youAreHost={view.youAreHost}
+            viewerPlayerId={view.youPlayerId}
+            onKick={setKickTarget}
+          />
+        }
         dock={
           <>
             <AnimatePresence>{proclamation && <Toast key="proclamation" message={proclamation} tone="info" />}</AnimatePresence>
@@ -321,6 +343,13 @@ function App() {
             {dock}
           </>
         }
+      />
+      <KickConfirmModal
+        open={kickTarget !== null}
+        targetName={playerDisplayName(kickTarget)}
+        requireLandPolicy
+        onCancel={() => setKickTarget(null)}
+        onConfirm={(policy) => void onConfirmKick(policy)}
       />
     </>
   )

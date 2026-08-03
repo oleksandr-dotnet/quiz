@@ -91,7 +91,19 @@
 
   "playerRoster.hitPointsAriaLabel": "{{hp}} очков прочности базы",
   "playerRoster.fallen": "пал",
+  "playerRoster.kicked": "исключён",
   "playerRoster.winner": "победитель",
+  "playerRoster.kickAction": "Исключить",
+
+  "kick.confirmTitle": "Исключить {{name}}?",
+  "kick.confirmBodyLobby": "Игрок будет удалён из комнаты и сможет вернуться только по новому приглашению.",
+  "kick.confirmBodyMidGame": "Выберите, что произойдёт с его территорией:",
+  "kick.releaseLand": "Освободить территорию (станет ничьей)",
+  "kick.botTakeover": "Передать место боту",
+  "kick.confirmButton": "Исключить",
+  "kick.cancel": "Отмена",
+  "kick.kickFailed": "Не удалось исключить игрока.",
+  "kick.youWereKicked": "Хост исключил вас из комнаты.",
 
   "reveal.correctAnswerLabel": "Правильный ответ:",
   "reveal.noAnswer": "нет ответа",

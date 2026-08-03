@@ -17,4 +17,5 @@ public enum RejectionCode
     RegionAlreadyOwned,
     BaseTooCloseToExistingBase,
     RegionNotEligible,
+    PlayerAlreadyWithdrawn,
 }

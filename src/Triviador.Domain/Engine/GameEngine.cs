@@ -35,6 +35,7 @@ public sealed partial class GameEngine
             SubmitAnswer c => ExecuteSubmitAnswer(c),
             PickRegion c => ExecutePickRegion(c),
             SelectAttackTarget c => ExecuteSelectAttackTarget(c),
+            WithdrawPlayer c => ExecuteWithdrawPlayer(c),
             TimeoutElapsed c => ExecuteTimeoutElapsed(c),
             _ => throw new InvalidOperationException($"Unhandled command type '{command.GetType()}'."),
         };

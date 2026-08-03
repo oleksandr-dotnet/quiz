@@ -9,4 +9,6 @@ public interface IGameClient
     Task GameState(GameViewDto view);
 
     Task RoomClosed(string reason);
+
+    Task Kicked(string reason);
 }

@@ -20,7 +20,13 @@ public sealed partial class GameEngine
     }
 
     private ImmutableArray<PlayerId> ActiveParticipants() =>
-        _state.Players.Where(p => !p.Eliminated).Select(p => p.Id).ToImmutableArray();
+        _state.Players.Where(p => !p.Eliminated && !p.Withdrawn).Select(p => p.Id).ToImmutableArray();
+
+    private bool IsActive(PlayerId id)
+    {
+        var player = _state.Players.FirstOrDefault(p => p.Id == id);
+        return player is not null && !player.Eliminated && !player.Withdrawn;
+    }
 
     private ImmutableArray<IGameEvent> AskLandGrabQuestion(ImmutableArray<PlayerId> participants, int deadRoundCount, Instant at)
     {
@@ -257,26 +263,38 @@ public sealed partial class GameEngine
 
         var events = ImmutableArray.CreateBuilder<IGameEvent>();
         events.Add(new RegionAwarded(picker, regionId));
+        events.AddRange(AdvanceRegionPickQueue(pending, pending.NextIndex + 1, at));
 
-        var nextIndex = pending.NextIndex + 1;
+        return events.ToImmutable();
+    }
+
+    // Skips any award-queue entry whose player has since become inactive (withdrawn or eliminated) —
+    // a player can be removed from the game while merely queued, not yet current, and their turn must
+    // be silently passed over whenever it would otherwise arrive. Also used directly by
+    // GameEngine.Withdrawal.cs to reroute past a player withdrawn while they ARE the current picker
+    // (startIndex == pending.NextIndex, since no region is awarded for them in that case).
+    private ImmutableArray<IGameEvent> AdvanceRegionPickQueue(PendingActivity.RegionPicks pending, int startIndex, Instant at)
+    {
+        var nextIndex = startIndex;
+        while (nextIndex < pending.AwardQueue.Length && !IsActive(pending.AwardQueue[nextIndex]))
+        {
+            nextIndex++;
+        }
+
         if (nextIndex >= pending.AwardQueue.Length)
         {
             var freeRegionsRemain = _state.Map.Regions.Any(r => _state.RegionOf(r.Id).OwnerId is null);
-            events.AddRange(freeRegionsRemain
+            return freeRegionsRemain
                 ? AskLandGrabQuestion(ActiveParticipants(), 0, at)
-                : CompleteLandGrab(at));
-        }
-        else
-        {
-            var token = _state.IssueActivityToken();
-            var deadline = at.Add(TimeSpan.FromSeconds(_state.Rules.LandGrabPickDurationSeconds));
-            var nextPicker = pending.AwardQueue[nextIndex];
-            _state.Pending = pending with { Token = token, Deadline = deadline, NextIndex = nextIndex };
-            var nextEligible = EligibleRegionsFor(nextPicker);
-            events.Add(new RegionPickRequested(token, nextPicker, nextEligible, deadline));
+                : CompleteLandGrab(at);
         }
 
-        return events.ToImmutable();
+        var token = _state.IssueActivityToken();
+        var deadline = at.Add(TimeSpan.FromSeconds(_state.Rules.LandGrabPickDurationSeconds));
+        var nextPicker = pending.AwardQueue[nextIndex];
+        _state.Pending = pending with { Token = token, Deadline = deadline, NextIndex = nextIndex };
+        var nextEligible = EligibleRegionsFor(nextPicker);
+        return ImmutableArray.Create<IGameEvent>(new RegionPickRequested(token, nextPicker, nextEligible, deadline));
     }
 
     private ImmutableArray<IGameEvent> CompleteLandGrab(Instant at)

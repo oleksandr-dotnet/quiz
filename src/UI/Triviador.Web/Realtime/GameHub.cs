@@ -74,6 +74,19 @@ public sealed class GameHub(RoomRegistry registry, ConnectionMap connectionMap) 
         connectionMap.Remove(Context.ConnectionId);
     }
 
+    public async Task KickPlayer(Guid targetPlayerId, string landPolicy)
+    {
+        var (room, playerId) = ResolveConnection();
+        var parsedPolicy = landPolicy.Equals("BotTakeover", StringComparison.OrdinalIgnoreCase)
+            ? KickLandPolicy.BotTakeover
+            : KickLandPolicy.ReleaseLand;
+        var ack = await room.KickPlayerAsync(playerId, targetPlayerId, parsedPolicy);
+        if (!ack.Success)
+        {
+            throw new HubException(ack.RejectionReason);
+        }
+    }
+
     public async Task StartGame()
     {
         var (room, playerId) = ResolveConnection();

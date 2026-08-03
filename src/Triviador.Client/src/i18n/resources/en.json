@@ -91,7 +91,19 @@
 
   "playerRoster.hitPointsAriaLabel": "{{hp}} base hit points",
   "playerRoster.fallen": "fallen",
+  "playerRoster.kicked": "kicked",
   "playerRoster.winner": "winner",
+  "playerRoster.kickAction": "Kick",
+
+  "kick.confirmTitle": "Kick {{name}}?",
+  "kick.confirmBodyLobby": "They'll be removed from the room and can rejoin only with a new invite.",
+  "kick.confirmBodyMidGame": "Choose what happens to their territory:",
+  "kick.releaseLand": "Release their territory (unclaimed)",
+  "kick.botTakeover": "Hand their seat to a bot",
+  "kick.confirmButton": "Kick",
+  "kick.cancel": "Cancel",
+  "kick.kickFailed": "Could not kick that player.",
+  "kick.youWereKicked": "You were kicked from the room by the host.",
 
   "reveal.correctAnswerLabel": "Correct answer:",
   "reveal.noAnswer": "no answer",

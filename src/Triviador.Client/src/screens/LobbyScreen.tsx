@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence } from 'motion/react'
-import { setSeat, leaveRoom, startGame } from '../api/commands'
+import { setSeat, leaveRoom, startGame, kickPlayer } from '../api/commands'
 import { useGameStore } from '../store/gameStore'
 import { Toast } from '../components/Toast'
+import { KickConfirmModal } from '../components/KickConfirmModal'
 import { HeraldicDefs } from '../components/map/HeraldicDefs'
 import { SEAT_COLORS, hatchPatternIdFor } from '../lib/seats'
+import type { SeatDto } from '../api/contracts'
 
 const MIN_SEATS_TO_START = 2
 
@@ -15,6 +17,7 @@ export function LobbyScreen() {
   const setSession = useGameStore((s) => s.setSession)
   const [startError, setStartError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [kickTarget, setKickTarget] = useState<SeatDto | null>(null)
 
   if (!view) return null
 
@@ -34,6 +37,17 @@ export function LobbyScreen() {
   async function onLeave() {
     await leaveRoom()
     setSession(null)
+  }
+
+  async function onConfirmKick() {
+    if (!kickTarget?.playerId) return
+    const targetId = kickTarget.playerId
+    setKickTarget(null)
+    try {
+      await kickPlayer(targetId, 'ReleaseLand')
+    } catch {
+      setStartError(t('kick.kickFailed'))
+    }
   }
 
   async function onStart() {
@@ -82,6 +96,11 @@ export function LobbyScreen() {
                 {seat.isBot ? t('lobby.openSeat') : t('lobby.fillWithBot')}
               </button>
             )}
+            {view.youAreHost && seat.isConnected && !seat.isHost && (
+              <button onClick={() => setKickTarget(seat)} data-testid={`kick-seat-${seat.seatIndex}`}>
+                {t('playerRoster.kickAction')}
+              </button>
+            )}
           </li>
         ))}
       </ul>
@@ -98,6 +117,13 @@ export function LobbyScreen() {
       <svg width={0} height={0} style={{ position: 'absolute' }} aria-hidden="true">
         <HeraldicDefs />
       </svg>
+      <KickConfirmModal
+        open={kickTarget !== null}
+        targetName={kickTarget?.displayName ?? t('common.player')}
+        requireLandPolicy={false}
+        onCancel={() => setKickTarget(null)}
+        onConfirm={() => void onConfirmKick()}
+      />
     </main>
   )
 }

@@ -65,6 +65,8 @@ public sealed record BaseCaptured(
 
 public sealed record PlayerEliminated(PlayerId PlayerId) : IGameEvent;
 
+public sealed record PlayerWithdrawn(PlayerId PlayerId, ImmutableArray<RegionId> ReleasedRegionIds) : IGameEvent;
+
 public sealed record RoundAdvanced(int RoundNumber) : IGameEvent;
 
 public sealed record BattleCompleted : IGameEvent;

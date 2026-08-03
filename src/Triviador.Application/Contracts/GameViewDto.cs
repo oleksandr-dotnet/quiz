@@ -43,7 +43,8 @@ public sealed record PlayerViewDto(
     string? BaseRegionId,
     int Score,
     bool Eliminated,
-    int? BaseHitPoints);
+    int? BaseHitPoints,
+    bool Withdrawn);
 
 /// Mirrors PendingRegionPickViewDto's shape for the one pending-activity kind that didn't already
 /// project an eligible set: base picking. CurrentPickerPlayerId/DeadlineUtc/YouAreCurrentPicker stay

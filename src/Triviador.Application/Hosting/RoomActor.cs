@@ -98,6 +98,16 @@ public sealed class RoomActor
         return tcs.Task;
     }
 
+    public Task<CommandAck> KickPlayerAsync(Guid requestingPlayerId, Guid targetPlayerId, KickLandPolicy landPolicy)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new KickPlayerRequest(requestingPlayerId, targetPlayerId, landPolicy, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
     public void NotifyConnectionLost(string connectionId) => TryPost(new ConnectionLost(connectionId));
 
     public Task<RoomViewDto> GetViewAsync(Guid playerId)
@@ -204,6 +214,7 @@ public sealed class RoomActor
         JoinRequest m => HandleJoinAsync(m),
         SetSeatRequest m => HandleSetSeatAsync(m),
         LeaveRequest m => HandleLeaveAsync(m),
+        KickPlayerRequest m => HandleKickPlayerAsync(m),
         ConnectionLost m => HandleConnectionLostAsync(m),
         ViewRequest m => HandleViewRequest(m),
         StartGameRequest m => HandleStartGameAsync(m),
@@ -330,6 +341,78 @@ public sealed class RoomActor
         }
 
         await BroadcastAsync();
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
+    private async Task HandleKickPlayerAsync(KickPlayerRequest m)
+    {
+        if (m.RequestingPlayerId != _hostPlayerId)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotHost"));
+            return;
+        }
+        if (m.TargetPlayerId == m.RequestingPlayerId)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("CannotKickSelf"));
+            return;
+        }
+
+        var seat = _seats.FirstOrDefault(s => s.PlayerId == m.TargetPlayerId);
+        if (seat is null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotSeated"));
+            return;
+        }
+
+        var kickedConnectionId = seat.ConnectionId;
+
+        if (_engine is null)
+        {
+            // Lobby: no territory exists yet, so the land policy is irrelevant — a kick is a plain
+            // seat clear, identical to that player voluntarily leaving (HandleLeaveAsync's lobby
+            // branch), except the host reassignment logic there never applies (the target can't be
+            // host, since a host can't target themselves above).
+            seat.Clear();
+            await BroadcastAsync();
+        }
+        else if (m.LandPolicy == KickLandPolicy.BotTakeover)
+        {
+            // Exactly HandleLeaveAsync's mid-game branch, plus invalidating the token — a voluntary
+            // leave has no reason to block a future rejoin, but a kick must.
+            seat.IsBot = true;
+            seat.ConnectionId = null;
+            seat.PlayerToken = null;
+
+            if (_engine.State.Pending is { } pending)
+            {
+                ScheduleBotMoves(pending);
+            }
+
+            await BroadcastGameViewAsync();
+        }
+        else
+        {
+            var result = _engine.Execute(new WithdrawPlayer(Now(), new PlayerId(m.TargetPlayerId)));
+            if (!result.IsAccepted)
+            {
+                m.Reply.TrySetResult(CommandAck.Reject(result.Rejection!.Value.ToString()));
+                return;
+            }
+
+            // Seat.PlayerId stays set (per design Decision D5) so IsOpen stays false — a mid-game
+            // seat must never become newly joinable, matching JoinGame's Lobby-only domain invariant.
+            seat.ConnectionId = null;
+            seat.PlayerToken = null;
+
+            ArmEngineTimer();
+            await BroadcastGameViewAsync();
+        }
+
+        if (kickedConnectionId is not null)
+        {
+            await _broadcaster.SendKickedAsync(kickedConnectionId, "HostKicked");
+        }
+
         m.Reply.TrySetResult(CommandAck.Ok);
     }
 
@@ -606,7 +689,8 @@ public sealed class RoomActor
             var isConnected = seat is null || seat.IsBot || seat.IsConnected;
             return new PlayerViewDto(
                 p.Id.Value, p.Seat, seat?.DisplayName, seat?.IsBot ?? false, isConnected,
-                p.BaseRegion?.Value, state.ScoreOf(p.Id), p.Eliminated, p.BaseRegion is not null ? p.BaseHitPoints : null);
+                p.BaseRegion?.Value, state.ScoreOf(p.Id), p.Eliminated, p.BaseRegion is not null ? p.BaseHitPoints : null,
+                p.Withdrawn);
         }).ToArray();
 
         var regions = map.Regions.Select(r =>

@@ -1,5 +1,5 @@
 import { getConnection } from './connection'
-import type { JoinResult, Language } from './contracts'
+import type { JoinResult, KickLandPolicy, Language } from './contracts'
 
 export const createRoom = (displayName: string, botSeats: number, language: Language): Promise<JoinResult> =>
   getConnection().invoke('CreateRoom', displayName, botSeats, language)
@@ -11,6 +11,9 @@ export const setSeat = (seatIndex: number, isBot: boolean): Promise<void> =>
   getConnection().invoke('SetSeat', seatIndex, isBot)
 
 export const leaveRoom = (): Promise<void> => getConnection().invoke('LeaveRoom')
+
+export const kickPlayer = (targetPlayerId: string, landPolicy: KickLandPolicy): Promise<void> =>
+  getConnection().invoke('KickPlayer', targetPlayerId, landPolicy)
 
 export const startGame = (): Promise<void> => getConnection().invoke('StartGame')
 

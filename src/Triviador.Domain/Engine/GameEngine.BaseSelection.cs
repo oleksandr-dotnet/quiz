@@ -105,17 +105,7 @@ public sealed partial class GameEngine
 
         var events = ImmutableArray.CreateBuilder<IGameEvent>();
         events.Add(new BaseSelected(player.Id, regionId));
-
-        var nextPlayer = NextPlayerForBasePick(player.Id);
-        if (nextPlayer is null)
-        {
-            events.Add(new BaseSelectionCompleted());
-            events.AddRange(StartLandGrab(at));
-        }
-        else
-        {
-            events.Add(StartBasePick(nextPlayer.Value, at));
-        }
+        events.AddRange(AdvanceBasePickPast(player.Id, at));
 
         return events.ToImmutable();
     }
@@ -135,7 +125,7 @@ public sealed partial class GameEngine
 
         for (var i = pickedIndex + 1; i < players.Count; i++)
         {
-            if (players[i].BaseRegion is null)
+            if (players[i].BaseRegion is null && !players[i].Eliminated && !players[i].Withdrawn)
             {
                 return players[i].Id;
             }
@@ -143,13 +133,29 @@ public sealed partial class GameEngine
 
         for (var i = 0; i <= pickedIndex; i++)
         {
-            if (players[i].BaseRegion is null)
+            if (players[i].BaseRegion is null && !players[i].Eliminated && !players[i].Withdrawn)
             {
                 return players[i].Id;
             }
         }
 
         return null;
+    }
+
+    // Shared by CompleteBasePick (a real base was just picked) and GameEngine.Withdrawal.cs (the
+    // withdrawn player picked nothing — just search past them for whoever's still waiting).
+    private ImmutableArray<IGameEvent> AdvanceBasePickPast(PlayerId justHandled, Instant at)
+    {
+        var nextPlayer = NextPlayerForBasePick(justHandled);
+        if (nextPlayer is null)
+        {
+            var events = ImmutableArray.CreateBuilder<IGameEvent>();
+            events.Add(new BaseSelectionCompleted());
+            events.AddRange(StartLandGrab(at));
+            return events.ToImmutable();
+        }
+
+        return ImmutableArray.Create<IGameEvent>(StartBasePick(nextPlayer.Value, at));
     }
 
     // Single source of truth for base-pick legality: reused by ExecuteSelectBase's validation, by

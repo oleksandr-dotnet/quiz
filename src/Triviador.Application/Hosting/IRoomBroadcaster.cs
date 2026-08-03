@@ -9,4 +9,6 @@ public interface IRoomBroadcaster
     Task SendGameViewAsync(string connectionId, GameViewDto view, CancellationToken ct = default);
 
     Task SendClosedAsync(string connectionId, string reason, CancellationToken ct = default);
+
+    Task SendKickedAsync(string connectionId, string reason, CancellationToken ct = default);
 }

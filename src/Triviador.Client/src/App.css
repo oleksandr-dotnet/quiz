@@ -1003,6 +1003,74 @@
   opacity: 0.6;
 }
 
+.player-card.withdrawn {
+  opacity: 0.6;
+}
+
+.player-card.kickable:hover {
+  filter: brightness(0.97);
+}
+
+.player-card.kickable:focus-visible {
+  outline: 2px solid var(--gilt-500);
+  outline-offset: 2px;
+}
+
+/* ---------- Player action menu (host click-to-kick) ---------- */
+
+.player-action-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  margin-top: 0.25rem;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 8rem;
+}
+
+.player-action-menu button {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.4em 0.6em;
+  cursor: pointer;
+  border-radius: var(--r-md);
+}
+
+.player-action-menu button:hover {
+  background: var(--paper-100);
+}
+
+/* ---------- Kick confirm modal ---------- */
+
+.kick-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.kick-confirm-card {
+  position: relative;
+  max-width: 26rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.kick-confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .player-name {
   flex: 1;
   min-width: 0;

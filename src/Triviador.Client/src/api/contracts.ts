@@ -52,7 +52,10 @@ export interface PlayerView {
   score: number
   eliminated: boolean
   baseHitPoints: number | null
+  withdrawn: boolean
 }
+
+export type KickLandPolicy = 'ReleaseLand' | 'BotTakeover'
 
 export type AnswerKind = 'Choice' | 'Numeric' | 'None'
 

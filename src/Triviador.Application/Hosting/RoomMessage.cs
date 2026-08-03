@@ -22,6 +22,12 @@ public sealed record LeaveRequest(
     Guid PlayerId,
     TaskCompletionSource<CommandAck> Reply) : RoomMessage;
 
+public sealed record KickPlayerRequest(
+    Guid RequestingPlayerId,
+    Guid TargetPlayerId,
+    KickLandPolicy LandPolicy,
+    TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
 /// Posted when a connection drops. There is no matching "reconnected" variant -
 /// a reconnecting client always rebinds via a fresh JoinRequest carrying its token.
 public sealed record ConnectionLost(string ConnectionId) : RoomMessage;

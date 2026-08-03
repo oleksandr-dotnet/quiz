@@ -8,7 +8,7 @@ public static class SnapshotBuilder
     public static GameSnapshot Build(GameState state)
     {
         var players = state.Players
-            .Select(p => new PlayerSnapshot(p.Id, p.Seat, p.BaseRegion, p.Eliminated))
+            .Select(p => new PlayerSnapshot(p.Id, p.Seat, p.BaseRegion, p.Eliminated, p.Withdrawn))
             .ToImmutableArray();
 
         var regions = state.Regions

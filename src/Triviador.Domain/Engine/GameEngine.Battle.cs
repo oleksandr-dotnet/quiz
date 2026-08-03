@@ -48,7 +48,7 @@ public sealed partial class GameEngine
             _state.RoundQueue = _state.RoundQueue.Dequeue();
 
             var player = _state.Players.FirstOrDefault(p => p.Id == next);
-            if (player is null || player.Eliminated)
+            if (player is null || player.Eliminated || player.Withdrawn)
             {
                 continue;
             }
@@ -206,8 +206,11 @@ public sealed partial class GameEngine
             case QuestionPurpose.Duel duel:
             {
                 // A duel where neither side answered correctly is not an attacker win by rank alone
-                // — the territory stays put rather than changing hands on two wrong guesses.
-                if (!BothAnsweredIncorrectly(pending.Result, duel.Attacker, duel.Defender)
+                // — the territory stays put rather than changing hands on two wrong guesses. A
+                // withdrawn attacker (host-kicked with territory release, during this reveal window)
+                // never receives new territory either, regardless of how the question resolved.
+                if (!PlayerById(duel.Attacker).Withdrawn
+                    && !BothAnsweredIncorrectly(pending.Result, duel.Attacker, duel.Defender)
                     && AttackerWon(pending.Result, duel.Attacker, duel.Defender))
                 {
                     _state.RegionOf(duel.Region).OwnerId = duel.Attacker;
@@ -230,7 +233,7 @@ public sealed partial class GameEngine
                 // be exactly 0, since numeric answers are otherwise ranked by closeness, not
                 // exactness, and "closer than no one" isn't a meaningful heal condition.
                 var score = pending.Result.Rankings.First(r => r.Player == assault.Attacker).Score;
-                if (score is { Tier: 0, Penalty: 0 })
+                if (!PlayerById(assault.Attacker).Withdrawn && score is { Tier: 0, Penalty: 0 })
                 {
                     var self = PlayerById(assault.Attacker);
                     self.BaseHitPoints = Math.Min(self.BaseHitPoints + 1, _state.Rules.BaseHitPointsDefault);
@@ -243,7 +246,10 @@ public sealed partial class GameEngine
 
             case QuestionPurpose.BaseAssault assault:
             {
-                if (AttackerWon(pending.Result, assault.Attacker, assault.Defender))
+                // A withdrawn attacker (host-kicked with territory release, during this reveal
+                // window) never receives a hit-point win or a capture either, regardless of how the
+                // question resolved — treated the same as a defender win below.
+                if (!PlayerById(assault.Attacker).Withdrawn && AttackerWon(pending.Result, assault.Attacker, assault.Defender))
                 {
                     var defender = PlayerById(assault.Defender);
                     defender.BaseHitPoints -= 1;
