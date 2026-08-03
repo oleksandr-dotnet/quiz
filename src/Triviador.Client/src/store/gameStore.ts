@@ -37,6 +37,7 @@ interface GameStore {
   applyView: (view: RoomView) => void
   applyGameView: (view: GameView) => void
   setSession: (session: Session | null) => void
+  leaveGame: () => void
   roomClosed: (reason: string) => void
   kicked: (reason: string) => void
 }
@@ -58,6 +59,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setSession: (session) => {
     saveSession(session)
     set({ session })
+  },
+  // A self-initiated leave, distinct from roomClosed/kicked: no banner reason to show, but the
+  // stale view/gameView must be cleared just the same - otherwise the next room created or joined
+  // renders on top of this match's leftover snapshot until the server happens to broadcast a fresh
+  // GameState (which a not-yet-started room never does), making a brand new room look like the old
+  // game.
+  leaveGame: () => {
+    saveSession(null)
+    set({ session: null, view: null, gameView: null, previousGameView: null })
   },
   roomClosed: (reason) => {
     saveSession(null)

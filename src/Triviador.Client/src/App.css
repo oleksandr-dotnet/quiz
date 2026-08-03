@@ -588,6 +588,14 @@
   filter: brightness(1.08);
 }
 
+/* SVG <g role="button"> elements get a default UA focus ring (often a plain dark rectangle around
+   the group's bounding box) on a plain :focus - including a mouse click, in browsers that don't
+   suppress it the way they do for HTML buttons. Suppress that unconditionally and only draw our
+   own ring for :focus-visible (keyboard nav), so a mouse click never shows a stray square. */
+.game-map .region.selectable:focus {
+  outline: none;
+}
+
 .game-map .region.selectable:focus-visible {
   outline: 2px solid var(--gilt-500);
   outline-offset: 1px;

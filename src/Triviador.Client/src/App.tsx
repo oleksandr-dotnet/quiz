@@ -55,7 +55,7 @@ function phaseLabelKey(phase: GameView['phase']): string {
 
 function TopBar({ view }: { view: GameView }) {
   const { t } = useTranslation()
-  const setSession = useGameStore((s) => s.setSession)
+  const leaveGame = useGameStore((s) => s.leaveGame)
   const phaseKey = phaseLabelKey(view.phase)
   const roundsRemaining = Math.max(0, view.roundLimit - view.currentRound)
   const progressPercent = view.roundLimit > 0 ? Math.min(100, (view.currentRound / view.roundLimit) * 100) : 0
@@ -65,7 +65,7 @@ function TopBar({ view }: { view: GameView }) {
     try {
       await leaveRoom()
     } finally {
-      setSession(null)
+      leaveGame()
     }
   }
 
