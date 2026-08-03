@@ -1,3 +1,4 @@
+using Triviador.Application.Accounts;
 using Triviador.Application.Contracts;
 using Triviador.Domain.Primitives;
 using Triviador.Domain.Questions;
@@ -10,7 +11,8 @@ public sealed record JoinRequest(
     string DisplayName,
     string? PlayerToken,
     string ConnectionId,
-    TaskCompletionSource<JoinResult> Reply) : RoomMessage;
+    TaskCompletionSource<JoinResult> Reply,
+    AccountProfileDto? Account = null) : RoomMessage;
 
 public sealed record SetSeatRequest(
     Guid RequestingPlayerId,

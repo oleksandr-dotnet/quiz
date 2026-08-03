@@ -387,6 +387,55 @@
   gap: 0.75rem;
 }
 
+/* ---------- Account setup (username + avatar) ---------- */
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.avatar-choice {
+  font-size: 1.6rem;
+  line-height: 1;
+  padding: 0.6rem 0;
+  border-radius: 0.5rem;
+  border: 1px solid var(--paper-300, rgba(0, 0, 0, 0.15));
+  background: var(--paper-100);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-paper), transform var(--dur-fast) var(--ease-paper);
+}
+
+.avatar-choice.active {
+  border-color: var(--gilt-500);
+  transform: scale(1.05);
+}
+
+.toast-error-inline {
+  color: #b0362c;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.player-avatar {
+  margin-right: 0.35rem;
+}
+
+.google-signin-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.signed-in-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+}
+
 .landing-divider {
   display: flex;
   align-items: center;

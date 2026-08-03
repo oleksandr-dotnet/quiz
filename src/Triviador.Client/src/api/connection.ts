@@ -1,4 +1,5 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
+import { useAuthStore } from '../store/authStore'
 import { useGameStore } from '../store/gameStore'
 import type { GameView, RoomView } from './contracts'
 
@@ -10,7 +11,12 @@ export function getConnection(): HubConnection {
   if (conn) return conn
 
   conn = new HubConnectionBuilder()
-    .withUrl('/hub/game')
+    .withUrl('/hub/game', {
+      // WebSockets can't carry an Authorization header, so SignalR sends this via the query
+      // string instead - Program.cs's JwtBearerEvents.OnMessageReceived accepts it only on this
+      // hub path. Anonymous play (accessToken undefined) is completely unaffected.
+      accessTokenFactory: () => useAuthStore.getState().accessToken ?? '',
+    })
     .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
     .configureLogging(LogLevel.Warning)
     .build()
@@ -37,4 +43,20 @@ export async function ensureConnected(): Promise<void> {
     await connection.start()
     useGameStore.getState().setStatus('connected')
   }
+}
+
+// accessTokenFactory is only consulted when the connection (re)negotiates - never per hub
+// invocation - so a connection that started anonymously stays anonymous for the rest of its
+// life even after authStore later gets a token from a Google sign-in. Call this right after a
+// successful sign-in (before creating/joining a room) so the hub handshake actually carries the
+// new token; a no-op-safe stop+start rather than a bespoke "upgrade" path, since SignalR has no
+// API to swap a live connection's auth mid-flight.
+export async function reauthenticate(): Promise<void> {
+  const connection = getConnection()
+  if (connection.state !== 'Disconnected') {
+    await connection.stop()
+  }
+  useGameStore.getState().setStatus('connecting')
+  await connection.start()
+  useGameStore.getState().setStatus('connected')
 }

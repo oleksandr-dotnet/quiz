@@ -5,8 +5,10 @@ import './App.css'
 import { ensureConnected } from './api/connection'
 import { joinRoom, leaveRoom, kickPlayer } from './api/commands'
 import { applyRoomLanguage } from './i18n'
+import { useAuthStore } from './store/authStore'
 import { useGameStore } from './store/gameStore'
 import { LandingScreen } from './screens/LandingScreen'
+import { AccountSetupScreen } from './screens/AccountSetupScreen'
 import { LobbyScreen } from './screens/LobbyScreen'
 import { BaseSelectionDock, baseSelectionMapProps, baseSelectionOnSelect } from './screens/BaseSelectionScreen'
 import { LandGrabDock, landGrabMapProps, landGrabOnSelect } from './screens/LandGrabScreen'
@@ -204,8 +206,18 @@ function App() {
   const urlCode = urlRoomCode()
   const sessionUsable = session !== null && (!urlCode || urlCode === session.roomCode)
 
+  const restoreAttempted = useAuthStore((s) => s.restoreAttempted)
+  const authProfile = useAuthStore((s) => s.profile)
+  const restoreSession = useAuthStore((s) => s.restoreSession)
+
   useEffect(() => {
-    void ensureConnected()
+    // Silent restore (player-accounts's "silently restored on a later visit") must resolve
+    // *before* the hub connection opens - accessTokenFactory is only read at connect time, so a
+    // connection opened first would negotiate anonymously and stay that way for its whole life
+    // even once restoreSession() later populates an access token (see connection.ts's
+    // reauthenticate for the other half of this - the just-signed-in-this-session case).
+    void restoreSession().then(() => ensureConnected())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -245,6 +257,18 @@ function App() {
   }, [actionError])
 
   if (!sessionUsable || !view) {
+    if (!restoreAttempted) {
+      // Avoid flashing the signed-out landing screen before the silent-restore attempt resolves.
+      return <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
+    }
+    if (authProfile && (authProfile.username === null || authProfile.avatarId === null)) {
+      return (
+        <>
+          <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
+          <AccountSetupScreen />
+        </>
+      )
+    }
     return (
       <>
         <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />

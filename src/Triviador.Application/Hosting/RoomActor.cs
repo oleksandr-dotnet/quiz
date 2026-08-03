@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
+using Triviador.Application.Accounts;
 using Triviador.Application.Content;
 using Triviador.Application.Contracts;
 using Triviador.Domain.Abstractions;
@@ -69,10 +70,11 @@ public sealed class RoomActor
 
     private bool TryPost(RoomMessage message) => !_faulted && _mailbox.Writer.TryWrite(message);
 
-    public Task<JoinResult> JoinAsync(string displayName, string? playerToken, string connectionId)
+    public Task<JoinResult> JoinAsync(string displayName, string? playerToken, string connectionId,
+        AccountProfileDto? account = null)
     {
         var tcs = new TaskCompletionSource<JoinResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (!TryPost(new JoinRequest(displayName, playerToken, connectionId, tcs)))
+        if (!TryPost(new JoinRequest(displayName, playerToken, connectionId, tcs, account)))
         {
             return Task.FromResult(JoinResult.Failure("RoomClosed"));
         }
@@ -263,7 +265,11 @@ public sealed class RoomActor
         var token = GenerateToken();
         openSeat.IsBot = false;
         openSeat.PlayerId = playerId;
-        openSeat.DisplayName = m.DisplayName;
+        // A signed-in caller's account username/avatar always wins over client-supplied text - see
+        // player-accounts's "A signed-in account's username and avatar are what other players see".
+        // GameHub only ever passes an Account here once it has confirmed setup is complete.
+        openSeat.DisplayName = m.Account?.Username ?? m.DisplayName;
+        openSeat.AvatarId = m.Account?.AvatarId;
         openSeat.PlayerToken = token;
         openSeat.ConnectionId = m.ConnectionId;
 
@@ -707,7 +713,7 @@ public sealed class RoomActor
     private RoomViewDto BuildView(Guid viewerId)
     {
         var seats = _seats
-            .Select(s => new SeatDto(s.Index, s.PlayerId, s.DisplayName, s.IsBot, s.IsConnected,
+            .Select(s => new SeatDto(s.Index, s.PlayerId, s.DisplayName, s.AvatarId, s.IsBot, s.IsConnected,
                 s.PlayerId.HasValue && s.PlayerId == _hostPlayerId))
             .ToArray();
         return new RoomViewDto(RoomCode, viewerId, viewerId == _hostPlayerId, seats, _language);
@@ -727,7 +733,7 @@ public sealed class RoomActor
             // would read as broken, not intentional, so bots are always reported connected here.
             var isConnected = seat is null || seat.IsBot || seat.IsConnected;
             return new PlayerViewDto(
-                p.Id.Value, p.Seat, seat?.DisplayName, seat?.IsBot ?? false, isConnected,
+                p.Id.Value, p.Seat, seat?.DisplayName, seat?.AvatarId, seat?.IsBot ?? false, isConnected,
                 p.BaseRegion?.Value, state.ScoreOf(p.Id), p.Eliminated, p.BaseRegion is not null ? p.BaseHitPoints : null,
                 p.Withdrawn);
         }).ToArray();
@@ -998,6 +1004,7 @@ public sealed class RoomActor
         public bool IsBot { get; set; }
         public Guid? PlayerId { get; set; }
         public string? DisplayName { get; set; }
+        public string? AvatarId { get; set; }
         public string? PlayerToken { get; set; }
         public string? ConnectionId { get; set; }
 
@@ -1009,6 +1016,7 @@ public sealed class RoomActor
             IsBot = false;
             PlayerId = null;
             DisplayName = null;
+            AvatarId = null;
             PlayerToken = null;
             ConnectionId = null;
         }

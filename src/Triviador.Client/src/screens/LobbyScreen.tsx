@@ -6,6 +6,7 @@ import { useGameStore } from '../store/gameStore'
 import { Toast } from '../components/Toast'
 import { KickConfirmModal } from '../components/KickConfirmModal'
 import { HeraldicDefs } from '../components/map/HeraldicDefs'
+import { avatarGlyph } from '../lib/avatars'
 import { SEAT_COLORS, hatchPatternIdFor } from '../lib/seats'
 import type { SeatDto } from '../api/contracts'
 
@@ -87,6 +88,11 @@ export function LobbyScreen() {
               <rect width={16} height={16} rx={3} fill={`url(#${hatchPatternIdFor(seat.seatIndex)})`} fillOpacity={0.4} />
             </svg>
             <span className="seat-name">
+              {!seat.isBot && seat.avatarId && (
+                <span className="player-avatar" aria-hidden="true">
+                  {avatarGlyph(seat.avatarId)}
+                </span>
+              )}
               {seat.isBot ? t('lobby.seatBot') : seat.displayName ?? t('lobby.seatOpen')}
               {seat.isHost && t('lobby.hostSuffix')}
               {!seat.isBot && seat.displayName && !seat.isConnected && t('lobby.disconnectedSuffix')}

@@ -38,6 +38,7 @@ public sealed record PlayerViewDto(
     Guid PlayerId,
     int Seat,
     string? DisplayName,
+    string? AvatarId,
     bool IsBot,
     bool IsConnected,
     string? BaseRegionId,

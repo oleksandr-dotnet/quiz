@@ -13,6 +13,7 @@ public sealed record SeatDto(
     int SeatIndex,
     Guid? PlayerId,
     string? DisplayName,
+    string? AvatarId,
     bool IsBot,
     bool IsConnected,
     bool IsHost);

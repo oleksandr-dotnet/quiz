@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Triviador.Application.Accounts;
 using Triviador.Application.Contracts;
 using Triviador.Application.Hosting;
 using Triviador.Domain.Questions;
@@ -8,17 +9,27 @@ using Triviador.Web.Realtime.Contracts;
 
 namespace Triviador.Web.Realtime;
 
-public sealed class GameHub(RoomRegistry registry, ConnectionMap connectionMap, ILogger<GameHub> logger) : Hub<IGameClient>
+public sealed class GameHub(
+    RoomRegistry registry,
+    ConnectionMap connectionMap,
+    IUserAccountRepository accounts,
+    ILogger<GameHub> logger) : Hub<IGameClient>
 {
     public Task<string> Ping() => Task.FromResult("pong");
 
     public async Task<JoinResultDto> CreateRoom(string displayName, int botSeats, string? language = null)
     {
+        var accountResult = await ResolveAuthenticatedAccountAsync();
+        if (accountResult.Rejected)
+        {
+            return JoinResultDto.Failure(accountResult.RejectionReason!);
+        }
+
         var parsedLanguage = language?.Equals("english", StringComparison.OrdinalIgnoreCase) == true
             ? Language.English
             : Language.Russian;
         var room = registry.CreateRoom(parsedLanguage);
-        var hostJoin = await room.JoinAsync(displayName, playerToken: null, Context.ConnectionId);
+        var hostJoin = await room.JoinAsync(displayName, playerToken: null, Context.ConnectionId, accountResult.Account);
         if (!hostJoin.Success || hostJoin.PlayerId is null || hostJoin.PlayerToken is null)
         {
             logger.LogWarning("Room {RoomCode} creation join failed for {DisplayName}: {Reason}",
@@ -49,13 +60,19 @@ public sealed class GameHub(RoomRegistry registry, ConnectionMap connectionMap, 
 
     public async Task<JoinResultDto> JoinRoom(string roomCode, string displayName, string? playerToken)
     {
+        var accountResult = await ResolveAuthenticatedAccountAsync();
+        if (accountResult.Rejected)
+        {
+            return JoinResultDto.Failure(accountResult.RejectionReason!);
+        }
+
         if (!registry.TryGet(roomCode, out var room))
         {
             logger.LogWarning("Join failed: room {RoomCode} not found (player {DisplayName})", roomCode, displayName);
             return JoinResultDto.Failure("RoomNotFound");
         }
 
-        var result = await room.JoinAsync(displayName, playerToken, Context.ConnectionId);
+        var result = await room.JoinAsync(displayName, playerToken, Context.ConnectionId, accountResult.Account);
         if (!result.Success || result.PlayerId is null || result.PlayerToken is null || result.View is null)
         {
             logger.LogWarning("Join room {RoomCode} failed for {DisplayName}: {Reason}",
@@ -167,6 +184,37 @@ public sealed class GameHub(RoomRegistry registry, ConnectionMap connectionMap, 
         logger.LogWarning("{Action} rejected for connection {ConnectionId}: {Reason}",
             action, Context.ConnectionId, ack.RejectionReason);
         throw new HubException(ack.RejectionReason);
+    }
+
+    private readonly record struct AuthenticatedAccountResult(AccountProfileDto? Account, string? RejectionReason)
+    {
+        public bool Rejected => RejectionReason is not null;
+
+        public static readonly AuthenticatedAccountResult Anonymous = new(null, null);
+
+        public static AuthenticatedAccountResult Reject(string reason) => new(null, reason);
+
+        public static AuthenticatedAccountResult Ok(AccountProfileDto account) => new(account, null);
+    }
+
+    /// A connection with no valid access token plays anonymously - completely unaffected, per
+    /// player-accounts's "Anonymous play remains fully available". A connection carrying one must
+    /// resolve to a fully-set-up account before it's allowed to create or join a room.
+    private async Task<AuthenticatedAccountResult> ResolveAuthenticatedAccountAsync()
+    {
+        var sub = Context.User?.FindFirst("sub")?.Value;
+        if (sub is null || !Guid.TryParse(sub, out var userId))
+        {
+            return AuthenticatedAccountResult.Anonymous;
+        }
+
+        var profile = await accounts.FindByIdAsync(userId);
+        if (profile is null || !profile.IsSetupComplete)
+        {
+            return AuthenticatedAccountResult.Reject("AccountSetupRequired");
+        }
+
+        return AuthenticatedAccountResult.Ok(profile);
     }
 
     private (RoomActor Room, Guid PlayerId) ResolveConnection()

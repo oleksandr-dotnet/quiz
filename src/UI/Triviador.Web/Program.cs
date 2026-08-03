@@ -1,8 +1,14 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Triviador.Application.Accounts;
 using Triviador.Application.Content;
 using Triviador.Application.Hosting;
+using Triviador.Infrastructure.Accounts;
 using Triviador.Infrastructure.Content;
 using Triviador.Infrastructure.Hosting;
+using Triviador.Web.Auth;
 using Triviador.Web.Realtime;
 
 // Containers (e.g. Render) can have a very low inotify instance/fd limit, which the default
@@ -39,6 +45,69 @@ builder.Services.AddSingleton<IRandomSourceFactory, RandomSourceFactory>();
 builder.Services.AddSingleton<IQuestionSourceFactory, QuestionSourceFactory>();
 builder.Services.AddHostedService<RoomJanitor>();
 
+// --- Accounts (player-accounts): Postgres/EF Core + Google sign-in + JWT/refresh tokens ---
+builder.Services.AddDbContext<TriviadorDbContext>(o =>
+    o.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
+builder.Services.Configure<GoogleAuthOptions>(builder.Configuration.GetSection("GoogleAuth"));
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddScoped<IUserAccountRepository, EfUserAccountRepository>();
+builder.Services.AddScoped<IRefreshTokenStore, EfRefreshTokenStore>();
+builder.Services.AddScoped<IGoogleIdTokenVerifier, GoogleIdTokenVerifier>();
+builder.Services.AddSingleton<ITokenIssuer, JwtTokenIssuer>();
+builder.Services.AddScoped<GoogleSignInService>();
+builder.Services.AddScoped<AccountSetupService>();
+
+var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+if (string.IsNullOrEmpty(jwtOptions.SigningKey))
+{
+    // Anonymous play must stay fully available even with zero accounts configuration (see
+    // player-accounts's "Anonymous play remains fully available") - the app must still boot and
+    // serve every anonymous-flow request. Production must always set a real key via secret/env
+    // var so tokens survive a restart/multiple instances; failing loudly there instead of
+    // silently generating a per-process key is the correct behavior for a real deployment.
+    if (!builder.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException(
+            "Jwt:SigningKey is not configured. Set it via an environment variable/secret manager before starting in a non-Development environment.");
+    }
+    jwtOptions.SigningKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+}
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        // Keep "sub"/"username"/"avatar" as written by JwtTokenIssuer instead of the legacy
+        // ClaimTypes remap - GameHub/AuthEndpoints both read the raw "sub" claim.
+        o.MapInboundClaims = false;
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
+        };
+        o.Events = new JwtBearerEvents
+        {
+            // WebSockets can't set an Authorization header, so SignalR's accessTokenFactory sends
+            // the token via the query string instead - accepted only on the hub's own path.
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments("/hub/game"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            },
+        };
+    });
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Force construction now, not on first use - bad Data/map.json or questions.json should fail
@@ -54,8 +123,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapHub<GameHub>("/hub/game");
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+app.MapAuthEndpoints();
 app.MapFallbackToFile("index.html");
 
 app.Run();

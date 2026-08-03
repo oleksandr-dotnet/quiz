@@ -30,6 +30,17 @@
   "landing.languageEnglish": "English",
   "landing.tagline": "Отвечайте быстрее. Захватывайте территории. Правьте картой.",
   "landing.orJoinExisting": "или войдите в существующую комнату",
+  "landing.signedInAs": "Вы вошли как {{username}}",
+  "landing.signOut": "Выйти",
+
+  "accountSetup.title": "Настройка аккаунта",
+  "accountSetup.tagline": "Выберите имя пользователя и аватар - другие игроки увидят их вместо введённого имени.",
+  "accountSetup.usernamePlaceholder": "Имя пользователя (3-20 символов: буквы, цифры, _)",
+  "accountSetup.avatarLabel": "Выберите аватар",
+  "accountSetup.submit": "Продолжить",
+  "accountSetup.errorInvalidUsername": "Имя пользователя: 3-20 символов, только буквы, цифры и подчёркивание.",
+  "accountSetup.errorUsernameTaken": "Это имя пользователя уже занято.",
+  "accountSetup.errorAvatarRequired": "Выберите аватар, чтобы продолжить.",
 
   "howToPlay.openButton": "Как играть?",
   "howToPlay.title": "Как играть",

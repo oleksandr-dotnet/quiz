@@ -2,12 +2,28 @@ export interface SeatDto {
   seatIndex: number
   playerId: string | null
   displayName: string | null
+  avatarId: string | null
   isBot: boolean
   isConnected: boolean
   isHost: boolean
 }
 
 export type Language = 'Russian' | 'English'
+
+export interface AccountProfileDto {
+  userId: string
+  username: string | null
+  avatarId: string | null
+}
+
+// Mirrors Triviador.Application/Accounts/AvailableAvatars.cs - the fixed, zero-infrastructure
+// avatar set from design.md Decision 6. Keep in sync by hand (see CLAUDE.md's note on contracts.ts).
+export const AVATAR_IDS = [
+  'fox', 'owl', 'wolf', 'bear', 'lion', 'eagle',
+  'otter', 'raven', 'hawk', 'stag', 'boar', 'lynx',
+] as const
+
+export type AvatarId = (typeof AVATAR_IDS)[number]
 
 export interface RoomView {
   roomCode: string
@@ -46,6 +62,7 @@ export interface PlayerView {
   playerId: string
   seat: number
   displayName: string | null
+  avatarId: string | null
   isBot: boolean
   isConnected: boolean
   baseRegionId: string | null
