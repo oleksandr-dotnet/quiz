@@ -58,16 +58,48 @@ jobs:
         run: dotnet tool install --global dotnet-ef
       - name: Restore
         run: dotnet restore Triviador.sln
-      - name: Apply migrations
+      - name: Normalize connection string
+        id: conn
+        env:
+          RAW_CONN: ${{ secrets.NEON_CONNECTION_STRING }}
         run: |
-          if [ -z "${{ secrets.NEON_CONNECTION_STRING }}" ]; then
+          if [ -z "$RAW_CONN" ]; then
             echo "NEON_CONNECTION_STRING secret is not set - failing rather than deploying against an out-of-date schema." >&2
             exit 1
           fi
+          # Neon's dashboard hands out a libpq URI (postgresql://user:pass@host/db?sslmode=require),
+          # but Npgsql's connection string parser only understands ADO.NET keyword=value pairs.
+          # Convert when the secret is in URI form; pass it through unchanged otherwise.
+          conn=$(python3 - <<'PYEOF'
+          import os, urllib.parse
+          raw = os.environ["RAW_CONN"]
+          if raw.startswith("postgres://") or raw.startswith("postgresql://"):
+              u = urllib.parse.urlparse(raw)
+              q = urllib.parse.parse_qs(u.query)
+              sslmode = q.get("sslmode", ["require"])[0].capitalize()
+              def esc(v):
+                  return "'" + v.replace("'", "''") + "'" if any(c in v for c in ";'\"") else v
+              parts = {
+                  "Host": u.hostname,
+                  "Port": str(u.port or 5432),
+                  "Database": u.path.lstrip("/"),
+                  "Username": esc(urllib.parse.unquote(u.username or "")),
+                  "Password": esc(urllib.parse.unquote(u.password or "")),
+                  "Ssl Mode": sslmode,
+              }
+              print(";".join(f"{k}={v}" for k, v in parts.items()))
+          else:
+              print(raw)
+          PYEOF
+          )
+          echo "::add-mask::$conn"
+          echo "connection_string=$conn" >> "$GITHUB_OUTPUT"
+      - name: Apply migrations
+        run: |
           dotnet ef database update \
             --project src/Triviador.Infrastructure \
             --startup-project src/UI/Triviador.Web \
-            --connection "${{ secrets.NEON_CONNECTION_STRING }}"
+            --connection "${{ steps.conn.outputs.connection_string }}"
 
   deploy:
     runs-on: ubuntu-latest
