@@ -81,10 +81,22 @@
   margin-left: auto;
   background: none;
   border: none;
+  border-radius: 999px;
   padding: 0.25rem;
   font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
+}
+
+/* Overrides the generic button:hover's lift/shadow (index.css) with a plain tint instead - a
+   ghost icon button with no visible resting-state chrome got a floating box-shadow/lift on hover
+   with nothing to visually anchor it to, reading as a rendering glitch rather than a hover cue.
+   Needs :not(:disabled) purely to out-specificity that generic rule, not because this button is
+   ever actually disabled. */
+.mute-toggle:hover:not(:disabled) {
+  background: var(--paper-200);
+  transform: none;
+  box-shadow: none;
 }
 
 .leave-game-button {
@@ -97,9 +109,16 @@
   cursor: pointer;
 }
 
-.leave-game-button:hover {
+/* :not(:disabled) here isn't about disabled state either - it's the same specificity bump. Without
+   it, the generic button:hover rule (index.css) also sets border-color, and being a plain-element
+   selector plus :not() it actually outranked this class selector - so the border silently stayed
+   gilt-gold on hover while color (not touched by the generic rule) correctly went red, a
+   half-applied hover state that looked like a bug because it was one. */
+.leave-game-button:hover:not(:disabled) {
   border-color: var(--danger);
   color: var(--danger);
+  transform: none;
+  box-shadow: none;
 }
 
 .shell-map {
