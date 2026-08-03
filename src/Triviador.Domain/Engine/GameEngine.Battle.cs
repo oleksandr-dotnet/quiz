@@ -60,12 +60,29 @@ public sealed partial class GameEngine
                 continue;
             }
 
-            var token = _state.IssueActivityToken();
-            var deadline = at.Add(TimeSpan.FromSeconds(_state.Rules.AttackTargetSelectionDurationSeconds));
-            _state.Pending = new PendingActivity.TargetSelection(token, deadline, next);
-            events.Add(new AttackTargetRequested(token, next, eligible, deadline));
+            events.AddRange(IssueTargetSelection(next, eligible, at));
             return events.ToImmutable();
         }
+    }
+
+    private ImmutableArray<IGameEvent> IssueTargetSelection(PlayerId player, ImmutableArray<RegionId> eligible, Instant at)
+    {
+        var token = _state.IssueActivityToken();
+        var deadline = at.Add(TimeSpan.FromSeconds(_state.Rules.AttackTargetSelectionDurationSeconds));
+        _state.Pending = new PendingActivity.TargetSelection(token, deadline, player);
+        return ImmutableArray.Create<IGameEvent>(new AttackTargetRequested(token, player, eligible, deadline));
+    }
+
+    // Offers the same player another target selection without consuming a RoundQueue slot — used
+    // when a self-heal succeeds and the healer keeps their turn (they may heal again, or now attack,
+    // in the same turn). EligibleAttackTargetsFor is re-derived fresh, so a now-fully-healed base
+    // naturally drops out of the offer. If nothing is left to do (fully healed, no adjacent enemy),
+    // the turn simply ends via AdvanceTurn rather than a TurnSkipped — the player already acted this
+    // turn, they just have nothing left to spend it on.
+    private ImmutableArray<IGameEvent> ContinueTurnFor(PlayerId player, Instant at)
+    {
+        var eligible = EligibleAttackTargetsFor(player);
+        return eligible.IsEmpty ? AdvanceTurn(at) : IssueTargetSelection(player, eligible, at);
     }
 
     // Canonical order: MapDescriptor.Regions declaration order, matching EligibleRegionsFor's
@@ -88,9 +105,10 @@ public sealed partial class GameEngine
 
         var self = PlayerById(attacker);
         // A player may spend their turn shoring up their own damaged base instead of attacking
-        // someone else's — a one-question self-heal (see ResolveRevealHold). Only offered once base
-        // assaults are unlocked (the same window governing every other base target) and only while
-        // damaged, so it never appears as a no-op option.
+        // someone else's — a self-heal that keeps chaining on every correct answer (see
+        // ResolveRevealHold). Only offered once base assaults are unlocked (the same threshold
+        // governing every other base target) and only while damaged, so it never appears as a no-op
+        // option.
         var selfHealTarget = baseAssaultsUnlocked && self.BaseRegion is not null && self.BaseHitPoints < _state.Rules.BaseHitPointsDefault
             ? ImmutableArray.Create(self.BaseRegion.Value)
             : ImmutableArray<RegionId>.Empty;
@@ -98,11 +116,10 @@ public sealed partial class GameEngine
         return enemyTargets.Concat(selfHealTarget).ToImmutableArray();
     }
 
-    // Capitals are only assaultable during the closing stretch of the game — the last
-    // BaseAssaultFinalRoundsWindow rounds of RoundLimit — so early rounds stay about grabbing
-    // regular territory instead of rushing straight for an elimination.
-    private bool BaseAssaultsUnlocked() =>
-        _state.CurrentRound > _state.Rules.RoundLimit - _state.Rules.BaseAssaultFinalRoundsWindow;
+    // Capitals are only assaultable from a fixed round onward (GameRules.BaseAssaultUnlockRound,
+    // round 8 by default) — a fixed threshold independent of RoundLimit/ruleset, so early rounds
+    // stay about grabbing regular territory instead of rushing straight for an elimination.
+    private bool BaseAssaultsUnlocked() => _state.CurrentRound >= _state.Rules.BaseAssaultUnlockRound;
 
     private CommandResult ExecuteSelectAttackTarget(SelectAttackTarget command)
     {
@@ -224,23 +241,28 @@ public sealed partial class GameEngine
 
             case QuestionPurpose.BaseAssault assault when assault.Attacker == assault.Defender:
             {
-                // Self-heal: exactly one question, no chain, and success heals rather than damages.
-                // AttackerWon can't apply here — it compares the attacker's and defender's ranks,
-                // which are the same single ranked answer when attacker == defender, so it would
-                // always evaluate to "attacker did not win". Correctness is instead read straight off
-                // that one ranked answer: Tier 0 means an exactly-right Choice answer; for a Tip
-                // (numeric) answer, Penalty (the absolute distance from the correct value) must also
-                // be exactly 0, since numeric answers are otherwise ranked by closeness, not
-                // exactness, and "closer than no one" isn't a meaningful heal condition.
+                // Self-heal: success heals rather than damages, and — unlike a lost self-heal —
+                // keeps the turn. AttackerWon can't apply here — it compares the attacker's and
+                // defender's ranks, which are the same single ranked answer when attacker ==
+                // defender, so it would always evaluate to "attacker did not win". Correctness is
+                // instead read straight off that one ranked answer: Tier 0 means an exactly-right
+                // Choice answer; for a Tip (numeric) answer, Penalty (the absolute distance from the
+                // correct value) must also be exactly 0, since numeric answers are otherwise ranked
+                // by closeness, not exactness, and "closer than no one" isn't a meaningful heal
+                // condition.
                 var score = pending.Result.Rankings.First(r => r.Player == assault.Attacker).Score;
-                if (!PlayerById(assault.Attacker).Withdrawn && score is { Tier: 0, Penalty: 0 })
+                var healed = !PlayerById(assault.Attacker).Withdrawn && score is { Tier: 0, Penalty: 0 };
+                if (healed)
                 {
                     var self = PlayerById(assault.Attacker);
                     self.BaseHitPoints = Math.Min(self.BaseHitPoints + 1, _state.Rules.BaseHitPointsDefault);
                     events.Add(new BaseHitPointsChanged(assault.Attacker, self.BaseHitPoints));
                 }
 
-                events.AddRange(AdvanceTurn(at));
+                // A correct heal keeps the turn — the healer may heal again (if still damaged) or
+                // now attack, all in the same turn. An incorrect/inexact/missed answer ends the turn
+                // exactly as before.
+                events.AddRange(healed ? ContinueTurnFor(assault.Attacker, at) : AdvanceTurn(at));
                 break;
             }
 
@@ -263,11 +285,11 @@ public sealed partial class GameEngine
                     }
                     else
                     {
-                        // Base HP starts at GameRules.BaseHitPointsDefault (5) and never regenerates,
-                        // so it can never exceed 5 here — the rule's "up to 5 questions" cap is
-                        // automatically satisfied by "keep going until HP hits 0", with no separate
-                        // counter needed. QuestionIndex/DamageDealtThisTurn still advance for anyone
-                        // inspecting the purpose (e.g. a future view/event consumer).
+                        // No fixed per-turn cap on the chain: the attacker keeps facing fresh
+                        // questions against this same base for as long as they keep winning, ending
+                        // only when hit points reach zero (captured, above) or a tie/defender-win
+                        // stops the chain (below). QuestionIndex/DamageDealtThisTurn still advance
+                        // for anyone inspecting the purpose (e.g. a view/event consumer).
                         var nextPurpose = assault with
                         {
                             QuestionIndex = assault.QuestionIndex + 1,

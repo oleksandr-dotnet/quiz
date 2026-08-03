@@ -13,7 +13,7 @@ public sealed record GameRules(
     int AttackTargetSelectionDurationSeconds = 15,
     int BaseHitPointsDefault = 5,
     int RevealHoldDurationSeconds = 4,
-    int BaseAssaultFinalRoundsWindow = 5,
+    int BaseAssaultUnlockRound = 8,
     Language Language = Language.Russian)
 {
     public static readonly GameRules Default = new();
