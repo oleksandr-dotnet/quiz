@@ -9,3 +9,10 @@ services:
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
+      # Consumed by the Dockerfile's client-build stage as a Docker build ARG (Render forwards
+      # dashboard env vars into the build automatically) - must also match GoogleAuth__ClientId
+      # below or the server will reject every token this bundle produces.
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+      - key: GoogleAuth__ClientId
+        sync: false

@@ -3,6 +3,12 @@
 # --- Stage 1: build the React client -----------------------------------------
 FROM node:20-alpine AS client-build
 WORKDIR /src
+# Vite bakes VITE_* values into the bundle at build time, not runtime - Render forwards dashboard
+# env vars into the build as Docker build args, but only for ARGs a Dockerfile actually declares.
+# Without this ARG, the Google client id (and any future VITE_* var) silently comes through as
+# undefined and features relying on it just don't render, with nothing in the runtime logs.
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 COPY src/Triviador.Client/package.json src/Triviador.Client/package-lock.json src/Triviador.Client/
 RUN npm ci --prefix src/Triviador.Client
 COPY src/Triviador.Client/ src/Triviador.Client/

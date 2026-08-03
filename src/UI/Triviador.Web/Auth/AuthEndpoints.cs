@@ -21,12 +21,16 @@ public static class AuthEndpoints
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/auth");
+        var logger = app.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Triviador.Web.Auth.AuthEndpoints");
 
         group.MapPost("/google", async (GoogleSignInRequestDto body, GoogleSignInService signIn, HttpContext http) =>
         {
             var result = await signIn.SignInAsync(body.IdToken, http.RequestAborted);
             if (result.Status != GoogleSignInStatus.Ok || result.Profile is null || result.AccessToken is null || result.RefreshToken is null)
             {
+                // GoogleSignInService/GoogleIdTokenVerifier already logged the specific reason -
+                // this is just the HTTP-layer outcome so it's visible without cross-referencing.
+                logger.LogWarning("POST /api/auth/google -> 401 ({Status})", result.Status);
                 return Results.Unauthorized();
             }
 
@@ -42,18 +46,23 @@ public static class AuthEndpoints
             // see design.md Decision 5. A cross-site form/navigation cannot set a custom header.
             if (!http.Request.Headers.ContainsKey("X-Requested-With"))
             {
+                logger.LogDebug("POST /api/auth/refresh -> 401 (missing X-Requested-With header)");
                 return Results.Unauthorized();
             }
 
             var rawToken = http.Request.Cookies[RefreshCookieName];
             if (rawToken is null)
             {
+                // Expected for every first-time/anonymous visitor - no refresh cookie has ever
+                // been issued to them. Debug, not Warning, to avoid drowning real failures out.
+                logger.LogDebug("POST /api/auth/refresh -> 401 (no refresh cookie)");
                 return Results.Unauthorized();
             }
 
             var redeemed = await refreshTokens.RedeemAndRotateAsync(rawToken, http.RequestAborted);
             if (redeemed.Status != RefreshTokenRedeemStatus.Success || redeemed.UserId is null || redeemed.Rotated is null)
             {
+                logger.LogWarning("POST /api/auth/refresh -> 401 ({Status})", redeemed.Status);
                 http.Response.Cookies.Delete(RefreshCookieName, RefreshCookiePath());
                 return Results.Unauthorized();
             }
@@ -61,6 +70,7 @@ public static class AuthEndpoints
             var profile = await accounts.FindByIdAsync(redeemed.UserId.Value, http.RequestAborted);
             if (profile is null)
             {
+                logger.LogWarning("POST /api/auth/refresh -> 401 (refresh token valid but user {UserId} not found)", redeemed.UserId);
                 return Results.Unauthorized();
             }
 

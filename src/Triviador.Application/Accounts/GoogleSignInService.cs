@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace Triviador.Application.Accounts;
 
 public enum GoogleSignInStatus
@@ -22,18 +24,27 @@ public sealed class GoogleSignInService(
     IGoogleIdTokenVerifier verifier,
     IUserAccountRepository accounts,
     IRefreshTokenStore refreshTokens,
-    ITokenIssuer tokenIssuer)
+    ITokenIssuer tokenIssuer,
+    ILogger<GoogleSignInService> logger)
 {
     public async Task<GoogleSignInResult> SignInAsync(string googleIdToken, CancellationToken ct = default)
     {
         var claims = await verifier.VerifyAsync(googleIdToken, ct);
         if (claims is null)
         {
+            // The verifier already logged the specific rejection reason (bad audience, expired,
+            // etc.) - this just marks that a sign-in attempt reached the service and failed.
+            logger.LogWarning("Google sign-in rejected: token failed verification");
             return GoogleSignInResult.InvalidToken;
         }
 
-        var profile = await accounts.FindByGoogleSubjectAsync(claims.Subject, ct)
-            ?? await accounts.CreateFromGoogleAsync(claims.Subject, claims.Email, ct);
+        var existing = await accounts.FindByGoogleSubjectAsync(claims.Subject, ct);
+        var profile = existing ?? await accounts.CreateFromGoogleAsync(claims.Subject, claims.Email, ct);
+        logger.LogInformation(
+            existing is null
+                ? "Google sign-in created a new account {UserId} for Google subject {GoogleSubject}"
+                : "Google sign-in resolved existing account {UserId} for Google subject {GoogleSubject}",
+            profile.UserId, claims.Subject);
 
         var accessToken = tokenIssuer.IssueAccessToken(profile);
         var refreshToken = await refreshTokens.IssueAsync(profile.UserId, ct);
