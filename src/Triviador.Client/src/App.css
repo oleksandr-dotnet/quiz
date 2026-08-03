@@ -412,11 +412,16 @@
 }
 
 .code-input input {
-  width: 2.4rem;
+  width: 2.75rem;
   text-align: center;
   text-transform: uppercase;
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+  /* Fraunces defaults to oldstyle figures, whose descenders/ascenders (e.g. a 7 with a downstroke)
+     read as unrelated glyphs at this size - lining figures are what a code actually meant to be
+     read character-by-character needs. */
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 .toast {
@@ -436,8 +441,15 @@
 }
 
 .turn-banner {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--ink-700);
+  font-size: clamp(1.05rem, 0.95rem + 0.5vw, 1.25rem);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.battle-headline {
+  margin: 0.5rem 0;
 }
 
 /* ---------- Lobby ---------- */
@@ -692,8 +704,10 @@
 }
 
 .question-text {
-  font-weight: 500;
+  font-weight: 600;
   margin: 0;
+  font-size: clamp(1.2rem, 1.05rem + 0.8vw, 1.55rem);
+  line-height: 1.4;
 }
 
 .timer {
@@ -771,6 +785,9 @@
   gap: 0.5rem;
   text-align: left;
   background: var(--paper-050);
+  font-size: 1.1rem;
+  line-height: 1.35;
+  padding: 0.7em 1em;
   transition: background-color var(--dur-fast) var(--ease-paper), border-color var(--dur-fast) var(--ease-paper),
     transform var(--dur-fast) var(--ease-paper), box-shadow var(--dur-fast) var(--ease-paper);
 }
@@ -806,6 +823,8 @@
   flex: 1 1 auto;
   min-width: 0;
   width: 100%;
+  font-size: 1.3rem;
+  font-weight: 600;
 }
 
 .numeric-input-row button {
@@ -814,6 +833,7 @@
 
 .numeric-unit {
   color: var(--ink-500);
+  font-size: 1.1rem;
 }
 
 .numeric-keypad {
@@ -847,6 +867,7 @@
   border: 1px dashed var(--ink-300);
   color: var(--ink-500);
   font-variant: small-caps;
+  font-size: 1.1rem;
   letter-spacing: 0.08em;
 }
 
@@ -889,6 +910,7 @@
 
 .correct-answer {
   margin: 0;
+  font-size: 1.1rem;
 }
 
 .reveal-scroll {
