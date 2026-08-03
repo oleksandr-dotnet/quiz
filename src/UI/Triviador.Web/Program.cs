@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using Triviador.Application.Accounts;
 using Triviador.Application.Content;
 using Triviador.Application.Hosting;
@@ -47,7 +48,7 @@ builder.Services.AddHostedService<RoomJanitor>();
 
 // --- Accounts (player-accounts): Postgres/EF Core + Google sign-in + JWT/refresh tokens ---
 builder.Services.AddDbContext<TriviadorDbContext>(o =>
-    o.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
+    o.UseNpgsql(NormalizePostgresConnectionString(builder.Configuration.GetConnectionString("Postgres"))));
 builder.Services.Configure<GoogleAuthOptions>(builder.Configuration.GetSection("GoogleAuth"));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddScoped<IUserAccountRepository, EfUserAccountRepository>();
@@ -131,3 +132,37 @@ app.MapAuthEndpoints();
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+// Hosting providers (Render, Neon, Heroku, ...) commonly hand out Postgres connection info as a
+// postgres(ql):// URI, but Npgsql's NpgsqlConnectionStringBuilder only accepts ADO.NET-style
+// Key=Value pairs and throws ArgumentException - with the *entire input string, password
+// included* - if given a URI. That exception's Message then flows straight into Kestrel's
+// unhandled-exception logging, leaking the password to logs. Converting the URI form up front
+// means UseNpgsql never sees (and can never fail on, and can never leak) the raw URI.
+static string? NormalizePostgresConnectionString(string? raw)
+{
+    if (string.IsNullOrWhiteSpace(raw))
+        return raw;
+
+    if (!raw.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) &&
+        !raw.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        return raw;
+
+    var uri = new Uri(raw);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+    var sslMode = queryParams.TryGetValue("sslmode", out var sslModeValues) ? sslModeValues.ToString() : null;
+
+    var builder = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port > 0 ? uri.Port : 5432,
+        Username = Uri.UnescapeDataString(userInfo[0]),
+        Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "",
+        Database = uri.AbsolutePath.TrimStart('/'),
+        SslMode = string.Equals(sslMode, "disable", StringComparison.OrdinalIgnoreCase)
+            ? SslMode.Disable
+            : SslMode.Require,
+    };
+    return builder.ConnectionString;
+}
