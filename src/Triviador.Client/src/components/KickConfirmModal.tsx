@@ -32,13 +32,13 @@ export function KickConfirmModal({ open, targetName, requireLandPolicy, onCancel
   if (!open) return null
 
   return (
-    <div className="kick-confirm-overlay" role="dialog" aria-modal="true" aria-label={t('kick.confirmTitle', { name: targetName })}>
-      <div ref={dialogRef} tabIndex={-1} className="kick-confirm-card paper-card">
+    <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label={t('kick.confirmTitle', { name: targetName })}>
+      <div ref={dialogRef} tabIndex={-1} className="confirm-card paper-card">
         <h2>{t('kick.confirmTitle', { name: targetName })}</h2>
         <p>{requireLandPolicy ? t('kick.confirmBodyMidGame') : t('kick.confirmBodyLobby')}</p>
 
         {requireLandPolicy ? (
-          <div className="kick-confirm-actions">
+          <div className="confirm-actions">
             <button type="button" onClick={() => onConfirm('ReleaseLand')} data-testid="kick-release-land">
               {t('kick.releaseLand')}
             </button>
@@ -47,7 +47,7 @@ export function KickConfirmModal({ open, targetName, requireLandPolicy, onCancel
             </button>
           </div>
         ) : (
-          <div className="kick-confirm-actions">
+          <div className="confirm-actions">
             <button type="button" className="primary" onClick={() => onConfirm('ReleaseLand')} data-testid="kick-confirm">
               {t('kick.confirmButton')}
             </button>

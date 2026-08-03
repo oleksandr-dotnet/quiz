@@ -1268,9 +1268,9 @@
   background: var(--paper-100);
 }
 
-/* ---------- Kick confirm modal ---------- */
+/* ---------- Confirm modal (shared shell for kick + leave-game) ---------- */
 
-.kick-confirm-overlay {
+.confirm-overlay {
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -1281,7 +1281,7 @@
   background: rgba(0, 0, 0, 0.72);
 }
 
-.kick-confirm-card {
+.confirm-card {
   position: relative;
   max-width: 26rem;
   width: 100%;
@@ -1290,7 +1290,7 @@
   gap: 0.75rem;
 }
 
-.kick-confirm-actions {
+.confirm-actions {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

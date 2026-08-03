@@ -21,6 +21,7 @@ import { ConnectionBadge } from './components/ConnectionBadge'
 import { MuteToggle } from './components/MuteToggle'
 import { Toast } from './components/Toast'
 import { KickConfirmModal } from './components/KickConfirmModal'
+import { LeaveGameConfirmModal } from './components/LeaveGameConfirmModal'
 import { useGameTransitions } from './hooks/useGameTransitions'
 import { findPlayer, playerDisplayName } from './lib/format'
 import type { GameView, PlayerView } from './api/contracts'
@@ -59,9 +60,10 @@ function TopBar({ view }: { view: GameView }) {
   const phaseKey = phaseLabelKey(view.phase)
   const roundsRemaining = Math.max(0, view.roundLimit - view.currentRound)
   const progressPercent = view.roundLimit > 0 ? Math.min(100, (view.currentRound / view.roundLimit) * 100) : 0
+  const [confirmingLeave, setConfirmingLeave] = useState(false)
 
-  async function onLeaveGame() {
-    if (!window.confirm(t('app.leaveGameConfirm'))) return
+  async function onConfirmLeaveGame() {
+    setConfirmingLeave(false)
     try {
       await leaveRoom()
     } finally {
@@ -104,10 +106,15 @@ function TopBar({ view }: { view: GameView }) {
       )}
       <MuteToggle />
       {view.phase !== 'Finished' && (
-        <button type="button" className="leave-game-button" onClick={() => void onLeaveGame()}>
+        <button type="button" className="leave-game-button" onClick={() => setConfirmingLeave(true)}>
           {t('app.leaveGame')}
         </button>
       )}
+      <LeaveGameConfirmModal
+        open={confirmingLeave}
+        onCancel={() => setConfirmingLeave(false)}
+        onConfirm={() => void onConfirmLeaveGame()}
+      />
     </>
   )
 }
