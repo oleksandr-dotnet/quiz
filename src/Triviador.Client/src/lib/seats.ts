@@ -3,7 +3,10 @@ import type { GameView } from '../api/contracts'
 // Mirrors the --seat-0..3 custom properties in theme/tokens.css. Kept as literal hex values (not
 // read from CSS) because SVG fill attributes need a concrete color, not a var() reference resolved
 // against the DOM.
-export const SEAT_COLORS = ['#a8332c', '#2f4a7a', '#3f6b43', '#a9761f']
+// seat-3 is darkened from the original #a9761f - at that lightness, ochre used as text color (player
+// names in reveal lists, archery-target labels) only hit 3.67:1 contrast against --paper-050, below
+// WCAG AA's 4.5:1 for normal text. #8c621a keeps the same hue/gold identity at ~5:1.
+export const SEAT_COLORS = ['#a8332c', '#2f4a7a', '#3f6b43', '#8c621a']
 
 export const UNCLAIMED_COLOR = '#ece0c4'
 

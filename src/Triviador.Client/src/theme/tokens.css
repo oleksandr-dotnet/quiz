@@ -25,7 +25,7 @@
   --seat-0: #a8332c; /* gules - crimson */
   --seat-1: #2f4a7a; /* azure - indigo  */
   --seat-2: #3f6b43; /* vert  - forest  */
-  --seat-3: #a9761f; /* or    - ochre   */
+  --seat-3: #8c621a; /* or    - ochre (darkened for 4.5:1 text contrast on paper-050) */
   --wax: #8f2b22;
 
   --unclaimed: var(--paper-200);
