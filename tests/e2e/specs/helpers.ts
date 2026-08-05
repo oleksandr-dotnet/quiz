@@ -5,6 +5,11 @@ import { expect } from '@playwright/test'
 export const ROOM_CODE_PATTERN = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}$/
 
 export async function goToLanding(page: Page): Promise<void> {
+  // The app's real default locale is Russian (see i18n/index.ts) - pin English here so this
+  // suite's assertions on UI strings and aria-labels are deterministic regardless of that default.
+  await page.addInitScript(() => {
+    window.localStorage.setItem('triviador.locale', 'en')
+  })
   await page.goto('/')
   await expect(page.getByTestId('display-name')).toBeVisible()
 }
