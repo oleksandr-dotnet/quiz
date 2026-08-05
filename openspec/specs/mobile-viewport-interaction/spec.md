@@ -13,11 +13,12 @@ enough to be a phone held in landscape regardless of its width. This includes ev
 the dock and any status overlay rendered alongside the game screen: none of them SHALL overflow
 their own container or push the fixed-height shell past the viewport. When a phase's dock content
 genuinely cannot fit even after the map has shrunk to its minimum, the dock SHALL become internally
-scrollable rather than clipping content the viewer needs unreachable. A `Tip` (numeric) question
-SHALL offer exactly one submit control rather than duplicating submit affordances, since a
-redundant control costs vertical budget without adding capability. The per-player "who has
-answered" roster SHALL render fully visible, without needing the dock's scroll fallback, for a
-typical-length `Choice` question.
+scrollable rather than clipping content the viewer needs unreachable, and SHALL show a visible fade
+cue on whichever edge (top and/or bottom) still has more content to reveal, tracking actual scroll
+position rather than a static hint. A `Tip` (numeric) question SHALL offer exactly one submit
+control rather than duplicating submit affordances, since a redundant control costs vertical budget
+without adding capability. The per-player "who has answered" roster SHALL render fully visible,
+without needing the dock's scroll fallback, for a typical-length `Choice` question.
 
 #### Scenario: The map shrinks to fit rather than the page growing
 - **WHEN** the combined natural height of the top bar, roster, and dock leaves less room than the
@@ -75,6 +76,17 @@ typical-length `Choice` question.
   zero can accommodate
 - **THEN** the dock becomes internally scrollable so the next question's controls remain reachable,
   rather than being clipped past the viewport with no way to reach them
+
+#### Scenario: A scrollable dock shows a fade cue only where there's more to reveal
+- **WHEN** `.shell-dock`'s content exceeds its visible height (its scroll fallback is active) on any
+  target viewport
+- **THEN** a visible fade appears at the top edge only if there's hidden content above the current
+  scroll position, and at the bottom edge only if there's hidden content below it — neither fade
+  shows when the dock isn't scrollable, and the bottom fade disappears once scrolled to the end
+
+#### Scenario: The fade cue tracks real scrolling, not a static hint
+- **WHEN** the viewer scrolls a dock that was showing a bottom fade, reaching the end of its content
+- **THEN** the bottom fade disappears and, if content above is now hidden, a top fade appears instead
 
 ### Requirement: The map renders at a fixed, non-zoomable scale
 The client SHALL render the map at a fixed scale with no user-driven zoom or pan; a tap or click on
