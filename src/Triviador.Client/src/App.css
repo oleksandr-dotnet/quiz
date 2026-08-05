@@ -1289,8 +1289,12 @@
   border-radius: var(--r-md);
 }
 
-.player-action-menu button:hover {
+/* Zeroes out the generic button:hover's lift/shadow (index.css) - a flat dropdown row should
+   highlight in place, not float above the menu like a raised button. */
+.player-action-menu button:hover:not(:disabled) {
   background: var(--paper-100);
+  transform: none;
+  box-shadow: none;
 }
 
 /* ---------- Confirm modal (shared shell for kick + leave-game) ---------- */
