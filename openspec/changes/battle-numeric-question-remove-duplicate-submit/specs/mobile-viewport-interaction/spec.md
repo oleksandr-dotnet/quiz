@@ -33,7 +33,7 @@ redundant control costs vertical budget without adding capability.
 - **THEN** the client still applies the fitted, non-scrolling layout rather than falling back to
   the wider desktop layout
 
-#### Scenario: A numeric question's input row stays within its card
+#### Scenario: A numeric question's input-and-submit row stays within its card
 - **WHEN** a `Tip` (numeric) question is pending on the narrowest viewport widths this project
   targets (as narrow as 393px)
 - **THEN** the numeric input field renders fully inside the question card, with the input shrinking
