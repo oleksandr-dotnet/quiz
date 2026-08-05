@@ -310,15 +310,20 @@
   .shell-dock {
     background: var(--paper-100);
     padding-top: 0.5rem;
-    /* Scroll is never allowed on mobile - previously this scrolled internally as a last resort
-       because LandGrab stacks a RevealOverlay directly above the *next* QuestionCard (desktop-only
-       behavior, see LandGrabScreen.tsx), which could combine to 900-1500px of content. That stack
-       no longer happens on mobile at all (.land-grab-dock.reveal-active hides everything but the
-       reveal below), and the map collapses to nothing for the same window (.shell-map.hide-mobile),
-       so a single dock state (one question, or one reveal) is what this now ever has to fit -
-       overflow: hidden is a backstop, not an escape hatch. */
+    /* A single dock state (one question, or one reveal) is normally short enough to fit without
+       scrolling - LandGrab no longer stacks a RevealOverlay above the *next* QuestionCard on mobile
+       (.land-grab-dock.reveal-active hides everything but the reveal), and the map collapses to
+       nothing for the same window (.shell-map.hide-mobile). But "normally" isn't "always": the real
+       question bank has prompts well past 150 characters, and a numeric (Tip) question's own header
+       + input row + full keypad + submit button is already the tallest dock content in the game even
+       with a short prompt - a long one pushes the keypad/submit past 70dvh on real narrow-but-tall
+       phones. `overflow: hidden` here used to silently clip them with no way to reach "0" or Submit
+       at all - a broken, not just ugly, state. overflow-y: auto costs nothing in the common case (no
+       scrollbar appears unless content truly exceeds max-height) and is what actually keeps every
+       control reachable in the rare long-prompt case. */
     max-height: 70dvh;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .shell-roster {
