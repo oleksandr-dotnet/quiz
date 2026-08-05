@@ -4,9 +4,7 @@
 Describes what the end-to-end test suite itself must be: exercising the real running game through
 a real browser (not mocks), transparent about what it does and doesn't cover, and matching the
 per-tab identity model the actual client relies on.
-
 ## Requirements
-
 ### Requirement: The E2E suite runs against a real running game
 The end-to-end test project SHALL exercise the actual `Triviador.Web` host and `Triviador.Client`
 build through a real browser, not a mocked server or a component-level render. It SHALL be able to
@@ -41,3 +39,14 @@ independent session identity, matching how the real client distinguishes seats (
 - **WHEN** a test scenario needs two distinct seated players in the same room
 - **THEN** it drives them through two separate browser tabs (pages) sharing one browser context,
   each with its own session identity, rather than reusing one page for both
+
+### Requirement: The suite pins its own UI language regardless of the app's default
+The E2E suite SHALL fix the client's UI language to a known value before any test interacts with
+the page, rather than relying on whichever language the app would otherwise default to. The app's
+own default locale is a product decision that may change independently of this suite.
+
+#### Scenario: A test asserting UI text is unaffected by the app's real default locale
+- **WHEN** any test navigates to the landing page through the suite's shared navigation helper
+- **THEN** the page renders in the language the suite pinned, regardless of what the app would have
+  defaulted to on a fresh visit with no stored preference
+
