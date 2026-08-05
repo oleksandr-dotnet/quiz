@@ -1203,6 +1203,18 @@
   color: var(--seat-2);
 }
 
+/* At narrow widths the row's fixed-width columns (laurel + mark + name + speed-bar, plus 4 gaps)
+   already add up to more than the available card width before the answer's 1fr column gets
+   anything - it was being squeezed to ~0px and clipped to a single glyph, the one piece of
+   information this list exists to show. Shrinking the name/speed-bar tracks (both already have
+   graceful ellipsis/no-op fallbacks) reclaims enough width for the answer text to actually read. */
+@media (max-width: 420px) {
+  .reveal-row {
+    grid-template-columns: 1.4rem 1.2rem 5rem 1fr 3rem;
+    gap: 0.4rem;
+  }
+}
+
 .reveal-mark {
   text-align: center;
   color: var(--danger);
