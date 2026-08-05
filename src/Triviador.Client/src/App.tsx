@@ -19,10 +19,12 @@ import { GameMap } from './components/map/GameMap'
 import { PlayerRoster } from './components/PlayerRoster'
 import { ConnectionBadge } from './components/ConnectionBadge'
 import { MuteToggle } from './components/MuteToggle'
+import { AppMenu } from './components/AppMenu'
 import { Toast } from './components/Toast'
 import { KickConfirmModal } from './components/KickConfirmModal'
 import { LeaveGameConfirmModal } from './components/LeaveGameConfirmModal'
 import { useGameTransitions } from './hooks/useGameTransitions'
+import { useLandGrabReveal } from './hooks/useLandGrabReveal'
 import { findPlayer, playerDisplayName } from './lib/format'
 import type { GameView, PlayerView } from './api/contracts'
 
@@ -61,6 +63,7 @@ function TopBar({ view }: { view: GameView }) {
   const roundsRemaining = Math.max(0, view.roundLimit - view.currentRound)
   const progressPercent = view.roundLimit > 0 ? Math.min(100, (view.currentRound / view.roundLimit) * 100) : 0
   const [confirmingLeave, setConfirmingLeave] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   async function onConfirmLeaveGame() {
     setConfirmingLeave(false)
@@ -73,43 +76,77 @@ function TopBar({ view }: { view: GameView }) {
 
   return (
     <>
-      <h1>{t('app.title')}</h1>
-      <span>&middot;</span>
-      <span>{phaseKey && t(phaseKey)}</span>
-      {view.phase === 'Battle' && (
-        <>
-          <span>&middot;</span>
-          <span className="round-progress">
-            <span className="round-flip-frame tabular-nums">
-              <AnimatePresence mode="popLayout">
-                <motion.span
-                  key={view.currentRound}
-                  initial={{ rotateX: -90, opacity: 0 }}
-                  animate={{ rotateX: 0, opacity: 1 }}
-                  exit={{ rotateX: 90, opacity: 0 }}
-                  transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
-                  style={{ display: 'inline-block' }}
-                >
-                  {t('app.roundProgress', {
-                    current: view.currentRound,
-                    total: view.roundLimit,
-                    remaining: roundsRemaining,
-                  })}
-                </motion.span>
-              </AnimatePresence>
+      {/* Desktop/tablet top bar - hidden on mobile (App.css mobile breakpoint), where its content
+          replaced by .top-bar-mobile-menu below since there's no room for it without wrapping. */}
+      <div className="top-bar-full">
+        <h1>{t('app.title')}</h1>
+        <span>&middot;</span>
+        <span>{phaseKey && t(phaseKey)}</span>
+        {view.phase === 'Battle' && (
+          <>
+            <span>&middot;</span>
+            <span className="round-progress">
+              <span className="round-flip-frame tabular-nums">
+                <AnimatePresence mode="popLayout">
+                  <motion.span
+                    key={view.currentRound}
+                    initial={{ rotateX: -90, opacity: 0 }}
+                    animate={{ rotateX: 0, opacity: 1 }}
+                    exit={{ rotateX: 90, opacity: 0 }}
+                    transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
+                    style={{ display: 'inline-block' }}
+                  >
+                    {t('app.roundProgress', {
+                      current: view.currentRound,
+                      total: view.roundLimit,
+                      remaining: roundsRemaining,
+                    })}
+                  </motion.span>
+                </AnimatePresence>
+              </span>
+              <span className="round-progress-track" aria-hidden="true">
+                <span className="round-progress-fill" style={{ width: `${progressPercent}%` }} />
+              </span>
             </span>
-            <span className="round-progress-track" aria-hidden="true">
-              <span className="round-progress-fill" style={{ width: `${progressPercent}%` }} />
-            </span>
-          </span>
-        </>
-      )}
-      <MuteToggle />
-      {view.phase !== 'Finished' && (
-        <button type="button" className="leave-game-button" onClick={() => setConfirmingLeave(true)}>
-          {t('app.leaveGame')}
+          </>
+        )}
+        <MuteToggle />
+        {view.phase !== 'Finished' && (
+          <button type="button" className="leave-game-button" onClick={() => setConfirmingLeave(true)}>
+            {t('app.leaveGame')}
+          </button>
+        )}
+      </div>
+
+      {/* Mobile-only corner menu - hidden on desktop (App.css). Bundles sound + leave-game, the
+          two actions the full top bar exposes, behind one small button instead of a wrapping row. */}
+      <div className="top-bar-mobile-menu">
+        <button
+          type="button"
+          className="menu-button"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label={t('app.menu')}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          data-testid="app-menu-button"
+        >
+          &#9776;
         </button>
-      )}
+        {menuOpen && (
+          <AppMenu
+            onClose={() => setMenuOpen(false)}
+            onLeaveGame={
+              view.phase !== 'Finished'
+                ? () => {
+                    setMenuOpen(false)
+                    setConfirmingLeave(true)
+                  }
+                : null
+            }
+          />
+        )}
+      </div>
+
       <LeaveGameConfirmModal
         open={confirmingLeave}
         onCancel={() => setConfirmingLeave(false)}
@@ -135,6 +172,9 @@ function App() {
   const [proclamationQueue, setProclamationQueue] = useState<string[]>([])
   const [mapShaking, setMapShaking] = useState(false)
   const [kickTarget, setKickTarget] = useState<PlayerView | null>(null)
+  // Shared with LandGrabDock (same hook, same window) purely to know when a reveal is on screen -
+  // AppShell uses it to hide the map on mobile while it's up (see mapRevealHidden below).
+  const landGrabVisibleReveal = useLandGrabReveal(gameView)
 
   async function onConfirmKick(landPolicy: 'ReleaseLand' | 'BotTakeover') {
     if (!kickTarget) return
@@ -341,6 +381,9 @@ function App() {
     .filter((part) => part !== undefined && part !== null)
     .join('-')
 
+  const showingReveal =
+    gameView.phase === 'Battle' ? gameView.pendingReveal !== null : landGrabVisibleReveal !== null
+
   return (
     <>
       <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
@@ -348,6 +391,7 @@ function App() {
         dockKey={dockKey}
         mapShaking={mapShaking}
         mapDanger={ownBaseUnderAssault}
+        mapRevealHidden={showingReveal}
         topBar={<TopBar view={gameView} />}
         map={
           <GameMap

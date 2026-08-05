@@ -121,6 +121,69 @@
   box-shadow: none;
 }
 
+/* Desktop/tablet top bar content. `display: contents` drops this wrapper out of the box tree so
+   its children (h1, phase label, round progress, mute, leave) lay out as direct flex items of
+   .shell-top-bar exactly as before this wrapper existed - only the mobile breakpoint below
+   switches it to `display: none` in favor of .top-bar-mobile-menu. */
+.top-bar-full {
+  display: contents;
+}
+
+.top-bar-mobile-menu {
+  display: none;
+  position: relative;
+}
+
+.menu-button {
+  background: none;
+  border: 1px solid var(--ink-500);
+  border-radius: var(--r-md);
+  padding: 0.3rem 0.6rem;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--ink-700);
+  cursor: pointer;
+}
+
+.menu-button:hover:not(:disabled) {
+  background: var(--paper-200);
+  transform: none;
+  box-shadow: none;
+}
+
+.app-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 30;
+  margin-top: 0.35rem;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 10rem;
+}
+
+.app-menu button {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.55em 0.7em;
+  cursor: pointer;
+  border-radius: var(--r-md);
+  font-size: 0.9rem;
+  color: var(--ink-700);
+}
+
+.app-menu button:hover:not(:disabled) {
+  background: var(--paper-100);
+  transform: none;
+  box-shadow: none;
+}
+
+.app-menu-leave {
+  color: var(--danger);
+}
+
 .shell-map {
   grid-area: map;
   min-width: 0;
@@ -180,11 +243,20 @@
   }
 
   .shell-top-bar {
-    /* The title plus phase label already fill most of a phone-width row; letting the round-progress
-       text (paired with white-space: nowrap above) wrap down as a whole unit reads far better than
-       either squeezing it word-by-word onto the same line or letting it force horizontal overflow. */
-    flex-wrap: wrap;
-    row-gap: 0.2rem;
+    /* Title/phase-label/round-progress/mute/leave (.top-bar-full) all collapse in favor of the
+       one-button .top-bar-mobile-menu below - that whole row's worth of content was the leading
+       cause of the game view growing tall enough to need scroll on a phone-width viewport, and
+       scroll is never allowed for this game (see .shell-dock below in this same breakpoint). */
+    justify-content: flex-end;
+    min-height: 2.25rem;
+  }
+
+  .top-bar-full {
+    display: none;
+  }
+
+  .top-bar-mobile-menu {
+    display: flex;
   }
 
   .app-shell {
@@ -213,16 +285,15 @@
   .shell-dock {
     background: var(--paper-100);
     padding-top: 0.5rem;
-    /* LandGrab briefly stacks a RevealOverlay (with the archery-target graphic for a numeric
-       question) directly above the *next* QuestionCard for REVEAL_VISIBLE_MS - intentional, so the
-       result and the next prompt coexist instead of fighting (see LandGrabScreen.tsx). Two numeric
-       questions back to back can combine to 900-1500px of content, far more than the map row
-       shrinking to 0 can absorb. Capping the dock and letting it scroll internally keeps the next
-       question's controls reachable instead of silently clipped past the viewport - 70dvh is
-       generous enough that it's a no-op for every other (much shorter) dock state already verified
-       against this breakpoint. */
+    /* Scroll is never allowed on mobile - previously this scrolled internally as a last resort
+       because LandGrab stacks a RevealOverlay directly above the *next* QuestionCard (desktop-only
+       behavior, see LandGrabScreen.tsx), which could combine to 900-1500px of content. That stack
+       no longer happens on mobile at all (.land-grab-dock.reveal-active hides everything but the
+       reveal below), and the map collapses to nothing for the same window
+       (.shell-map.reveal-hide-mobile), so a single dock state (one question, or one reveal) is what
+       this now ever has to fit - overflow: hidden is a backstop, not an escape hatch. */
     max-height: 70dvh;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .shell-roster {
@@ -311,6 +382,48 @@
   .numeric-keypad-key {
     min-width: 44px;
     min-height: 44px;
+  }
+
+  /* Territory names are unreadable at phone scale and just add clutter - the score a territory
+     costs (and the base wax-seal marker) is the information that actually matters while playing,
+     so only that survives on mobile, enlarged to stay legible now that it's the map's sole label.
+     The <text>/<path> elements have no attribute-based transform of their own to fight with, so a
+     CSS transform here is safe (unlike .shell-map's own translate - see markerPosition callers). */
+  .region-name {
+    display: none;
+  }
+
+  .value-badge path {
+    transform: scale(1.35);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .value-badge text {
+    font-size: 15px;
+    transform: scale(1.15);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  /* While a reveal (correct/incorrect answer) is showing, the map is hidden entirely rather than
+     just shrunk (App.tsx sets .shell-map's reveal-hide-mobile class from the same signal that
+     drives RevealOverlay's own visibility) - at phone scale a shrunk map was too small to read and
+     purely decorative for the few seconds the reveal is up, so it's better spent as dock room. */
+  .shell-map.reveal-hide-mobile {
+    display: none;
+  }
+
+  .app-shell:has(.shell-map.reveal-hide-mobile) {
+    grid-template-rows: auto 0 auto auto;
+  }
+
+  /* Land grab (unlike Battle) stacks its reveal above the *next* pick prompt by design on desktop
+     (see LandGrabScreen.tsx) - at phone scale, with no scroll allowed, showing both at once is what
+     used to force the two to compete for space. On mobile only, the next prompt stays out of the
+     layout until the reveal's own timeout clears it, so the two are sequential instead of stacked. */
+  .land-grab-dock.reveal-active > *:not(.reveal-overlay) {
+    display: none;
   }
 }
 

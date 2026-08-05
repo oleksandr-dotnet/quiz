@@ -12,7 +12,7 @@ public sealed record GameRules(
     int LandGrabDeadRoundThreshold = 3,
     int AttackTargetSelectionDurationSeconds = 15,
     int BaseHitPointsDefault = 5,
-    int RevealHoldDurationSeconds = 4,
+    int RevealHoldDurationSeconds = 7,
     int BaseAssaultUnlockRound = 8,
     Language Language = Language.Russian)
 {

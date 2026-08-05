@@ -10,6 +10,7 @@
   "app.ownEliminationProclamation": "Your banner has fallen - you can keep watching until the game ends.",
   "app.leaveGame": "Leave game",
   "app.leaveGameConfirm": "Leave this game? A bot will take over your seat for the rest of the match.",
+  "app.menu": "Menu",
 
   "errorBoundary.title": "Something tore the parchment",
   "errorBoundary.message": "The game hit an unexpected snag. Reloading the page will get you back on track.",
