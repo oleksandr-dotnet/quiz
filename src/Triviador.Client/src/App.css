@@ -468,6 +468,19 @@
     transform-origin: center;
   }
 
+  /* A base's wax seal - and specifically its hit-point pips ringing the rim - is the only way to
+     read a base's remaining HP before picking an attack target, and at this map's typically ~190px
+     rendered height on a phone-width viewport (.shell-map's clamp below) the seal's disc rendered at
+     only ~13x17 CSS px, its pips a few px each: real but effectively illegible, confirmed via a live
+     mobile audit reaching Battle's target-selection state. Scaled on .wax-seal-visual specifically
+     (see WaxSeal.tsx's comment on why), not .wax-seal or its motion.g parent, for the same
+     attribute-transform-conflict reason as .value-badge's split above.  */
+  .wax-seal-visual {
+    transform: scale(1.8);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
   /* While a question's answer options or a correct/incorrect reveal is showing, the map is hidden
      entirely rather than just shrunk (App.tsx sets .shell-map's hide-mobile class from
      mapHiddenMobile, which covers both) - at phone scale a shrunk map was too small to read and

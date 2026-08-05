@@ -37,42 +37,49 @@ export function WaxSeal({ x, y, seat, hitPoints, monogram, underAttack = false }
         exit={{ scale: 0, rotate: 8, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 14 }}
       >
-        {underAttack && (
-          <circle r={24} fill="none" stroke="var(--danger)" strokeWidth={3} className="wax-seal-danger-ring" aria-hidden="true" />
-        )}
-        <circle r={15} fill="url(#wax-seal-gradient)" stroke={color} strokeWidth={2} />
-        <text x={0} y={4} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--paper-050)" aria-hidden="true">
-          {monogram}
-        </text>
-        {/* The capital's crown: marks this seat's base region apart from ordinary owned territory. */}
-        <g transform="translate(0 -30)" aria-hidden="true">
-          <path
-            d="M -9,5 L -9,1.5 L -6,-6 L -3,1.5 L 0,-6 L 3,1.5 L 6,-6 L 9,1.5 L 9,5 Z"
-            fill="var(--gilt-500)"
-            stroke="var(--ink-700)"
-            strokeWidth={1}
-            strokeLinejoin="round"
-          />
-          <circle cx={-6} cy={-6} r={1.3} fill="#c24b3e" />
-          <circle cx={0} cy={-6} r={1.3} fill="#c24b3e" />
-          <circle cx={6} cy={-6} r={1.3} fill="#c24b3e" />
-        </g>
-        {pipAngles.map((angle, i) => {
-          const px = Math.cos(angle) * 20
-          const py = Math.sin(angle) * 20
-          const filled = i < hp
-          return (
-            <circle
-              key={i}
-              cx={px}
-              cy={py}
-              r={2.6}
-              fill={filled ? 'var(--gilt-500)' : 'var(--paper-050)'}
+        {/* A third nesting level purely so mobile can CSS-scale the seal's visual content without
+            fighting the two outer groups' own attribute-based transforms (this <g>'s translate, and
+            motion.g's animated scale/rotate) - same "CSS transform on an attribute-transform-bearing
+            element replaces rather than composes" hazard as the split between this file's outer <g>
+            and motion.g above, just one level deeper. */}
+        <g className="wax-seal-visual">
+          {underAttack && (
+            <circle r={24} fill="none" stroke="var(--danger)" strokeWidth={3} className="wax-seal-danger-ring" aria-hidden="true" />
+          )}
+          <circle r={15} fill="url(#wax-seal-gradient)" stroke={color} strokeWidth={2} />
+          <text x={0} y={4} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--paper-050)" aria-hidden="true">
+            {monogram}
+          </text>
+          {/* The capital's crown: marks this seat's base region apart from ordinary owned territory. */}
+          <g transform="translate(0 -30)" aria-hidden="true">
+            <path
+              d="M -9,5 L -9,1.5 L -6,-6 L -3,1.5 L 0,-6 L 3,1.5 L 6,-6 L 9,1.5 L 9,5 Z"
+              fill="var(--gilt-500)"
               stroke="var(--ink-700)"
               strokeWidth={1}
+              strokeLinejoin="round"
             />
-          )
-        })}
+            <circle cx={-6} cy={-6} r={1.3} fill="#c24b3e" />
+            <circle cx={0} cy={-6} r={1.3} fill="#c24b3e" />
+            <circle cx={6} cy={-6} r={1.3} fill="#c24b3e" />
+          </g>
+          {pipAngles.map((angle, i) => {
+            const px = Math.cos(angle) * 20
+            const py = Math.sin(angle) * 20
+            const filled = i < hp
+            return (
+              <circle
+                key={i}
+                cx={px}
+                cy={py}
+                r={2.6}
+                fill={filled ? 'var(--gilt-500)' : 'var(--paper-050)'}
+                stroke="var(--ink-700)"
+                strokeWidth={1}
+              />
+            )
+          })}
+        </g>
       </motion.g>
     </g>
   )
