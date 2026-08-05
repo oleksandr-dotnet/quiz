@@ -13,7 +13,9 @@ enough to be a phone held in landscape regardless of its width. This includes ev
 the dock and any status overlay rendered alongside the game screen: none of them SHALL overflow
 their own container or push the fixed-height shell past the viewport. When a phase's dock content
 genuinely cannot fit even after the map has shrunk to its minimum, the dock SHALL become internally
-scrollable rather than clipping content the viewer needs unreachable.
+scrollable rather than clipping content the viewer needs unreachable. A `Tip` (numeric) question
+SHALL offer exactly one submit control rather than duplicating submit affordances, since a
+redundant control costs vertical budget without adding capability.
 
 #### Scenario: The map shrinks to fit rather than the page growing
 - **WHEN** the combined natural height of the top bar, roster, and dock leaves less room than the
@@ -39,8 +41,13 @@ scrollable rather than clipping content the viewer needs unreachable.
 #### Scenario: A numeric question's input-and-submit row stays within its card
 - **WHEN** a `Tip` (numeric) question is pending on the narrowest viewport widths this project
   targets (as narrow as 393px)
-- **THEN** the numeric input field and its adjacent submit button both render fully inside the
-  question card, with the input shrinking to make room rather than either element overflowing
+- **THEN** the numeric input field renders fully inside the question card, with the input shrinking
+  to make room rather than overflowing
+
+#### Scenario: Only one submit control is offered for a numeric answer
+- **WHEN** a `Tip` (numeric) question is pending, on any viewport, in either Land Grab or Battle
+- **THEN** the question card offers exactly one visible submit button (the numeric keypad's
+  full-width submit) rather than a second duplicate submit control next to the input
 
 #### Scenario: A connection-status banner never pushes the game shell past the viewport
 - **WHEN** the room connection's `status` becomes `reconnecting` or `closed` while a gameplay phase
