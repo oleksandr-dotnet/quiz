@@ -93,10 +93,11 @@ export function QuestionCard({ prompt, yourAnswer, remainingMs, totalMs, onSubmi
               aria-label={t('question.answerAriaLabel')}
             />
             {prompt.unit && <span className="numeric-unit">{prompt.unit}</span>}
-            <button className="primary" onClick={submitNumeric}>
-              {t('common.submit')}
-            </button>
           </div>
+          {/* A second "submit" button used to sit inline here too, next to the input - identical
+              action as the keypad's own full-width submit below, just costing vertical space in
+              exactly the case (Battle's extra headline line) that's tightest on short phones. The
+              keypad's submit (and Enter on the input, still wired above) already cover it. */}
           <NumericKeypad onKeyPress={onKeypadPress} onSubmit={submitNumeric} />
         </div>
       )}
