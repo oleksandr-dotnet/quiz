@@ -470,6 +470,18 @@
   padding: 1.5rem 1.5rem 1.75rem;
 }
 
+/* Plain <input> has no width of its own beyond the UA-default size=20 intrinsic width (~240px) -
+   narrower than this card at any viewport, so a longer placeholder (accountSetup.usernamePlaceholder
+   runs 50+ characters in Russian) hard-clipped mid-word with no visual indication it was truncated.
+   Stretching to the card's own width fixes that for every input this card holds (name, username) in
+   one place. Same specificity as .code-input input below (one class + element each) but declared
+   earlier in the file, so the per-character room-code boxes' own width: 2.75rem still wins via
+   source order - this rule is a default they intentionally override, not a conflict. */
+.landing input,
+.lobby input {
+  width: 100%;
+}
+
 .landing-brand {
   display: flex;
   flex-direction: column;

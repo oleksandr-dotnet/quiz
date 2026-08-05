@@ -100,6 +100,15 @@ input {
   border: 1px solid var(--paper-400);
   background: var(--paper-050);
   color: var(--ink-900);
+  /* A plain input with no explicit overflow handling hard-clips its placeholder/value mid-character
+     the moment content is wider than the box - confirmed on AccountSetupScreen's username field,
+     whose Russian placeholder ran past a narrow phone's width with no visual sign it was truncated.
+     Defensive at the base level since any input could plausibly hold text wider than its box (a long
+     placeholder, a long typed value on a narrow field) - single-character inputs like the room-code
+     boxes are unaffected since they never have anything to truncate. */
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 input:focus-visible {
   outline: 2px solid var(--gilt-500);
