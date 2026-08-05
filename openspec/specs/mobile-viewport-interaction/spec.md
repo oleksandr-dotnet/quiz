@@ -4,9 +4,7 @@
 Governs how the map and surrounding chrome behave on narrow/touch viewports: fitting the whole
 game screen within one viewport with no scroll in any phase, rendering the map at a fixed
 non-zoomable scale, and a minimum touch-target size for interactive controls.
-
 ## Requirements
-
 ### Requirement: The game screen fits the viewport without scrolling
 The client SHALL lay out the map, player roster, and phase dock together so they fit entirely
 within the visual viewport height, with no vertical or horizontal scroll, in every gameplay phase
@@ -87,9 +85,12 @@ viewport widths this breakpoint covers.
 - **THEN** every dock button's rendered tappable area is at least 44x44 CSS pixels
 
 #### Scenario: A short default name renders in full on the narrowest supported phone widths
-- **WHEN** the viewport is as narrow as 430-450px wide (the narrowest phones this project targets)
-  and a roster card shows a short name such as the default bot label
-- **THEN** the full name renders without ellipsis truncation
+- **WHEN** the viewport is as narrow as 393-421px wide (this project's three concrete target
+  devices: iPhone 16 at 393px, iPhone 17 at 402px, OnePlus 13R at ~421px) and a roster card shows a
+  short (3-8 character) name, including with a full 4-player roster and the swatch/HP-pips/score
+  segments all present
+- **THEN** the full name renders without ellipsis truncation, wrapping onto its own line ahead of
+  the swatch/HP/score segments if needed rather than being squeezed to zero width
 
 #### Scenario: A long unbroken lobby seat name truncates instead of displacing its action button
 - **WHEN** a lobby seat shows a long, unbroken (no-space) display name on a narrow phone viewport
@@ -116,3 +117,4 @@ doesn't fit, including short-landscape phones.
 - **WHEN** a gameplay phase (`BaseSelection`, `LandGrab`, `Battle`, `Finished`) is active
 - **THEN** the document-level scroll lockout still applies exactly as before, with no regression to
   the existing "game screen fits the viewport without scrolling" requirement
+
