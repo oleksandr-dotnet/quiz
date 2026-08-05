@@ -1407,8 +1407,12 @@
    already add up to more than the available card width before the answer's 1fr column gets
    anything - it was being squeezed to ~0px and clipped to a single glyph, the one piece of
    information this list exists to show. Shrinking the name/speed-bar tracks (both already have
-   graceful ellipsis/no-op fallbacks) reclaims enough width for the answer text to actually read. */
-@media (max-width: 420px) {
+   graceful ellipsis/no-op fallbacks) reclaims enough width for the answer text to actually read.
+   Threshold matches the phone range documented elsewhere in this file (~360-450px, see the
+   .player-card comment above) - the previous 420px cutoff excluded real phones in that range (e.g.
+   a 421px-wide Android flagship), leaving them on the wide columns that reduce a whole date/answer
+   to 1-2 characters ("De..."), the exact failure this fix exists to prevent. */
+@media (max-width: 460px) {
   .reveal-row {
     grid-template-columns: 1.4rem 1.2rem 5rem 1fr 3rem;
     gap: 0.4rem;
