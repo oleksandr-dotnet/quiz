@@ -268,6 +268,30 @@
     font-size: 0.85rem;
   }
 
+  /* The score/pips/status-badge segments after the name don't wrap (a number and a short badge
+     have no break opportunity), so unlike .player-name they can't shrink via ellipsis - only
+     smaller font-size actually reclaims width. Without this, a 4-digit score plus HP pips (or the
+     eliminated badge) reliably overflowed the compacted card width and got clipped at the right
+     edge, most visibly on the results screen where scores run into the thousands. */
+  .shell-roster .score {
+    font-size: 0.8rem;
+  }
+
+  .shell-roster .hit-points {
+    gap: 1px;
+  }
+
+  .shell-roster .hp-pip {
+    width: 5px;
+    height: 5px;
+  }
+
+  .shell-roster .fallen-banner,
+  .shell-roster .winner-banner {
+    font-size: 0.6rem;
+    padding: 0.05em 0.3em;
+  }
+
   .results {
     margin: 0;
     max-width: none;
