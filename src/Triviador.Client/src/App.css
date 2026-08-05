@@ -355,8 +355,23 @@
   .shell-roster .player-card {
     flex: 1 1 0;
     min-width: 0;
+    flex-wrap: wrap;
     padding: 0.35em 0.4em;
     gap: 0.3rem;
+    row-gap: 0.1rem;
+  }
+
+  /* Even after every shrink below, swatch+hit-points+score alone (~64px) already exceed a ~59px
+     card's inner width at the actual target device widths (393-421px) before .player-name gets
+     anything - it was measured collapsing to a hard 0px, not just ellipsizing, silently dropping a
+     3-8 char name entirely (violates the "name renders in full" requirement below). Reordering the
+     name onto its own full-width first line, with swatch/pips/score/badges wrapping to a compact
+     second line, gives the name the *whole* card width instead of whatever the other segments
+     leave behind. The one extra line of roster height is exactly what the map's own "shrinks to
+     fit" rule exists to absorb. */
+  .shell-roster .player-name {
+    order: -1;
+    flex-basis: 100%;
   }
 
   .shell-roster .seat-swatch {
