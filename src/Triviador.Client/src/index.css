@@ -19,6 +19,14 @@
 
 body {
   margin: 0;
+  /* Establishes a new block-formatting context so a child's margin (e.g. .landing/.lobby's
+     `margin: 3rem auto`) can't collapse through and escape the body box - without this, that
+     top margin pushes body itself down past the viewport by the same amount, leaving a phantom
+     scrollable region below the fold with no actual content in it (confirmed live: documentElement
+     scrollHeight was 48px taller than every visible element's own bounding box on the Lobby
+     screen). Chosen over `overflow: hidden/auto` since flow-root has no clipping or scrollbar
+     side effects of its own. */
+  display: flow-root;
 }
 
 a {
