@@ -191,8 +191,9 @@
      is always narrower than that, which otherwise leaves a blank gap below the map before the
      next slot. */
   align-self: start;
-  /* Only takes effect where the row track has a definite size (the mobile minmax(0, 1fr) row) -
-     under desktop's auto-sized row this resolves to the content's own intrinsic height, a no-op. */
+  /* Only takes effect where the row track has a definite size (the mobile minmax(0, max-content)
+     row - see the mobile breakpoint below) - under desktop's auto-sized row this resolves to the
+     content's own intrinsic height, a no-op. */
   height: 100%;
   background: var(--sea);
   border-radius: var(--r-lg);
@@ -261,12 +262,22 @@
 
   .app-shell {
     grid-template-columns: 1fr;
-    /* top|map|roster|dock: the map is the one row that shrinks (minmax(0, 1fr)) when the other
+    /* top|map|roster|dock: the map is the one row that shrinks (minmax(0, ...)) when the other
        three need more room, so the shell's total height is hard-capped by `height: 100dvh` below
        no matter how tall the dock's content gets - never `min-height`, which would let content
        grow past the cap and silently reopen scroll. `dvh` (not `vh`/`svh`) tracks the mobile
-       browser chrome collapsing/expanding as the page would otherwise scroll. */
-    grid-template-rows: auto minmax(0, 1fr) auto auto;
+       browser chrome collapsing/expanding as the page would otherwise scroll. The max side is
+       `max-content` rather than `1fr` so the row hugs the map's own (capped, see .shell-map below)
+       size instead of greedily claiming every leftover pixel - `1fr` here used to leave a dead gap
+       of blank shell background between the map card and the roster on any phase with a light dock
+       (base selection, region/target picking), since the row would grow well past what the capped
+       card actually rendered at. Any true leftover now collects harmlessly below the dock instead -
+       which needs align-content: start below, since a grid container's `normal` (the initial value)
+       computes to `stretch` on the block axis: without it, every auto-sized row here (top/roster/
+       dock, not just map) would've each claimed an equal slice of that same leftover space, e.g.
+       visibly inflating the roster row's cards well past their content height. */
+    grid-template-rows: auto minmax(0, max-content) auto auto;
+    align-content: start;
     grid-template-areas:
       'top'
       'map'
@@ -282,6 +293,20 @@
     padding-left: calc(1rem + env(safe-area-inset-left));
   }
 
+  /* Without a cap, the flexible map row (minmax(0, 1fr) above) grabs *all* leftover height whenever
+     the dock is light (base selection, "your turn - pick a region", choosing an attack target) -
+     map.json's fixed landscape viewBox (1200x640) then letterboxes into that oversized box, leaving
+     a large blank paper-colored gap above and below a thin band of territories instead of an
+     appropriately-sized map. 50vw approximates that viewBox's own ratio (640/1200 ~= 0.53) against
+     the shell's near-full-viewport width, so the map is capped close to its natural rendered size;
+     the clamp's floor/ceiling only guard the extremes (a very narrow or very wide phone). This is
+     purely an upper bound - height: 100% (below) still lets the item shrink under this whenever the
+     row's actual leftover space is smaller, e.g. a tall question dock, which is what keeps the map
+     from ever pushing the dock past the viewport on a short landscape phone. */
+  .shell-map {
+    max-height: clamp(9rem, 50vw, 16rem);
+  }
+
   .shell-dock {
     background: var(--paper-100);
     padding-top: 0.5rem;
@@ -289,9 +314,9 @@
        because LandGrab stacks a RevealOverlay directly above the *next* QuestionCard (desktop-only
        behavior, see LandGrabScreen.tsx), which could combine to 900-1500px of content. That stack
        no longer happens on mobile at all (.land-grab-dock.reveal-active hides everything but the
-       reveal below), and the map collapses to nothing for the same window
-       (.shell-map.reveal-hide-mobile), so a single dock state (one question, or one reveal) is what
-       this now ever has to fit - overflow: hidden is a backstop, not an escape hatch. */
+       reveal below), and the map collapses to nothing for the same window (.shell-map.hide-mobile),
+       so a single dock state (one question, or one reveal) is what this now ever has to fit -
+       overflow: hidden is a backstop, not an escape hatch. */
     max-height: 70dvh;
     overflow: hidden;
   }
@@ -406,15 +431,15 @@
     transform-origin: center;
   }
 
-  /* While a reveal (correct/incorrect answer) is showing, the map is hidden entirely rather than
-     just shrunk (App.tsx sets .shell-map's reveal-hide-mobile class from the same signal that
-     drives RevealOverlay's own visibility) - at phone scale a shrunk map was too small to read and
-     purely decorative for the few seconds the reveal is up, so it's better spent as dock room. */
-  .shell-map.reveal-hide-mobile {
+  /* While a question's answer options or a correct/incorrect reveal is showing, the map is hidden
+     entirely rather than just shrunk (App.tsx sets .shell-map's hide-mobile class from
+     mapHiddenMobile, which covers both) - at phone scale a shrunk map was too small to read and
+     purely decorative for the seconds that dock state is up, so it's better spent as dock room. */
+  .shell-map.hide-mobile {
     display: none;
   }
 
-  .app-shell:has(.shell-map.reveal-hide-mobile) {
+  .app-shell:has(.shell-map.hide-mobile) {
     grid-template-rows: auto 0 auto auto;
   }
 

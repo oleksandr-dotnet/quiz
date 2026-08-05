@@ -173,7 +173,7 @@ function App() {
   const [mapShaking, setMapShaking] = useState(false)
   const [kickTarget, setKickTarget] = useState<PlayerView | null>(null)
   // Shared with LandGrabDock (same hook, same window) purely to know when a reveal is on screen -
-  // AppShell uses it to hide the map on mobile while it's up (see mapRevealHidden below).
+  // AppShell uses it to hide the map on mobile while it's up (see mapHiddenMobile below).
   const landGrabVisibleReveal = useLandGrabReveal(gameView)
 
   async function onConfirmKick(landPolicy: 'ReleaseLand' | 'BotTakeover') {
@@ -383,6 +383,12 @@ function App() {
 
   const showingReveal =
     gameView.phase === 'Battle' ? gameView.pendingReveal !== null : landGrabVisibleReveal !== null
+  // Also hide the map while a question's answer options are up (not just its reveal) - a land-grab
+  // or battle question dock is just as tall as a reveal, and the map behind it was squished to the
+  // same unreadable sliver (see mapHiddenMobile's doc comment on AppShell). pendingQuestion is only
+  // ever populated during those two phases' "answering" sub-state, never during the interactive
+  // map-picking sub-states (base pick, region pick, attack target) that this must leave alone.
+  const mapHiddenMobile = showingReveal || gameView.pendingQuestion !== null
 
   return (
     <>
@@ -391,7 +397,7 @@ function App() {
         dockKey={dockKey}
         mapShaking={mapShaking}
         mapDanger={ownBaseUnderAssault}
-        mapRevealHidden={showingReveal}
+        mapHiddenMobile={mapHiddenMobile}
         topBar={<TopBar view={gameView} />}
         map={
           <GameMap
