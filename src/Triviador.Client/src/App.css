@@ -422,6 +422,23 @@
 
   .option-plate {
     min-height: 44px;
+    /* Desktop's 0.85em vertical padding, x4 options plus .choice-options' own gaps, was the single
+       biggest line item in the dock's height budget - tall enough on its own that a routine 4-option
+       question (nothing pathologically long) pushed AnswerRoster's "who's answered" stamps below
+       .shell-dock's 70dvh scroll clip on iPhone 16/17 and the OnePlus 13R target viewports, with no
+       visible affordance hinting a swipe would reveal them. Trimmed padding/gap here (still >=44px
+       via min-height above) reclaims ~40-45px, enough for the roster to render in full unscrolled on
+       a typical question; the dock's existing overflow-y: auto remains as the sanctioned fallback for
+       genuinely long question text. */
+    padding: 0.6em 0.9em;
+  }
+
+  .choice-options {
+    gap: 0.4rem;
+  }
+
+  .answer-roster-wrap {
+    gap: 0.3rem;
   }
 
   .numeric-keypad-key {

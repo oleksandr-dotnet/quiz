@@ -32,9 +32,9 @@ async function answerQuestionIfAsked(page: Page): Promise<void> {
   const tipInput = page.getByTestId('tip-input')
   if (await tipInput.isVisible().catch(() => false)) {
     await tipInput.fill('0')
-    // Two "Submit" buttons exist (the text-input row's own, and the on-screen numeric keypad's) -
-    // scope to the input row's to avoid a strict-mode ambiguity.
-    await page.locator('.numeric-input-row button.primary').click()
+    // The input row's own inline submit button was removed (see
+    // battle-numeric-question-remove-duplicate-submit) - the keypad's is now the only submit path.
+    await page.getByTestId('keypad-submit').click()
   }
 }
 
