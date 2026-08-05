@@ -308,6 +308,7 @@
   }
 
   .shell-dock {
+    position: relative;
     background: var(--paper-100);
     padding-top: 0.5rem;
     /* A single dock state (one question, or one reveal) is normally short enough to fit without
@@ -324,6 +325,35 @@
     max-height: 70dvh;
     overflow-x: hidden;
     overflow-y: auto;
+  }
+
+  /* Scroll-position-driven edge cues for .shell-dock (AppShell.tsx toggles `visible`, tracking real
+     scrollTop) - a background-only fade on .shell-dock itself would be invisible, hidden underneath
+     the dock content's own fully opaque .paper-card (paper.css, --paper-050), so these are separate
+     elements painted after (or above) that card instead, matching the card's own surface color. */
+  .dock-scroll-shadow {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 28px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-paper);
+    z-index: 1;
+  }
+
+  .dock-scroll-shadow.visible {
+    opacity: 1;
+  }
+
+  .dock-scroll-shadow-top {
+    top: 0;
+    background: linear-gradient(var(--paper-050), transparent);
+  }
+
+  .dock-scroll-shadow-bottom {
+    bottom: 0;
+    background: linear-gradient(transparent, var(--paper-050));
   }
 
   .shell-roster {
