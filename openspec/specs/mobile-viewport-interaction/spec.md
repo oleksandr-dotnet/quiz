@@ -15,7 +15,9 @@ their own container or push the fixed-height shell past the viewport. When a pha
 genuinely cannot fit even after the map has shrunk to its minimum, the dock SHALL become internally
 scrollable rather than clipping content the viewer needs unreachable. A `Tip` (numeric) question
 SHALL offer exactly one submit control rather than duplicating submit affordances, since a
-redundant control costs vertical budget without adding capability.
+redundant control costs vertical budget without adding capability. The per-player "who has
+answered" roster SHALL render fully visible, without needing the dock's scroll fallback, for a
+typical-length `Choice` question.
 
 #### Scenario: The map shrinks to fit rather than the page growing
 - **WHEN** the combined natural height of the top bar, roster, and dock leaves less room than the
@@ -48,6 +50,12 @@ redundant control costs vertical budget without adding capability.
 - **WHEN** a `Tip` (numeric) question is pending, on any viewport, in either Land Grab or Battle
 - **THEN** the question card offers exactly one visible submit button (the numeric keypad's
   full-width submit) rather than a second duplicate submit control next to the input
+
+#### Scenario: The answer roster is visible without scrolling for a typical question
+- **WHEN** a `Choice` question of typical (non-outlier) prompt and option length is pending on any
+  of the project's narrow target viewports (393-421px wide)
+- **THEN** the per-player "who has answered" roster renders fully within the visible dock area with
+  no scroll needed to reach it
 
 #### Scenario: A connection-status banner never pushes the game shell past the viewport
 - **WHEN** the room connection's `status` becomes `reconnecting` or `closed` while a gameplay phase
