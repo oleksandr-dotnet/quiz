@@ -17,6 +17,7 @@ import { ResultsDock } from './screens/ResultsScreen'
 import { AppShell } from './components/AppShell'
 import { GameMap } from './components/map/GameMap'
 import { PlayerRoster } from './components/PlayerRoster'
+import { TurnAnnouncement } from './components/TurnAnnouncement'
 import { ConnectionBadge } from './components/ConnectionBadge'
 import { MuteToggle } from './components/MuteToggle'
 import { AppMenu } from './components/AppMenu'
@@ -24,6 +25,7 @@ import { Toast } from './components/Toast'
 import { KickConfirmModal } from './components/KickConfirmModal'
 import { LeaveGameConfirmModal } from './components/LeaveGameConfirmModal'
 import { useGameTransitions } from './hooks/useGameTransitions'
+import { useIsDesktop } from './hooks/useIsDesktop'
 import { useLandGrabReveal } from './hooks/useLandGrabReveal'
 import { findPlayer, playerDisplayName } from './lib/format'
 import { BASE_ASSAULT_SCORE_BONUS } from './lib/gameRules'
@@ -188,6 +190,7 @@ function App() {
   // Shared with LandGrabDock (same hook, same window) purely to know when a reveal is on screen -
   // AppShell uses it to hide the map on mobile while it's up (see mapHiddenMobile below).
   const landGrabVisibleReveal = useLandGrabReveal(gameView)
+  const isDesktop = useIsDesktop()
 
   async function onConfirmKick(landPolicy: 'ReleaseLand' | 'BotTakeover') {
     if (!kickTarget) return
@@ -458,6 +461,7 @@ function App() {
   return (
     <>
       <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
+      {isDesktop && <TurnAnnouncement view={gameView} />}
       <AppShell
         dockKey={dockKey}
         mapShaking={mapShaking}
@@ -471,6 +475,7 @@ function App() {
             eligibleRegionIds={mapProps.eligibleRegionIds}
             contestedRegionId={mapProps.contestedRegionId}
             onSelect={onSelect}
+            showDecorative={isDesktop}
           />
         }
         roster={

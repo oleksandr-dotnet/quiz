@@ -17,6 +17,22 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Desktop reads as a game board, not a document - every rem-sized element in the game (cards,
+   buttons, question text, roster) scales up from here rather than sitting at plain webpage size.
+   Mobile is untouched (stays at the UA default 16px) since its whole layout is already tuned to a
+   tight no-scroll viewport budget - see App.css's mobile breakpoint comments throughout. */
+@media (min-width: 901px) {
+  :root {
+    font-size: 19px;
+  }
+}
+
+@media (min-width: 1440px) {
+  :root {
+    font-size: 21px;
+  }
+}
+
 body {
   margin: 0;
   /* Establishes a new block-formatting context so a child's margin (e.g. .landing/.lobby's

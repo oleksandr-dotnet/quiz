@@ -123,12 +123,18 @@ export function AppShell({ topBar, map, dock, dockKey, roster, mapShaking, mapDa
   const { ref: dockRef, contentRef, top: showTopShadow, bottom: showBottomShadow } = useDockScrollShadows(dockKey)
   return (
     <div className="app-shell">
-      <header className="shell-top-bar">{topBar}</header>
+      {/* `display: contents` at every width below the desktop immersive breakpoint (App.css), so
+          .shell-top-bar/.shell-roster keep landing in their own named grid areas exactly as before
+          this wrapper existed - it only starts acting as a real positioned box (stacking the two
+          into one HUD banner over the fullscreen map) at desktop width. */}
+      <div className="hud-top">
+        <header className="shell-top-bar">{topBar}</header>
+        <aside className="shell-roster">{roster}</aside>
+      </div>
       <div className="map-slot">
         <div className="lamplight" aria-hidden="true" />
         <div className={mapClassName}>{map}</div>
       </div>
-      <aside className="shell-roster">{roster}</aside>
       <div className="shell-dock" ref={dockRef}>
         <AnimatePresence mode="wait">
           <motion.div

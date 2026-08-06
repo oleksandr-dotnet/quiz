@@ -66,7 +66,15 @@ export function RegionShape({
       onClick={clickable ? () => onSelect!(region.regionId) : undefined}
       onKeyDown={handleKeyDown}
     >
-      <RegionOutline region={region} geometry={geometry} fill="var(--unclaimed)" stroke="var(--ink-500)" strokeWidth={1} />
+      <RegionOutline
+        region={region}
+        geometry={geometry}
+        className="region-base-fill"
+        fill="var(--unclaimed)"
+        stroke="var(--ink-500)"
+        strokeWidth={1}
+        filter="url(#territory-grain)"
+      />
       {ownerSeat !== null && (
         // Keyed by owner, not just region id: a claim (no prior owner) and a capture (owner
         // change) both force this group to remount, replaying the claim-wash animation - the
@@ -82,6 +90,9 @@ export function RegionShape({
           <RegionOutline region={region} geometry={geometry} fill="none" stroke="var(--ink-500)" strokeWidth={1} />
         </g>
       )}
+      {/* A faint upper-left relief highlight/lower-right shade over every territory regardless of
+          ownership - the difference between a flat vector wash and a piece of lit terrain. */}
+      <RegionOutline region={region} geometry={geometry} fill="url(#territory-relief)" pointerEvents="none" />
       {eligible && (
         <RegionOutline
           region={region}

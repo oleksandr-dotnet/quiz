@@ -13,13 +13,25 @@ export interface QuestionCardProps {
   totalMs: number
   onSubmitChoice: (optionIndex: number) => void
   onSubmitNumeric: (value: number) => void
+  /** False when the viewer isn't a participant in this question (e.g. spectating a duel between two
+   * other players) - renders the prompt read-only with no clickable options/keypad, since submitting
+   * an answer as a non-participant is rejected server-side with HubException "not your turn". */
+  interactive?: boolean
 }
 
 // The question panel shared by land grab and battle - previously duplicated verbatim between the
 // two screens. Choice renders four inked option plates with keyboard hints; Tip is a numeric field
 // with the unit as a real suffix; once answered, it becomes a stamped "SEALED" plate instead of a
 // plain waiting sentence.
-export function QuestionCard({ prompt, yourAnswer, remainingMs, totalMs, onSubmitChoice, onSubmitNumeric }: QuestionCardProps) {
+export function QuestionCard({
+  prompt,
+  yourAnswer,
+  remainingMs,
+  totalMs,
+  onSubmitChoice,
+  onSubmitNumeric,
+  interactive = true,
+}: QuestionCardProps) {
   const { t } = useTranslation()
   const [numericInput, setNumericInput] = useState('')
 
@@ -28,7 +40,7 @@ export function QuestionCard({ prompt, yourAnswer, remainingMs, totalMs, onSubmi
   }, [prompt.questionId])
 
   useEffect(() => {
-    if (prompt.kind !== 'Choice' || yourAnswer) return
+    if (!interactive || prompt.kind !== 'Choice' || yourAnswer) return
     function onKeyDown(e: KeyboardEvent) {
       if (e.ctrlKey || e.altKey || e.metaKey) return
       if (e.key < '1' || e.key > '4') return
@@ -37,7 +49,7 @@ export function QuestionCard({ prompt, yourAnswer, remainingMs, totalMs, onSubmi
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [prompt, yourAnswer, onSubmitChoice])
+  }, [prompt, yourAnswer, onSubmitChoice, interactive])
 
   function submitNumeric() {
     const value = Number(numericInput)
@@ -60,7 +72,11 @@ export function QuestionCard({ prompt, yourAnswer, remainingMs, totalMs, onSubmi
         <p className="question-text">{prompt.text}</p>
       </header>
 
-      {yourAnswer ? (
+      {!interactive ? (
+        <div className="sealed-plate spectating-plate" data-testid="spectating-plate">
+          {t('question.spectating')}
+        </div>
+      ) : yourAnswer ? (
         <div className="sealed-plate" data-testid="sealed-plate">
           {t('question.sealed')}
         </div>

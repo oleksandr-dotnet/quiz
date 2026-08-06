@@ -46,6 +46,14 @@ export function playAttackStarted() {
   tone(110, 0.09, 0.22, 'square', 0.12) // A2
 }
 
+// The desktop-only centered turn/round announcement (TurnAnnouncement.tsx) popping in - a single
+// bright, short chime distinct from playAttackStarted's low percussive stab, since this fires on
+// every turn change (much more often) and needs to read as an "FYI" cue, not an alarm.
+export function playTurnAnnouncement() {
+  tone(880, 0, 0.1, 'triangle', 0.1) // A5
+  tone(1174.66, 0.06, 0.18, 'triangle', 0.09) // D6
+}
+
 export function isMuted(): boolean {
   return muted
 }

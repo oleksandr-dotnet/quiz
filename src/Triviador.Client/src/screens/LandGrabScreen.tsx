@@ -76,6 +76,7 @@ export function LandGrabDock({ view, onError }: { view: GameView; onError: (mess
           totalMs={questionTotalMs(question.prompt.kind)}
           onSubmitChoice={onSubmitChoice}
           onSubmitNumeric={onSubmitNumeric}
+          interactive={question.participantPlayerIds.includes(view.youPlayerId)}
         />
       )}
       {question && <AnswerRoster view={view} participantPlayerIds={question.participantPlayerIds} hasAnswered={question.hasAnswered} />}

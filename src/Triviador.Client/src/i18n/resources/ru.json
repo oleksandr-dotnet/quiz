@@ -107,6 +107,7 @@
   "results.summaryEliminatedSuffix": " (выбыл)",
 
   "question.sealed": "ОТПРАВЛЕНО - ждём остальных",
+  "question.spectating": "Наблюдение - сейчас не ваш ход",
   "question.answerPlaceholder": "ваш ответ",
   "question.answerAriaLabel": "Ваш ответ",
 

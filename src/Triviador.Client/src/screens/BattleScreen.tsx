@@ -32,7 +32,7 @@ export async function battleOnSelect(view: GameView, regionId: string, onError: 
   }
 }
 
-function battleHeadline(view: GameView): string | null {
+export function battleHeadline(view: GameView): string | null {
   const battle = view.battle
   if (!battle) return null
   const attackerName = playerLabel(findPlayer(view, battle.attackerPlayerId))
@@ -155,6 +155,7 @@ export function BattleDock({ view, onError }: { view: GameView; onError: (messag
           totalMs={questionTotalMs(question.prompt.kind)}
           onSubmitChoice={onSubmitChoice}
           onSubmitNumeric={onSubmitNumeric}
+          interactive={question.participantPlayerIds.includes(view.youPlayerId)}
         />
       )}
       {question && <AnswerRoster view={view} participantPlayerIds={question.participantPlayerIds} hasAnswered={question.hasAnswered} />}

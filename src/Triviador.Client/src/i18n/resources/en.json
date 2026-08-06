@@ -107,6 +107,7 @@
   "results.summaryEliminatedSuffix": " (eliminated)",
 
   "question.sealed": "SEALED - waiting for the others",
+  "question.spectating": "Spectating - not your turn to answer",
   "question.answerPlaceholder": "your answer",
   "question.answerAriaLabel": "Your answer",
 

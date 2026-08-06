@@ -47,6 +47,14 @@
   --unclaimed: var(--paper-200);
   --danger: #d4382f;
 
+  /* Terra incognita - the decorative ring of non-playable land surrounding the 18 game territories
+     (DecorativeTerritory.tsx). Muted/desaturated relative to --unclaimed and the seat colors so it
+     unmistakably reads as "not part of the game" without looking broken or unfinished. */
+  --terra-forest: #5c6f4d;
+  --terra-hill: #9c8058;
+  --terra-marsh: #6d7a6e;
+  --terra-stroke: #3c3524;
+
   --r-sm: 4px;
   --r-md: 8px;
   --r-lg: 14px;

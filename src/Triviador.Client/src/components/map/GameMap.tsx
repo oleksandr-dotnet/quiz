@@ -3,10 +3,23 @@ import type { GameView, RegionView } from '../../api/contracts'
 import { findPlayer, playerDisplayName } from '../../lib/format'
 import { seatIndexFor } from '../../lib/seats'
 import { REGION_GEOMETRY } from './abstractGeography'
+import { DECORATIVE_MARGIN, DECORATIVE_TERRITORIES } from './decorativeGeography'
+import { DecorativeTerritory } from './DecorativeTerritory'
 import { HeraldicDefs } from './HeraldicDefs'
 import { RegionShape } from './RegionShape'
 import { ValueBadge } from './ValueBadge'
 import { WaxSeal } from './WaxSeal'
+
+// Pads the server's playable-grid viewBox ("0 0 1200 640") out on every side so the decorative
+// "terra incognita" ring (DecorativeTerritory.tsx) has room to render without being clipped by the
+// SVG's own overflow:hidden default - DECORATIVE_MARGIN is derived by the generator from that ring's
+// own geometry, so this never needs hand-tuning when the ring's shape changes.
+function paddedViewBox(serverViewBox: string): string {
+  const parts = serverViewBox.split(/\s+/).map(Number)
+  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return serverViewBox
+  const [minX, minY, width, height] = parts
+  return `${minX - DECORATIVE_MARGIN} ${minY - DECORATIVE_MARGIN} ${width + DECORATIVE_MARGIN * 2} ${height + DECORATIVE_MARGIN * 2}`
+}
 
 export interface GameMapProps {
   view: GameView
@@ -14,6 +27,12 @@ export interface GameMapProps {
   contestedRegionId?: string | null
   interactive: boolean
   onSelect?: (regionId: string) => void
+  // Renders the decorative "terra incognita" ring and pads the viewBox to fit it - desktop only
+  // (App.tsx gates this on useIsDesktop()). Mobile keeps the tight 0..1200x0..640 viewBox this whole
+  // file's mobile CSS breakpoint was originally tuned against (wax-seal/value-badge scale factors,
+  // touch-target sizing) rather than risk shrinking the playable regions to make room for flavour
+  // land on an already pixel-tight screen.
+  showDecorative?: boolean
 }
 
 // The abstract shape's visual centroid rarely matches the old hand-picked circle center, so
@@ -26,7 +45,7 @@ function markerPosition(region: RegionView) {
     : { x: region.labelX, y: region.labelY }
 }
 
-export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactive, onSelect }: GameMapProps) {
+export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactive, onSelect, showDecorative = false }: GameMapProps) {
   const { t } = useTranslation()
   const eligible = new Set(eligibleRegionIds ?? [])
   const byId = new Map(view.regions.map((region) => [region.regionId, region]))
@@ -49,11 +68,33 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
   )
 
   return (
-    <svg viewBox={view.mapViewBox} className="game-map" role="group" aria-label={t('map.ariaLabel')}>
+    <svg
+      viewBox={showDecorative ? paddedViewBox(view.mapViewBox) : view.mapViewBox}
+      // Fills the fullscreen desktop map edge-to-edge (App.css) by cropping rather than
+      // letterboxing - safe here because showDecorative's padded viewBox already has a wide terra
+      // incognita margin for the crop to eat into before it could ever reach the 18 playable
+      // regions. Mobile keeps the default "meet" (never crops) since its tight, unpadded viewBox
+      // has no such margin to spare.
+      preserveAspectRatio={showDecorative ? 'xMidYMid slice' : undefined}
+      className="game-map"
+      role="group"
+      aria-label={t('map.ariaLabel')}
+    >
       <HeraldicDefs />
 
       {/* Sea: sits behind the graph so the board reads as a territory map, not a blank void. */}
-      <rect x={-40} y={-40} width={9999} height={9999} fill="var(--sea)" />
+      <rect x={-9999} y={-9999} width={19998} height={19998} fill="var(--sea)" />
+
+      {/* Terra incognita: the decorative ring, drawn beneath everything else so its coastline reads
+          as touching (never overlapping) the playable regions' own outer edge. Desktop only - see
+          showDecorative's doc comment on GameMapProps. */}
+      {showDecorative && (
+        <g className="decorative-layer">
+          {DECORATIVE_TERRITORIES.map((territory) => (
+            <DecorativeTerritory key={territory.id} territory={territory} />
+          ))}
+        </g>
+      )}
 
       {/* Adjacency connectors: one line per bordering pair, drawn beneath the region nodes. */}
       <g className="region-connectors">
@@ -98,11 +139,16 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
             <g key={region.regionId}>
               <text
                 x={x}
-                y={y + 26}
+                y={y + 30}
                 textAnchor="middle"
                 className="region-name"
-                fontSize={11}
-                fill="var(--ink-700)"
+                fontSize={16}
+                fontWeight={700}
+                fill="var(--ink-900)"
+                stroke="var(--paper-050)"
+                strokeWidth={3}
+                strokeLinejoin="round"
+                paintOrder="stroke"
                 aria-hidden="true"
               >
                 {region.name}

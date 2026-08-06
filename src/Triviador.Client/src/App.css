@@ -28,13 +28,6 @@
   min-height: 100svh;
 }
 
-@media (min-width: 1440px) {
-  .app-shell {
-    gap: 1.5rem;
-    padding: 1.5rem 2rem;
-  }
-}
-
 .shell-top-bar {
   grid-area: top;
   display: flex;
@@ -211,16 +204,8 @@
   box-shadow: 0 20px 44px -18px rgba(0, 0, 0, 0.7);
 }
 
-/* Desktop only (mobile's own max-height:100dvh cap + flexible map row already fits the viewport
-   on its own terms - see the max-width:900px block below). The map is the game's hero here - this
-   cap is generous enough that it fills most of the shell's height instead of leaving the dark
-   table mostly bare above/below a small letterboxed rectangle, while still leaving room for the
-   dock beneath it. The SVG's own preserveAspectRatio letterboxes into the box's own ratio, and the
-   sea background above fills the letterbox bars seamlessly. */
-@media (min-width: 901px) {
-  .map-slot {
-    max-height: clamp(20rem, 50vh, 38rem);
-  }
+.hud-top {
+  display: contents;
 }
 
 .shell-roster {
@@ -236,6 +221,201 @@
 .shell-dock {
   grid-area: dock;
   min-width: 0;
+}
+
+/* ---------- Desktop immersive layout ---------- */
+/* Below 901px, everything above this point (the grid-based shell) is the whole story - unchanged
+   from before this redesign. At and above it, the map stops being a bounded card next to a roster
+   column and becomes the entire screen: .app-shell drops out of grid layout entirely, and every one
+   of its children becomes an independently fixed-position "HUD" element floating over the map
+   instead of sharing a track with it. This is the literal fix for the "white rectangle floating on
+   a dark background" look - the map *is* the background now, not a card sitting on one. */
+@media (min-width: 901px) {
+  .app-shell {
+    display: block;
+    position: relative;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    height: 100svh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .map-slot {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    max-height: none;
+    z-index: 0;
+  }
+
+  .shell-map {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .lamplight {
+    /* The scoped "lit hero surface" glow (paper.css) existed to mark the map as the one lit object
+       on the dark table - now that the map fills the whole screen, that distinction is gone and the
+       glow just reads as a stray bright smear over the territories. */
+    display: none;
+  }
+
+  /* The HUD banner: title/phase/round + leave/mute on one line, the player roster directly under
+     it, both painted over the map with a soft downward fade instead of a hard-edged panel - close
+     enough to the map's own material to feel like part of the same scene, not a dropped-in widget. */
+  .hud-top {
+    display: block;
+    position: absolute;
+    inset: 0 0 auto 0;
+    z-index: 40;
+    padding: 1rem 1.75rem 2.5rem;
+    background: linear-gradient(to bottom, rgba(20, 16, 10, 0.82) 0%, rgba(20, 16, 10, 0.55) 55%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .hud-top > * {
+    pointer-events: auto;
+  }
+
+  .shell-top-bar {
+    margin-bottom: 0.85rem;
+  }
+
+  .shell-roster {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .shell-roster .player-roster {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+
+  .shell-roster .player-card {
+    background: rgba(250, 246, 234, 0.94);
+    box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.6);
+  }
+
+  /* The floating dock: question cards, pick prompts, reveals - anchored bottom-center over the map,
+     sized to its own content rather than stretching to fill a grid column. Carries its own opaque
+     backing (previously every dock screen supplied that itself via its own nested .paper-card, which
+     covers a QuestionCard/BaseSelectionDock/etc fine but leaves anything a screen renders *outside*
+     one - ResultsDock's bare .winner-headline, BattleScreen's .battle-headline before it was hidden
+     above - floating with no backing at all. That was invisible on the old grid layout, which had
+     the plain dark table behind the whole dock column; here the map is what's behind it instead, and
+     low-contrast text directly over a busy map reads as a rendering glitch, not by design) so every
+     current and future dock screen gets a legible backdrop for free, without each one needing to
+     remember to wrap itself in a card. */
+  .shell-dock {
+    position: absolute;
+    left: 50%;
+    bottom: 2rem;
+    transform: translateX(-50%);
+    width: min(46rem, 90vw);
+    max-height: 62vh;
+    overflow-y: auto;
+    z-index: 45;
+    background: rgba(250, 246, 234, 0.97);
+    border: 1px solid var(--paper-300);
+    border-radius: var(--r-lg);
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.75);
+  }
+
+  /* Deliberately not flattening nested .paper-card sections here even though this now duplicates
+     their own background: LandGrabDock can legitimately stack two of them at once on desktop (a
+     reveal above the *next* pick prompt, by design - see land-grab-dock.reveal-active's own
+     comment), and flattening would erase the visual separation between those two cards that exists
+     to make them still read as two distinct moments, not one merged block. A single dock screen's
+     content sitting in one more (same-colored) card than strictly necessary is a minor cosmetic
+     redundancy; losing that separation would be a real regression. */
+
+  /* The dock-scroll-shadow pair (App.tsx/AppShell.tsx) is a mobile-only affordance below - desktop's
+     dock is a floating card over open map, not a height-clipped panel, so a scrolled-content shadow
+     cue would just look like a stray smear along its top/bottom edge. */
+  .dock-scroll-shadow {
+    display: none;
+  }
+
+  /* BattleScreen.tsx's own headline paragraph sits bare in the dock (no paper-card behind it, by
+     design - see .battle-headline's own comment) - fine on the old dark-table background, but now
+     that .shell-dock floats directly over the busy map it read as low-contrast ghost text, and
+     TurnAnnouncement.tsx's docked pill already restates the exact same line up near the roster.
+     Redundant on desktop only - mobile has no TurnAnnouncement, so it keeps this as its one source. */
+  .battle-headline {
+    display: none;
+  }
+}
+
+@media (min-width: 1440px) {
+  .hud-top {
+    padding: 1.25rem 2.5rem 3rem;
+  }
+}
+
+/* ---------- Turn announcement (desktop only - TurnAnnouncement.tsx) ---------- */
+
+.turn-announcement-docked {
+  position: fixed;
+  /* Sits just under .hud-top's own two rows - both are auto-height, so this is deliberately a
+     generous fixed guess (comfortably clears title+roster on every desktop viewport this project
+     targets) rather than something requiring the two to be measured at runtime. */
+  top: 7.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 41;
+  padding: 0.4em 1.1em;
+  border-radius: 999px;
+  background: rgba(20, 16, 10, 0.62);
+  border: 1px solid var(--table-panel-border);
+  color: var(--table-ink-900);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  text-align: center;
+  white-space: nowrap;
+  max-width: min(34rem, 70vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.turn-announcement-spotlight-anchor {
+  position: fixed;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 90;
+  pointer-events: none;
+}
+
+.turn-announcement-spotlight {
+  padding: 0.9em 1.8em;
+  border-radius: var(--r-lg);
+  background: rgba(20, 16, 10, 0.78);
+  border: 1px solid var(--gilt-500);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8), 0 0 40px -10px var(--glow-gilt);
+  color: var(--table-ink-900);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.4rem);
+  text-align: center;
+  max-width: min(50rem, 80vw);
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .turn-announcement-docked,
+  .turn-announcement-spotlight {
+    display: none;
+  }
 }
 
 /* Width alone doesn't catch a phone held in landscape: its CSS width is the portrait height, which
@@ -986,12 +1166,35 @@
   transition: fill-opacity var(--dur-fast) var(--ease-paper);
 }
 
+.game-map .region .region-base-fill {
+  transition: filter var(--dur-fast) var(--ease-paper), transform var(--dur-fast) var(--ease-paper);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .game-map .region.selectable {
   cursor: pointer;
 }
 
-.game-map .region.selectable:hover {
-  filter: brightness(1.08);
+/* A lit-up glow plus a small territorial "pull toward the pointer" instead of a flat brightness
+   bump - reads as an inviting, physically-present piece of land rather than a highlighted UI row.
+   Scoped to `.region-base-fill` (transform-box: fill-box, above) rather than the whole `<g>` so the
+   value badge/name label riding along in GameMap.tsx's separate label layer don't scale with it. */
+.game-map .region.selectable:hover .region-base-fill {
+  filter: brightness(1.1) url(#territory-grain) drop-shadow(0 0 10px var(--glow-gilt));
+  transform: scale(1.015);
+}
+
+.game-map .region.selectable:active .region-base-fill {
+  transform: scale(0.985);
+  filter: brightness(0.97) url(#territory-grain);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-map .region.selectable:hover .region-base-fill,
+  .game-map .region.selectable:active .region-base-fill {
+    transform: none;
+  }
 }
 
 /* SVG <g role="button"> elements get a default UA focus ring (often a plain dark rectangle around
@@ -1005,6 +1208,47 @@
 .game-map .region.selectable:focus-visible {
   outline: 2px solid var(--gilt-500);
   outline-offset: 1px;
+}
+
+/* ---------- Terra incognita (decorative, non-playable land) ---------- */
+
+.decorative-territory {
+  pointer-events: none;
+}
+
+.decorative-outline {
+  stroke: var(--terra-stroke);
+  stroke-width: 1;
+  stroke-opacity: 0.55;
+}
+
+.decorative-forest .decorative-fill {
+  fill: var(--terra-forest);
+  fill-opacity: 0.55;
+}
+
+.decorative-hill .decorative-fill {
+  fill: var(--terra-hill);
+  fill-opacity: 0.5;
+}
+
+.decorative-marsh .decorative-fill {
+  fill: var(--terra-marsh);
+  fill-opacity: 0.5;
+}
+
+.terrain-glyph path {
+  fill: var(--terra-stroke);
+  fill-opacity: 0.4;
+  stroke: none;
+}
+
+.terrain-marsh path {
+  fill: none;
+  stroke: var(--terra-stroke);
+  stroke-opacity: 0.45;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 /* A region's owner-color layer remounts (keyed by owner) on both a land-grab claim and a duel
