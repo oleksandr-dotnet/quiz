@@ -26,6 +26,7 @@ import { LeaveGameConfirmModal } from './components/LeaveGameConfirmModal'
 import { useGameTransitions } from './hooks/useGameTransitions'
 import { useLandGrabReveal } from './hooks/useLandGrabReveal'
 import { findPlayer, playerDisplayName } from './lib/format'
+import { BASE_ASSAULT_SCORE_BONUS } from './lib/gameRules'
 import type { GameView, PlayerView } from './api/contracts'
 
 function urlRoomCode(): string | null {
@@ -217,6 +218,16 @@ function App() {
     if (captured && captured.kind === 'baseCaptured' && gameView) {
       const defender = findPlayer(gameView, captured.defenderPlayerId)
       messages.push(t('app.baseFallsProclamation', { defenderName: playerDisplayName(defender) }))
+    }
+
+    const scoreAdjusted = transitions.find((t) => t.kind === 'baseAssaultScoreAdjusted')
+    if (scoreAdjusted && scoreAdjusted.kind === 'baseAssaultScoreAdjusted' && gameView) {
+      const you = gameView.youPlayerId
+      if (scoreAdjusted.winnerPlayerId === you) {
+        messages.push(t('app.baseAssaultBonusWonProclamation', { amount: BASE_ASSAULT_SCORE_BONUS }))
+      } else if (scoreAdjusted.loserPlayerId === you) {
+        messages.push(t('app.baseAssaultBonusLostProclamation', { amount: BASE_ASSAULT_SCORE_BONUS }))
+      }
     }
 
     if (messages.length > 0) {

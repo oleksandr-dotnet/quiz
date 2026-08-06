@@ -151,6 +151,7 @@ export interface BattleContextView {
   defenderPlayerId: string
   assaultQuestionIndex: number | null
   damageDealtThisTurn: number | null
+  isTiebreakRound: boolean
 }
 
 export interface GameView {

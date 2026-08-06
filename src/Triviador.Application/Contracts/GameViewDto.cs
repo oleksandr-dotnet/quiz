@@ -69,7 +69,8 @@ public sealed record BattleContextDto(
     Guid AttackerPlayerId,
     Guid DefenderPlayerId,
     int? AssaultQuestionIndex,
-    int? DamageDealtThisTurn);
+    int? DamageDealtThisTurn,
+    bool IsTiebreakRound);
 
 public enum AnswerKindDto
 {

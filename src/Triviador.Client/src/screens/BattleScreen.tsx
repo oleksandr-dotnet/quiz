@@ -47,6 +47,16 @@ function battleHeadline(view: GameView): string | null {
   // 1 of {{maxHitPoints}}" for that first question instead of the confusing "hit 0 of ...".
   const hitIndex = (battle.assaultQuestionIndex ?? 0) + 1
 
+  // Both combatants answered the Choice question correctly - correctness alone can't decide it, so
+  // a numeric tiebreak question is asked instead of consulting elapsed time (see answer-ranking's
+  // numeric-tiebreak requirement). Checked before the ordinary Duel/BaseAssault headlines below,
+  // since it applies identically regardless of which of those two this tiebreak wraps.
+  if (battle.isTiebreakRound) {
+    if (youAreAttacker) return i18next.t('battle.headlineTiebreakSelf', { opponentName: defenderName })
+    if (youAreDefender) return i18next.t('battle.headlineTiebreakSelf', { opponentName: attackerName })
+    return i18next.t('battle.headlineTiebreakOthers', { attackerName, defenderName })
+  }
+
   if (battle.kind === 'BaseAssault') {
     if (battle.attackerPlayerId === battle.defenderPlayerId) {
       return youAreAttacker

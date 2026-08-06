@@ -14,6 +14,7 @@ public sealed record GameRules(
     int BaseHitPointsDefault = 5,
     int RevealHoldDurationSeconds = 7,
     int BaseAssaultUnlockRound = 8,
+    int BaseAssaultScoreBonus = 200,
     Language Language = Language.Russian)
 {
     public static readonly GameRules Default = new();

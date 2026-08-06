@@ -88,7 +88,7 @@ public sealed class GameState
             }
         }
 
-        return score;
+        return score + player.BonusScore;
     }
 
     internal PlayerState AddPlayer(PlayerId id)
@@ -126,7 +126,8 @@ public sealed class GameState
         {
             builder.Append(player.Id).Append(':').Append(player.Seat).Append(':')
                 .Append(player.BaseRegion).Append(':').Append(player.Eliminated).Append(':')
-                .Append(player.Withdrawn).Append(':').Append(player.BaseHitPoints).Append(';');
+                .Append(player.Withdrawn).Append(':').Append(player.BaseHitPoints).Append(':')
+                .Append(player.BonusScore).Append(';');
         }
 
         foreach (var region in Regions)

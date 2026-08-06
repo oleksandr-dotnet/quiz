@@ -645,6 +645,11 @@ public sealed class RoomActor
                     _logger.LogInformation("Room {RoomCode}: {Attacker} captured {Defender}'s base {Region}",
                         RoomCode, bc.AttackerId.Value, bc.DefenderId.Value, bc.BaseRegionId.Value);
                     break;
+                case BaseAssaultScoreAdjusted sa:
+                    _logger.LogInformation(
+                        "Room {RoomCode}: base-assault score adjusted, attacker {Attacker} {AttackerDelta}, defender {Defender} {DefenderDelta}",
+                        RoomCode, sa.AttackerId.Value, sa.AttackerDelta, sa.DefenderId.Value, sa.DefenderDelta);
+                    break;
                 case GameFinished gf:
                     _logger.LogInformation("Room {RoomCode}: game finished, winner(s) {Winners}",
                         RoomCode, string.Join(", ", gf.Outcome.Winners.Select(w => w.Value)));
@@ -841,10 +846,13 @@ public sealed class RoomActor
     private static BattleContextDto? ToBattleContext(QuestionPurpose purpose) => purpose switch
     {
         QuestionPurpose.Duel duel => new BattleContextDto(
-            BattleKindDto.Duel, duel.Region.Value, duel.Attacker.Value, duel.Defender.Value, null, null),
+            BattleKindDto.Duel, duel.Region.Value, duel.Attacker.Value, duel.Defender.Value, null, null, false),
         QuestionPurpose.BaseAssault assault => new BattleContextDto(
             BattleKindDto.BaseAssault, assault.BaseRegion.Value, assault.Attacker.Value, assault.Defender.Value,
-            assault.QuestionIndex, assault.DamageDealtThisTurn),
+            assault.QuestionIndex, assault.DamageDealtThisTurn, false),
+        QuestionPurpose.NumericTiebreak tiebreak => ToBattleContext(tiebreak.Original) is { } inner
+            ? inner with { IsTiebreakRound = true }
+            : null,
         _ => null,
     };
 

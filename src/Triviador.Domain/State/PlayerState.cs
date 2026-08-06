@@ -21,4 +21,9 @@ public sealed class PlayerState
     // across a different attacker's later turn. Lives here rather than on RegionState because a
     // captured base stops needing hit points at all — see GameState.IsBase's ownership-derived model.
     public int BaseHitPoints { get; internal set; }
+
+    // Score that isn't tied to any region — currently only moved by base-assault question wins/
+    // losses (GameRules.BaseAssaultScoreBonus). Folded into GameState.ScoreOf alongside territory
+    // value; never derived, since there is no region to derive it from.
+    public int BonusScore { get; internal set; }
 }

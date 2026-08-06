@@ -177,9 +177,11 @@ public sealed partial class GameEngine
         return AskBattleQuestion(purpose, attacker, defender, at);
     }
 
-    private ImmutableArray<IGameEvent> AskBattleQuestion(QuestionPurpose purpose, PlayerId attacker, PlayerId defender, Instant at)
+    private ImmutableArray<IGameEvent> AskBattleQuestion(
+        QuestionPurpose purpose, PlayerId attacker, PlayerId defender, Instant at,
+        QuestionKindRequest kindRequest = QuestionKindRequest.Any)
     {
-        var question = _questions.Draw(new QuestionDraw(QuestionKindRequest.Any));
+        var question = _questions.Draw(new QuestionDraw(kindRequest));
         // The defender is always placed first, so a tie (including a double-timeout, where both
         // submissions are AnswerValue.None) is always won by the defender.
         var tieBreak = TieBreakOrder.Prefer(defender, attacker);
@@ -222,20 +224,10 @@ public sealed partial class GameEngine
         {
             case QuestionPurpose.Duel duel:
             {
-                // A duel where neither side answered correctly is not an attacker win by rank alone
-                // — the territory stays put rather than changing hands on two wrong guesses. A
-                // withdrawn attacker (host-kicked with territory release, during this reveal window)
-                // never receives new territory either, regardless of how the question resolved.
-                if (!PlayerById(duel.Attacker).Withdrawn
-                    && !BothAnsweredIncorrectly(pending.Result, duel.Attacker, duel.Defender)
-                    && AttackerWon(pending.Result, duel.Attacker, duel.Defender))
-                {
-                    _state.RegionOf(duel.Region).OwnerId = duel.Attacker;
-                    events.Add(new RegionCaptured(duel.Attacker, duel.Defender, duel.Region));
-                }
-
-                var ended = CheckEndConditions();
-                events.AddRange(ended ?? AdvanceTurn(at));
+                events.AddRange(RequiresNumericTiebreak(pending.Result, duel.Attacker, duel.Defender)
+                    ? AskBattleQuestion(new QuestionPurpose.NumericTiebreak(duel, duel.Attacker, duel.Defender),
+                        duel.Attacker, duel.Defender, at, QuestionKindRequest.Tip)
+                    : ApplyDuelOutcome(duel, pending.Result, at));
                 break;
             }
 
@@ -268,46 +260,106 @@ public sealed partial class GameEngine
 
             case QuestionPurpose.BaseAssault assault:
             {
-                // A withdrawn attacker (host-kicked with territory release, during this reveal
-                // window) never receives a hit-point win or a capture either, regardless of how the
-                // question resolved — treated the same as a defender win below.
-                if (!PlayerById(assault.Attacker).Withdrawn && AttackerWon(pending.Result, assault.Attacker, assault.Defender))
-                {
-                    var defender = PlayerById(assault.Defender);
-                    defender.BaseHitPoints -= 1;
-                    events.Add(new BaseHitPointsChanged(assault.Defender, defender.BaseHitPoints));
-
-                    if (defender.BaseHitPoints <= 0)
-                    {
-                        events.AddRange(CaptureBase(assault.Attacker, assault.Defender, assault.BaseRegion));
-                        var ended = CheckEndConditions();
-                        events.AddRange(ended ?? AdvanceTurn(at));
-                    }
-                    else
-                    {
-                        // No fixed per-turn cap on the chain: the attacker keeps facing fresh
-                        // questions against this same base for as long as they keep winning, ending
-                        // only when hit points reach zero (captured, above) or a tie/defender-win
-                        // stops the chain (below). QuestionIndex/DamageDealtThisTurn still advance
-                        // for anyone inspecting the purpose (e.g. a view/event consumer).
-                        var nextPurpose = assault with
-                        {
-                            QuestionIndex = assault.QuestionIndex + 1,
-                            DamageDealtThisTurn = assault.DamageDealtThisTurn + 1,
-                        };
-                        events.AddRange(AskBattleQuestion(nextPurpose, assault.Attacker, assault.Defender, at));
-                    }
-                }
-                else
-                {
-                    // Defender won (or the rare double-timeout tie, which the defender-preferred
-                    // tie-break also resolves as a defender win) — the assault ends immediately,
-                    // retaining whatever hit points were already lost earlier this turn.
-                    events.AddRange(AdvanceTurn(at));
-                }
-
+                events.AddRange(RequiresNumericTiebreak(pending.Result, assault.Attacker, assault.Defender)
+                    ? AskBattleQuestion(new QuestionPurpose.NumericTiebreak(assault, assault.Attacker, assault.Defender),
+                        assault.Attacker, assault.Defender, at, QuestionKindRequest.Tip)
+                    : ApplyBaseAssaultOutcome(assault, pending.Result, at));
                 break;
             }
+
+            case QuestionPurpose.NumericTiebreak tiebreak:
+            {
+                // The tiebreak question is ranked by the same generic tier/penalty/elapsed/tie-break
+                // order as any other numeric question — closeness first, elapsed time only if
+                // equally close, the defender-favored TieBreakOrder only if that's tied too. Its
+                // outcome is applied through whichever purpose it wraps, using this question's
+                // result instead of the tied one that triggered it.
+                events.AddRange(tiebreak.Original switch
+                {
+                    QuestionPurpose.Duel duel => ApplyDuelOutcome(duel, pending.Result, at),
+                    QuestionPurpose.BaseAssault assault => ApplyBaseAssaultOutcome(assault, pending.Result, at),
+                    _ => throw new InvalidOperationException(
+                        $"NumericTiebreak.Original must be Duel or BaseAssault, was {tiebreak.Original.GetType().Name}."),
+                });
+                break;
+            }
+        }
+
+        return events.ToImmutable();
+    }
+
+    // A duel where neither side answered correctly is not an attacker win by rank alone — the
+    // territory stays put rather than changing hands on two wrong guesses. A withdrawn attacker
+    // (host-kicked with territory release, during this reveal window) never receives new territory
+    // either, regardless of how the question resolved.
+    private ImmutableArray<IGameEvent> ApplyDuelOutcome(QuestionPurpose.Duel duel, QuestionResult result, Instant at)
+    {
+        var events = ImmutableArray.CreateBuilder<IGameEvent>();
+
+        if (!PlayerById(duel.Attacker).Withdrawn
+            && !BothAnsweredIncorrectly(result, duel.Attacker, duel.Defender)
+            && AttackerWon(result, duel.Attacker, duel.Defender))
+        {
+            _state.RegionOf(duel.Region).OwnerId = duel.Attacker;
+            events.Add(new RegionCaptured(duel.Attacker, duel.Defender, duel.Region));
+        }
+
+        var ended = CheckEndConditions();
+        events.AddRange(ended ?? AdvanceTurn(at));
+        return events.ToImmutable();
+    }
+
+    // A withdrawn attacker (host-kicked with territory release, during this reveal window) never
+    // receives a hit-point win, a capture, or the score bonus either, regardless of how the question
+    // resolved — treated the same as a defender win below. Every base-assault question that resolves
+    // here — each hit in a chain, and the one that ends a chain on a tie/defender win — moves
+    // GameRules.BaseAssaultScoreBonus between attacker and defender, independent of hit points or any
+    // territory the attacker separately gains from a capture.
+    private ImmutableArray<IGameEvent> ApplyBaseAssaultOutcome(QuestionPurpose.BaseAssault assault, QuestionResult result, Instant at)
+    {
+        var events = ImmutableArray.CreateBuilder<IGameEvent>();
+        var attackerWon = !PlayerById(assault.Attacker).Withdrawn && AttackerWon(result, assault.Attacker, assault.Defender);
+
+        var bonus = _state.Rules.BaseAssaultScoreBonus;
+        var (winnerId, loserId) = attackerWon ? (assault.Attacker, assault.Defender) : (assault.Defender, assault.Attacker);
+        PlayerById(winnerId).BonusScore += bonus;
+        PlayerById(loserId).BonusScore -= bonus;
+        events.Add(new BaseAssaultScoreAdjusted(
+            assault.Attacker, assault.Defender, attackerWon ? bonus : -bonus, attackerWon ? -bonus : bonus));
+
+        if (attackerWon)
+        {
+            var defender = PlayerById(assault.Defender);
+            defender.BaseHitPoints -= 1;
+            events.Add(new BaseHitPointsChanged(assault.Defender, defender.BaseHitPoints));
+
+            if (defender.BaseHitPoints <= 0)
+            {
+                events.AddRange(CaptureBase(assault.Attacker, assault.Defender, assault.BaseRegion));
+                var ended = CheckEndConditions();
+                events.AddRange(ended ?? AdvanceTurn(at));
+            }
+            else
+            {
+                // No fixed per-turn cap on the chain: the attacker keeps facing fresh questions
+                // against this same base for as long as they keep winning, ending only when hit
+                // points reach zero (captured, above) or a tie/defender-win stops the chain (below).
+                // QuestionIndex/DamageDealtThisTurn still advance for anyone inspecting the purpose
+                // (e.g. a view/event consumer).
+                var nextPurpose = assault with
+                {
+                    QuestionIndex = assault.QuestionIndex + 1,
+                    DamageDealtThisTurn = assault.DamageDealtThisTurn + 1,
+                };
+                events.AddRange(AskBattleQuestion(nextPurpose, assault.Attacker, assault.Defender, at));
+            }
+        }
+        else
+        {
+            // Defender won (or the rare double-timeout tie, which the defender-preferred tie-break
+            // also resolves as a defender win) — the assault ends immediately, retaining whatever hit
+            // points were already lost earlier this turn.
+            events.AddRange(AdvanceTurn(at));
         }
 
         return events.ToImmutable();
@@ -325,6 +377,23 @@ public sealed partial class GameEngine
         var attackerTier = result.Rankings.First(r => r.Player == attacker).Score.Tier;
         var defenderTier = result.Rankings.First(r => r.Player == defender).Score.Tier;
         return attackerTier > 0 && defenderTier > 0;
+    }
+
+    // A Choice-question duel/assault where both combatants answered correctly is a wash on
+    // correctness alone — elapsed time is never consulted for it. Instead the caller asks exactly one
+    // follow-up numeric question to the same two combatants (see QuestionPurpose.NumericTiebreak).
+    // Numeric questions asked directly (not as a tiebreak) are unaffected: they're already Tier 0 for
+    // any submission, ranked by closeness via the existing generic order.
+    private static bool RequiresNumericTiebreak(QuestionResult result, PlayerId attacker, PlayerId defender)
+    {
+        if (result.Question.Prompt.Kind != QuestionKind.Choice)
+        {
+            return false;
+        }
+
+        var attackerTier = result.Rankings.First(r => r.Player == attacker).Score.Tier;
+        var defenderTier = result.Rankings.First(r => r.Player == defender).Score.Tier;
+        return attackerTier == 0 && defenderTier == 0;
     }
 
     private PlayerState PlayerById(PlayerId id) => _state.Players.First(p => p.Id == id);

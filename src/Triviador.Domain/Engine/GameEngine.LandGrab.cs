@@ -138,11 +138,15 @@ public sealed partial class GameEngine
                 break;
             }
 
-            case QuestionPurpose.Duel or QuestionPurpose.BaseAssault:
+            case QuestionPurpose.Duel or QuestionPurpose.BaseAssault or QuestionPurpose.NumericTiebreak:
             {
                 // Battle's questions don't apply their effect immediately — see
                 // GameEngine.Battle.cs's ResolveRevealHold. The reveal is shown first; the region
-                // transfer or hit-point damage lands once RevealHold's own deadline elapses.
+                // transfer or hit-point damage lands once RevealHold's own deadline elapses. A
+                // NumericTiebreak question (asked when a Choice question tied on correctness) gets
+                // this same reveal-before-effects treatment — its own RevealHold, then its own
+                // ResolveRevealHold case re-dispatches to whichever Duel/BaseAssault effect its
+                // Original purpose would have applied.
                 var revealToken = _state.IssueActivityToken();
                 var revealDeadline = at.Add(TimeSpan.FromSeconds(_state.Rules.RevealHoldDurationSeconds));
                 _state.Pending = new PendingActivity.RevealHold(revealToken, revealDeadline, result, pending.Purpose);

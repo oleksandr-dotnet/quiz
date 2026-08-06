@@ -10,6 +10,7 @@ export type GameTransition =
   | { kind: 'baseCaptured'; defenderPlayerId: string; attackerPlayerId: string; transferredRegionIds: string[] }
   | { kind: 'playerEliminated'; playerId: string }
   | { kind: 'scoreDelta'; playerId: string; delta: number }
+  | { kind: 'baseAssaultScoreAdjusted'; winnerPlayerId: string; loserPlayerId: string }
 
 // Derives what changed between two consecutive server snapshots. The server broadcasts only full
 // snapshots (no event/delta channel - see design.md), so this is the only way the client learns
@@ -75,6 +76,26 @@ export function useGameTransitions(current: GameView | null, previous: GameView 
 
     for (const playerId of newlyEliminated) {
       transitions.push({ kind: 'playerEliminated', playerId })
+    }
+
+    // A base-assault question (never a self-heal, where attacker === defender) that had its reveal
+    // open in the previous snapshot and no longer does in this one just resolved - see
+    // battle-flow's score-bonus requirement. Whether the attacker or defender won it is read off
+    // whether a baseDamaged/baseCaptured transition fired for the defender in this same batch
+    // (attacker won) or neither did (defender won or tied) - both already computed above.
+    const prevBattle = previous.battle
+    const revealJustClosed = previous.pendingReveal !== null && current.pendingReveal === null
+    if (revealJustClosed && prevBattle?.kind === 'BaseAssault' && prevBattle.attackerPlayerId !== prevBattle.defenderPlayerId) {
+      const attackerWon = transitions.some(
+        (t) =>
+          (t.kind === 'baseDamaged' && t.playerId === prevBattle.defenderPlayerId) ||
+          (t.kind === 'baseCaptured' && t.defenderPlayerId === prevBattle.defenderPlayerId),
+      )
+      transitions.push({
+        kind: 'baseAssaultScoreAdjusted',
+        winnerPlayerId: attackerWon ? prevBattle.attackerPlayerId : prevBattle.defenderPlayerId,
+        loserPlayerId: attackerWon ? prevBattle.defenderPlayerId : prevBattle.attackerPlayerId,
+      })
     }
 
     return transitions

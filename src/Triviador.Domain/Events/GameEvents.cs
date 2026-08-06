@@ -65,6 +65,13 @@ public sealed record BaseCaptured(
 
 public sealed record PlayerEliminated(PlayerId PlayerId) : IGameEvent;
 
+// Emitted alongside RegionCaptured/BaseHitPointsChanged/BaseCaptured whenever a base-assault question
+// resolves (every hit in a chain, and the question that ends one on a tie/defender win) — never for
+// an ordinary duel or a self-heal. Deltas are always opposite and equal to
+// GameRules.BaseAssaultScoreBonus in magnitude; AttackerId/DefenderId match the assault's roles
+// regardless of who won.
+public sealed record BaseAssaultScoreAdjusted(PlayerId AttackerId, PlayerId DefenderId, int AttackerDelta, int DefenderDelta) : IGameEvent;
+
 public sealed record PlayerWithdrawn(PlayerId PlayerId, ImmutableArray<RegionId> ReleasedRegionIds) : IGameEvent;
 
 public sealed record RoundAdvanced(int RoundNumber) : IGameEvent;

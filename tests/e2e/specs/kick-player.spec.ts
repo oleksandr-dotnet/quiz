@@ -32,9 +32,10 @@ async function answerQuestionIfAsked(page: Page): Promise<void> {
   const tipInput = page.getByTestId('tip-input')
   if (await tipInput.isVisible().catch(() => false)) {
     await tipInput.fill('0')
-    // The input row's own inline submit button was removed (see
-    // battle-numeric-question-remove-duplicate-submit) - the keypad's is now the only submit path.
-    await page.getByTestId('keypad-submit').click()
+    // The on-screen numeric keypad (including its own submit button) is a touch-only affordance -
+    // App.css hides `.numeric-keypad` above 901px width, where this suite's desktop viewport
+    // expects Enter to submit instead (QuestionCard's onKeyDown handler).
+    await tipInput.press('Enter')
   }
 }
 
