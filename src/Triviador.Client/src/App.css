@@ -721,16 +721,27 @@
   align-self: flex-end;
 }
 
+/* Flag emoji rather than "Русский"/"English" text - the two flags are recognizable at a glance
+   and don't need translating themselves. The accessible name still comes from aria-label/title
+   (screen readers don't reliably announce flag emoji), so this is a visual swap only. */
 .language-option {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.85rem;
-  opacity: 0.6;
-  transition: opacity var(--dur-fast) var(--ease-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  font-size: 1.3rem;
+  line-height: 1;
+  opacity: 0.55;
+  transition: opacity var(--dur-fast) var(--ease-paper), border-color var(--dur-fast) var(--ease-paper),
+    transform var(--dur-fast) var(--ease-paper);
 }
 
 .language-option.active {
   opacity: 1;
-  font-weight: 600;
+  border-color: var(--gilt-500);
+  transform: scale(1.08);
 }
 
 .landing-actions,
@@ -832,6 +843,11 @@
 
 .code-input input {
   width: 2.75rem;
+  /* Overrides the base `input` rule's `padding: 0.5em 0.8em` - at this font-size that horizontal
+     padding alone (~20.5px a side) very nearly ate the entire 2.75rem (44px) box width, squeezing
+     the single glyph into a sub-4px sliver that read as an invisible dot rather than a character.
+     A single-character cell needs no horizontal padding at all; text-align: center does the work. */
+  padding: 0.5em 0;
   text-align: center;
   text-transform: uppercase;
   font-family: var(--font-display);
@@ -923,6 +939,9 @@
   gap: 0.5rem;
 }
 
+/* A <button>, not inert text - clicking/tapping the code itself copies it, the fastest way to
+   read it out to someone over voice chat then paste it. cursor/hover/active feedback all come free
+   from the base button rules in index.css; this class only overrides their visual skin. */
 .room-code-value {
   display: inline-block;
   font-family: var(--font-display);
@@ -933,6 +952,20 @@
   border-radius: var(--r-sm);
   background: var(--paper-050);
   color: var(--gilt-600);
+}
+
+.room-code-value.copied {
+  border-color: var(--seat-2);
+  color: var(--seat-2);
+}
+
+.copy-feedback {
+  margin-left: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--seat-2);
+  vertical-align: middle;
 }
 
 /* ---------- Map ---------- */

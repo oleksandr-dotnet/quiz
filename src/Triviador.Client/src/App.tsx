@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import './App.css'
@@ -167,6 +167,18 @@ function App() {
   const previousGameView = useGameStore((s) => s.previousGameView)
   const applyView = useGameStore((s) => s.applyView)
   const setSession = useGameStore((s) => s.setSession)
+  // urlRoomCode() reads window.location.hash directly wherever it's called - fine for a fresh page
+  // load (an invite link always opens one), but a hash-only change in an already-open tab (pasting
+  // a link into the address bar, or a same-page anchor) fires no React re-render on its own. This
+  // tick forces one so that case still lands the visitor in invite mode rather than the generic
+  // landing screen with a stale read of the old hash.
+  const [, forceHashTick] = useState(0)
+  useEffect(() => {
+    const onHashChange = () => forceHashTick((n) => n + 1)
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
   const [actionError, setActionError] = useState<string | null>(null)
   const [proclamation, setProclamation] = useState<string | null>(null)
   const [proclamationQueue, setProclamationQueue] = useState<string[]>([])
@@ -280,6 +292,34 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, sessionUsable])
 
+  // Invite-link auto-join: a visitor who opens #/room/XXXX and is already signed in with a
+  // complete profile should land straight in the lobby, no manual "Join" click needed - that
+  // click-free case is only possible here (LandingScreen has no session/profile to auto-act on
+  // yet when it first renders). A signed-out or not-yet-set-up visitor still needs a user gesture
+  // to establish who they are, so they fall through to LandingScreen's own invite-mode UI instead.
+  const autoJoinAttemptedFor = useRef<string | null>(null)
+  const [autoJoining, setAutoJoining] = useState(false)
+  const [autoJoinError, setAutoJoinError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (status !== 'connected' || sessionUsable || !urlCode) return
+    if (!authProfile || authProfile.username === null || authProfile.avatarId === null) return
+    if (autoJoinAttemptedFor.current === urlCode) return
+    autoJoinAttemptedFor.current = urlCode
+    setAutoJoining(true)
+    setAutoJoinError(null)
+    joinRoom(urlCode, authProfile.username, null).then((result) => {
+      setAutoJoining(false)
+      if (result.success && result.view && result.roomCode && result.playerToken) {
+        setSession({ roomCode: result.roomCode, playerToken: result.playerToken })
+        applyView(result.view)
+      } else {
+        setAutoJoinError(result.rejectionReason ?? t('landing.errorGeneric'))
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, sessionUsable, urlCode, authProfile])
+
   const roomLanguage = gameView?.language ?? view?.language ?? null
   useEffect(() => {
     if (roomLanguage) applyRoomLanguage(roomLanguage)
@@ -308,6 +348,19 @@ function App() {
       // Avoid flashing the signed-out landing screen before the silent-restore attempt resolves.
       return <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
     }
+    if (autoJoining) {
+      return (
+        <>
+          <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
+          <main className="landing paper-card">
+            <div className="landing-brand">
+              <h1>{t('app.title')}</h1>
+              <p className="landing-tagline">{t('landing.joiningRoom', { code: urlCode })}</p>
+            </div>
+          </main>
+        </>
+      )
+    }
     if (authProfile && (authProfile.username === null || authProfile.avatarId === null)) {
       return (
         <>
@@ -320,6 +373,7 @@ function App() {
       <>
         <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
         <LandingScreen />
+        <AnimatePresence>{autoJoinError && <Toast key="auto-join-error" message={autoJoinError} />}</AnimatePresence>
       </>
     )
   }

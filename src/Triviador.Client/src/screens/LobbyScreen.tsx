@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { setSeat, leaveRoom, startGame, kickPlayer } from '../api/commands'
 import { useGameStore } from '../store/gameStore'
 import { Toast } from '../components/Toast'
@@ -17,7 +17,8 @@ export function LobbyScreen() {
   const view = useGameStore((s) => s.view)
   const setSession = useGameStore((s) => s.setSession)
   const [startError, setStartError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
   const [kickTarget, setKickTarget] = useState<SeatDto | null>(null)
 
   if (!view) return null
@@ -63,8 +64,20 @@ export function LobbyScreen() {
   async function onCopyLink() {
     try {
       await navigator.clipboard.writeText(deepLink)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
+      setLinkCopied(true)
+      window.setTimeout(() => setLinkCopied(false), 2000)
+    } catch {
+      setStartError(t('common.copyFailed'))
+    }
+  }
+
+  const roomCode = view.roomCode
+
+  async function onCopyCode() {
+    try {
+      await navigator.clipboard.writeText(roomCode)
+      setCodeCopied(true)
+      window.setTimeout(() => setCodeCopied(false), 2000)
     } catch {
       setStartError(t('common.copyFailed'))
     }
@@ -73,11 +86,36 @@ export function LobbyScreen() {
   return (
     <main className="lobby paper-card">
       <h1>
-        {t('lobby.titleLabel')} <span className="room-code-value" data-testid="room-code">{view.roomCode}</span>
+        {t('lobby.titleLabel')}{' '}
+        <button
+          type="button"
+          className={codeCopied ? 'room-code-value copied' : 'room-code-value'}
+          onClick={() => void onCopyCode()}
+          title={t('lobby.copyCodeHint')}
+          aria-label={t('lobby.copyCodeAriaLabel', { code: view.roomCode })}
+          data-testid="room-code"
+        >
+          {view.roomCode}
+        </button>
+        <AnimatePresence>
+          {codeCopied && (
+            <motion.span
+              key="code-copied"
+              className="copy-feedback"
+              role="status"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              {t('common.copied')}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </h1>
       <div className="room-share">
         <button onClick={onCopyLink} data-testid="copy-link">
-          {copied ? t('common.copied') : t('lobby.copyInviteLink')}
+          {linkCopied ? t('common.copied') : t('lobby.copyInviteLink')}
         </button>
       </div>
       <ul className="seat-list">

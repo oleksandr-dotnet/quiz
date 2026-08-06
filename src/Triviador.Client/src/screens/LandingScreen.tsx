@@ -22,8 +22,14 @@ function urlRoomCode(): string | null {
 
 export function LandingScreen() {
   const { t, i18n } = useTranslation()
+  const inviteCode = urlRoomCode()
+  // A link opened via #/room/XXXX means the visitor is here to join one specific room, not browse
+  // the general landing options - create-room/play-vs-bots/manual-code-entry all just add friction
+  // to what should be a one-step "set an identity, land in the lobby" flow (see App.tsx's matching
+  // auto-join effect for the already-signed-in case, which skips this screen's form entirely).
+  const isInviteMode = inviteCode !== null
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('triviador.name') ?? '')
-  const [joinCode, setJoinCode] = useState(() => (urlRoomCode() ?? '').padEnd(4, ' ').split(''))
+  const [joinCode, setJoinCode] = useState(() => (inviteCode ?? '').padEnd(4, ' ').split(''))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [howToPlayOpen, setHowToPlayOpen] = useState(false)
@@ -133,33 +139,45 @@ export function LandingScreen() {
   return (
     <main className="landing paper-card">
       <div className="lamplight" aria-hidden="true" />
-      <div className="language-toggle" role="group" aria-label="Language" data-testid="language-toggle">
+      <div className="language-toggle" role="group" aria-label={t('landing.languageGroupLabel')} data-testid="language-toggle">
         <button
+          type="button"
           className={i18n.language === 'ru' ? 'language-option active' : 'language-option'}
           onClick={() => setLocalePreference('ru')}
+          title={t('landing.languageRussian')}
+          aria-label={t('landing.languageRussian')}
+          aria-pressed={i18n.language === 'ru'}
           data-testid="language-ru"
         >
-          {t('landing.languageRussian')}
+          <span aria-hidden="true">🇷🇺</span>
         </button>
         <button
+          type="button"
           className={i18n.language === 'en' ? 'language-option active' : 'language-option'}
           onClick={() => setLocalePreference('en')}
+          title={t('landing.languageEnglish')}
+          aria-label={t('landing.languageEnglish')}
+          aria-pressed={i18n.language === 'en'}
           data-testid="language-en"
         >
-          {t('landing.languageEnglish')}
+          <span aria-hidden="true">🇬🇧</span>
         </button>
       </div>
       <div className="landing-brand">
         <h1>{t('app.title')}</h1>
-        <p className="landing-tagline">{t('landing.tagline')}</p>
-        <button
-          type="button"
-          className="landing-how-to-play"
-          onClick={() => setHowToPlayOpen(true)}
-          data-testid="how-to-play-open"
-        >
-          {t('howToPlay.openButton')}
-        </button>
+        <p className="landing-tagline">
+          {isInviteMode ? t('landing.inviteTagline', { code: inviteCode }) : t('landing.tagline')}
+        </p>
+        {!isInviteMode && (
+          <button
+            type="button"
+            className="landing-how-to-play"
+            onClick={() => setHowToPlayOpen(true)}
+            data-testid="how-to-play-open"
+          >
+            {t('howToPlay.openButton')}
+          </button>
+        )}
       </div>
       {profile ? (
         <div className="signed-in-identity" data-testid="signed-in-identity">
@@ -180,42 +198,55 @@ export function LandingScreen() {
             placeholder={t('landing.namePlaceholder')}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
+            onKeyDown={(e) => {
+              if (isInviteMode && e.key === 'Enter') void onJoin()
+            }}
             maxLength={20}
             data-testid="display-name"
           />
           <GoogleSignInButton />
         </>
       )}
-      <div className="landing-actions">
-        <button className="primary" onClick={onCreate} disabled={busy} data-testid="create-room">
-          {t('landing.createRoom')}
-        </button>
-        <button onClick={onPlayVsBots} disabled={busy} data-testid="play-vs-bots">
-          {t('landing.playVsBots')}
-        </button>
-      </div>
-      <div className="landing-divider" role="presentation">
-        <span>{t('landing.orJoinExisting')}</span>
-      </div>
-      <div className="landing-join">
-        <div className="code-input" data-testid="join-code">
-          {joinCode.map((char, index) => (
-            <input
-              key={index}
-              ref={(el) => (codeInputRefs.current[index] = el)}
-              value={char.trim()}
-              maxLength={1}
-              onChange={(e) => onCodeCellChange(index, e.target.value)}
-              onKeyDown={(e) => onCodeCellKeyDown(index, e)}
-              onPaste={(e) => onCodeCellPaste(index, e)}
-              aria-label={t('landing.roomCodeCharAriaLabel', { n: index + 1 })}
-            />
-          ))}
+      {isInviteMode ? (
+        <div className="landing-actions">
+          <button className="primary" onClick={onJoin} disabled={busy} data-testid="join-room">
+            {t('landing.joinRoom', { code: inviteCode })}
+          </button>
         </div>
-        <button onClick={onJoin} disabled={busy} data-testid="join-room">
-          {t('landing.join')}
-        </button>
-      </div>
+      ) : (
+        <>
+          <div className="landing-actions">
+            <button className="primary" onClick={onCreate} disabled={busy} data-testid="create-room">
+              {t('landing.createRoom')}
+            </button>
+            <button onClick={onPlayVsBots} disabled={busy} data-testid="play-vs-bots">
+              {t('landing.playVsBots')}
+            </button>
+          </div>
+          <div className="landing-divider" role="presentation">
+            <span>{t('landing.orJoinExisting')}</span>
+          </div>
+          <div className="landing-join">
+            <div className="code-input" data-testid="join-code">
+              {joinCode.map((char, index) => (
+                <input
+                  key={index}
+                  ref={(el) => (codeInputRefs.current[index] = el)}
+                  value={char.trim()}
+                  maxLength={1}
+                  onChange={(e) => onCodeCellChange(index, e.target.value)}
+                  onKeyDown={(e) => onCodeCellKeyDown(index, e)}
+                  onPaste={(e) => onCodeCellPaste(index, e)}
+                  aria-label={t('landing.roomCodeCharAriaLabel', { n: index + 1 })}
+                />
+              ))}
+            </div>
+            <button onClick={onJoin} disabled={busy} data-testid="join-room">
+              {t('landing.join')}
+            </button>
+          </div>
+        </>
+      )}
       <AnimatePresence>{error && <Toast key="landing-error" message={error} />}</AnimatePresence>
       <HowToPlayModal open={howToPlayOpen} onClose={() => setHowToPlayOpen(false)} />
     </main>
