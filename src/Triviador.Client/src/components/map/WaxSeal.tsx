@@ -1,7 +1,6 @@
 import { motion } from 'motion/react'
+import { BASE_HIT_POINTS_DEFAULT as MAX_BASE_HIT_POINTS } from '../../lib/gameRules'
 import { SEAT_COLORS } from '../../lib/seats'
-
-const MAX_BASE_HIT_POINTS = 5 // matches GameRules.BaseHitPointsDefault
 
 export interface WaxSealProps {
   x: number

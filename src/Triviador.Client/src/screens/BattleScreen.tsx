@@ -7,6 +7,7 @@ import { QuestionCard } from '../components/QuestionCard'
 import { AnswerRoster } from '../components/AnswerRoster'
 import { RevealOverlay } from '../components/RevealOverlay'
 import { Timer } from '../components/Timer'
+import { BASE_HIT_POINTS_DEFAULT } from '../lib/gameRules'
 import { findPlayer, playerLabel, secondsRemaining } from '../lib/format'
 import { playAttackStarted } from '../lib/sound'
 import { TIMER_TOTALS_MS, questionTotalMs } from '../lib/timers'
@@ -41,7 +42,10 @@ function battleHeadline(view: GameView): string | null {
   const you = view.youPlayerId
   const youAreAttacker = battle.attackerPlayerId === you
   const youAreDefender = battle.defenderPlayerId === you
-  const hitIndex = battle.assaultQuestionIndex ?? 1
+  // assaultQuestionIndex is 0-based server-side (QuestionPurpose.BaseAssault's QuestionIndex starts
+  // at 0 for the first question of a chain and increments per win) - +1 so the headline reads "hit
+  // 1 of {{maxHitPoints}}" for that first question instead of the confusing "hit 0 of ...".
+  const hitIndex = (battle.assaultQuestionIndex ?? 0) + 1
 
   if (battle.kind === 'BaseAssault') {
     if (battle.attackerPlayerId === battle.defenderPlayerId) {
@@ -49,9 +53,10 @@ function battleHeadline(view: GameView): string | null {
         ? i18next.t('battle.headlineSelfHeal')
         : i18next.t('battle.headlineSelfHealOthers', { playerName: attackerName })
     }
-    if (youAreAttacker) return i18next.t('battle.headlineAssaultSelfAttack', { defenderName, hitIndex })
-    if (youAreDefender) return i18next.t('battle.headlineAssaultSelfDefend', { attackerName, hitIndex })
-    return i18next.t('battle.headlineAssaultOthers', { attackerName, defenderName, hitIndex })
+    const maxHitPoints = BASE_HIT_POINTS_DEFAULT
+    if (youAreAttacker) return i18next.t('battle.headlineAssaultSelfAttack', { defenderName, hitIndex, maxHitPoints })
+    if (youAreDefender) return i18next.t('battle.headlineAssaultSelfDefend', { attackerName, hitIndex, maxHitPoints })
+    return i18next.t('battle.headlineAssaultOthers', { attackerName, defenderName, hitIndex, maxHitPoints })
   }
 
   if (youAreAttacker) return i18next.t('battle.headlineDuelSelfAttack', { regionName, defenderName })

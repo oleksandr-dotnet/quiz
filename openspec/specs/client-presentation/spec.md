@@ -6,9 +6,7 @@ game rules), give every pending activity a visible actor/countdown/affordance, g
 change the player caused or suffered visible feedback, surface connection loss, and honour
 reduced-motion - so the UI never claims more knowledge than the server actually gave it and never
 leaves a player looking at a frozen or silently-stuck screen.
-
 ## Requirements
-
 ### Requirement: The client renders projected state only
 The client SHALL derive everything it displays from the server-projected `GameView` (and its
 predecessor snapshot for diffing) alone. It SHALL NOT re-derive game rules - such as base-pick
@@ -346,3 +344,20 @@ pending.
 #### Scenario: Reduced motion still conveys urgency
 - **WHEN** `prefers-reduced-motion: reduce` is active and the viewer's own base is under assault
 - **THEN** the client still visibly marks the base as under attack, without the animated pulse/shake
+
+### Requirement: The roster and battle headline show the true base hit-point maximum
+The client SHALL render exactly `GameRules.BaseHitPointsDefault` hit-point pips per base owner in the
+player roster, and any hit-count text (such as a base-assault turn's headline) SHALL state that same
+maximum and a 1-based question count within the current chain - never a value stale from an earlier
+balance change, and never the server's internal 0-based question index shown directly.
+
+#### Scenario: The roster shows one pip per point of the true maximum
+- **WHEN** the player roster renders a base owner's hit-point pips
+- **THEN** it renders exactly `GameRules.BaseHitPointsDefault` pips, with the leading
+  `player.baseHitPoints` of them filled and the rest hollow
+
+#### Scenario: A base-assault headline's stated maximum matches the real one
+- **WHEN** a base-assault question's headline reports "hit N of M"
+- **THEN** M equals `GameRules.BaseHitPointsDefault`, and N is 1 for the first question of the current
+  chain (not the server's 0-based internal index)
+

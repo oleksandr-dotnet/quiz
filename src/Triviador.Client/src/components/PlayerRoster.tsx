@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { GameView, PlayerView } from '../api/contracts'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { avatarGlyph } from '../lib/avatars'
+import { BASE_HIT_POINTS_DEFAULT } from '../lib/gameRules'
 import { playerDisplayName } from '../lib/format'
 import { SEAT_COLORS, hatchPatternIdFor } from '../lib/seats'
 import { Odometer } from './Odometer'
@@ -145,7 +146,7 @@ function PlayerCard({
       </span>
       {player.baseHitPoints !== null && !player.eliminated && (
         <span className="hit-points" aria-label={t('playerRoster.hitPointsAriaLabel', { hp: player.baseHitPoints })}>
-          {Array.from({ length: 3 }, (_, i) => (
+          {Array.from({ length: BASE_HIT_POINTS_DEFAULT }, (_, i) => (
             <span key={i} className={i < player.baseHitPoints! ? 'hp-pip filled' : 'hp-pip'} />
           ))}
         </span>
