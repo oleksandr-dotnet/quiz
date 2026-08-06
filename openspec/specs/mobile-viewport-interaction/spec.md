@@ -18,7 +18,10 @@ cue on whichever edge (top and/or bottom) still has more content to reveal, trac
 position rather than a static hint. A `Tip` (numeric) question SHALL offer exactly one submit
 control rather than duplicating submit affordances, since a redundant control costs vertical budget
 without adding capability. The per-player "who has answered" roster SHALL render fully visible,
-without needing the dock's scroll fallback, for a typical-length `Choice` question.
+without needing the dock's scroll fallback, for a typical-length `Choice` question. On a viewport
+tall enough that the laid-out content doesn't fill it while the map's row is collapsed (hidden
+during a question or reveal), the leftover vertical space SHALL be distributed above and below the
+content rather than left entirely below the dock.
 
 #### Scenario: The map shrinks to fit rather than the page growing
 - **WHEN** the combined natural height of the top bar, roster, and dock leaves less room than the
@@ -87,6 +90,17 @@ without needing the dock's scroll fallback, for a typical-length `Choice` questi
 #### Scenario: The fade cue tracks real scrolling, not a static hint
 - **WHEN** the viewer scrolls a dock that was showing a bottom fade, reaching the end of its content
 - **THEN** the bottom fade disappears and, if content above is now hidden, a top fade appears instead
+
+#### Scenario: Leftover space on a tall phone is split above and below, not dumped at the bottom
+- **WHEN** the map is hidden (a question or reveal is showing) on a phone viewport tall enough that
+  the top bar, roster, and dock don't fill it (for example OnePlus 13R's ~840px viewport)
+- **THEN** the leftover vertical space is distributed both above the top bar and below the dock,
+  rather than all of it collecting below the dock alone
+
+#### Scenario: A viewport where content already fills the shell is unaffected
+- **WHEN** the map is hidden on a viewport where the laid-out content already fills the available
+  height (for example iPhone 16's 659px viewport)
+- **THEN** the layout is unchanged, since there is no leftover space to redistribute
 
 ### Requirement: The map renders at a fixed, non-zoomable scale
 The client SHALL render the map at a fixed scale with no user-driven zoom or pan; a tap or click on
