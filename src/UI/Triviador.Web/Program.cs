@@ -17,7 +17,7 @@ using Triviador.Web.Realtime;
 // it even starts. This must be set before CreateBuilder reads its bootstrap config, so it can't
 // live in appsettings.json itself.
 Environment.SetEnvironmentVariable("DOTNET_hostBuilder__reloadConfigOnChange", "false");
-
+  
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
