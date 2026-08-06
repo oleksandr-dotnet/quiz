@@ -519,8 +519,17 @@
     display: none;
   }
 
+  /* With the map's row collapsed to 0, taller phones (e.g. OnePlus 13R's 840px viewport vs an
+     iPhone's 659-681px) are left with real leftover height below the dock - confirmed via a live
+     mobile audit: ~35-40% of the viewport sitting empty under the question card, making the layout
+     read as top-heavy/broken rather than deliberate. `center` (not the base rule's `start` above,
+     which exists to stop each row *stretching* to fill leftover space - see that rule's own
+     comment) doesn't stretch anything either, it only repositions the same fixed-height rows as a
+     block, splitting the leftover space above and below instead of dumping all of it at the
+     bottom. No-op on viewports where content already fills the shell (nothing left to center). */
   .app-shell:has(.shell-map.hide-mobile) {
     grid-template-rows: auto 0 auto auto;
+    align-content: center;
   }
 
   /* Land grab (unlike Battle) stacks its reveal above the *next* pick prompt by design on desktop
