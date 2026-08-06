@@ -541,6 +541,25 @@
   }
 }
 
+/* Short-landscape phones (this project's three real target devices held sideways: iPhone 16 at
+   734x343, iPhone 17 at 756x352, OnePlus 13R at ~840x421) squeeze .shell-map's flexible row far
+   below the ~190px "typical" height the 1.8x scale above targets - confirmed via live measurement
+   reaching Battle's target-selection state: with the roster/dock's own height roughly fixed
+   regardless of viewport height, the map row (the one flexible row) is left only ~78-117px tall on
+   these three, versus ~174px+ on the generic 430/450px-tall landscape examples used elsewhere in
+   this spec (932x430 in particular measured close to the ~190px baseline, needing no extra help) -
+   so this is scoped strictly to viewports shorter than that, not the whole existing breakpoint.
+   Left unaddressed, the 1.8x scale above produces hit-point pips only ~1.2-1.7px in diameter there
+   (measured), an indistinct dot well under the ~2.8px this same rule already produces - and was
+   accepted as legible - at portrait heights. A stronger, height-scoped multiplier restores
+   comparable legibility without touching the map's own layout, which would risk reopening scroll on
+   these already-tight viewports. */
+@media (max-height: 428px) {
+  .wax-seal-visual {
+    transform: scale(4.2);
+  }
+}
+
 /* ---------- Generic layout helpers ---------- */
 
 .landing,
