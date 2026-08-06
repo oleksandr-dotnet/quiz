@@ -605,6 +605,21 @@
   width: 100%;
 }
 
+/* Brass corner brackets - the entry cards' signature mark, echoing a ledger page's cut corners.
+   A single pseudo-element (::before is already .paper-card's torn top edge) built from four
+   stacked gradients rather than four separate DOM nodes. */
+.landing::after,
+.lobby::after {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  pointer-events: none;
+  background: linear-gradient(var(--gilt-500), var(--gilt-500)) top left / 20px 2px no-repeat,
+    linear-gradient(var(--gilt-500), var(--gilt-500)) top left / 2px 20px no-repeat,
+    linear-gradient(var(--gilt-500), var(--gilt-500)) bottom right / 20px 2px no-repeat,
+    linear-gradient(var(--gilt-500), var(--gilt-500)) bottom right / 2px 20px no-repeat;
+}
+
 .landing-brand {
   display: flex;
   flex-direction: column;
