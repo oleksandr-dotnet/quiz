@@ -124,7 +124,10 @@ export function AppShell({ topBar, map, dock, dockKey, roster, mapShaking, mapDa
   return (
     <div className="app-shell">
       <header className="shell-top-bar">{topBar}</header>
-      <div className={mapClassName}>{map}</div>
+      <div className="map-slot">
+        <div className="lamplight" aria-hidden="true" />
+        <div className={mapClassName}>{map}</div>
+      </div>
       <aside className="shell-roster">{roster}</aside>
       <div className="shell-dock" ref={dockRef}>
         <AnimatePresence mode="wait">

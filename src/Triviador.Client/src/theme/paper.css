@@ -1,10 +1,12 @@
-/* Full-viewport paper surface: a cream base, a data-URI feTurbulence grain layer (no image asset,
-   no network request), and a radial vignette so edges darken slightly. */
+/* Full-viewport table surface: a dark warm-walnut base, a data-URI feTurbulence grain layer (no
+   image asset, no network request) so it reads as a material rather than a flat fill, and a
+   radial vignette so edges darken further toward the corners. Paper/parchment (.paper-card, the
+   map) is a separate lit material that sits *on* this table - see .lamplight below. */
 body {
   position: relative;
   min-width: 320px;
   min-height: 100vh;
-  background-color: var(--paper-100);
+  background-color: var(--table-950);
 }
 
 body::before,
@@ -17,22 +19,30 @@ body::after {
 }
 
 body::before {
-  opacity: 0.05;
-  mix-blend-mode: multiply;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
   background-size: 220px 220px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 body::after {
-  background: radial-gradient(ellipse at center, transparent 55%, rgba(43, 35, 24, 0.16) 100%),
-    radial-gradient(ellipse 60% 45% at 50% 8%, var(--glow-gilt), transparent 70%);
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
 }
 
-/* A near-imperceptible breathing glow layered under the grain/vignette - the same single ::after
-   element just gains a slow opacity drift, so no new fixed-position element is added to every
-   screen. Deliberately subtle: a light hint of warmth near the top of the page, not a spotlight. */
+/* A scoped "lit object on the table" glow. Consumers position an element with this class behind
+   their hero surface (the landing/lobby card, the map) rather than relying on a page-wide tint -
+   each screen's hero gets its own lamplight instead of the whole page carrying one ambient hue.
+   Same breathing timing/opacity language the old page-wide glow used, just re-homed. */
+.lamplight {
+  position: absolute;
+  inset: -12% -8%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 65% 55% at 50% 38%, var(--glow-gilt), transparent 72%);
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  body::after {
+  .lamplight {
     animation: ambient-glow-breathe 14s ease-in-out infinite;
   }
 }
@@ -52,7 +62,10 @@ body::after {
   background: var(--paper-050);
   border: 1px solid var(--paper-300);
   border-radius: var(--r-md);
-  box-shadow: var(--shadow-card);
+  /* Deeper, warmer shadow than the old cream-on-cream version - on the dark table the card's edge
+     against the background already gives separation, so this shadow's job is to ground it (make
+     it read as resting on the table), not to create contrast by itself. */
+  box-shadow: 0 1px 0 var(--paper-300), 0 24px 48px -20px rgba(0, 0, 0, 0.75);
   padding: 1rem 1.25rem;
   /* A once-per-mount settle - a card that just appeared eases into place instead of popping in at
      full size, matching the same fade+rise language used elsewhere (banner-in, dock transitions). */

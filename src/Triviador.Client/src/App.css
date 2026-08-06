@@ -41,7 +41,7 @@
   align-items: center;
   gap: 0.75rem;
   font-family: var(--font-display);
-  color: var(--ink-700);
+  color: var(--table-ink-700);
   /* See .shell-roster's mobile min-width: 0 comment - every row shares one grid column at the
      mobile breakpoint, so any one row's content blowing out past the viewport would otherwise
      widen that shared column (and get clipped, not fitted) for every other row too. */
@@ -101,11 +101,11 @@
 
 .leave-game-button {
   background: none;
-  border: 1px solid var(--ink-500);
+  border: 1px solid var(--table-ink-500);
   border-radius: 4px;
   padding: 0.2rem 0.55rem;
   font-size: 0.8rem;
-  color: var(--ink-700);
+  color: var(--table-ink-700);
   cursor: pointer;
 }
 
@@ -136,12 +136,12 @@
 
 .menu-button {
   background: none;
-  border: 1px solid var(--ink-500);
+  border: 1px solid var(--table-ink-500);
   border-radius: var(--r-md);
   padding: 0.3rem 0.6rem;
   font-size: 1rem;
   line-height: 1;
-  color: var(--ink-700);
+  color: var(--table-ink-700);
   cursor: pointer;
 }
 
@@ -184,8 +184,12 @@
   color: var(--danger);
 }
 
-.shell-map {
+/* Positioning/sizing wrapper for the map - split out from .shell-map so a .lamplight glow can sit
+   behind the map's own card chrome (background/border-radius/overflow/shadow), bleeding past its
+   edges onto the dark table rather than being clipped by .shell-map's own overflow:hidden. */
+.map-slot {
   grid-area: map;
+  position: relative;
   min-width: 0;
   /* A grid item stretches to fill its row's track by default; the map's own aspect-ratio height
      is always narrower than that, which otherwise leaves a blank gap below the map before the
@@ -195,25 +199,38 @@
      row - see the mobile breakpoint below) - under desktop's auto-sized row this resolves to the
      content's own intrinsic height, a no-op. */
   height: 100%;
+}
+
+.shell-map {
+  height: 100%;
+  width: 100%;
   background: var(--sea);
   border-radius: var(--r-lg);
   overflow: hidden;
+  /* Grounds the map as an object resting on the table, same language as .paper-card's shadow. */
+  box-shadow: 0 20px 44px -18px rgba(0, 0, 0, 0.7);
 }
 
 /* Desktop only (mobile's own max-height:100dvh cap + flexible map row already fits the viewport
-   on its own terms - see the max-width:900px block below). Capping the map's height here keeps it
-   compact and near the top of the shell instead of ballooning to whatever its native aspect ratio
-   demands at wide viewports, which is what was pushing the dock (and a vertically-stacked answer
-   list in particular) down past the fold. The SVG's own preserveAspectRatio letterboxes into the
-   shorter box, and the sea background above fills the letterbox bars seamlessly. */
+   on its own terms - see the max-width:900px block below). The map is the game's hero here - this
+   cap is generous enough that it fills most of the shell's height instead of leaving the dark
+   table mostly bare above/below a small letterboxed rectangle, while still leaving room for the
+   dock beneath it. The SVG's own preserveAspectRatio letterboxes into the box's own ratio, and the
+   sea background above fills the letterbox bars seamlessly. */
 @media (min-width: 901px) {
-  .shell-map {
-    max-height: clamp(13rem, 27vh, 23rem);
+  .map-slot {
+    max-height: clamp(20rem, 50vh, 38rem);
   }
 }
 
 .shell-roster {
   grid-area: roster;
+  /* A slim brass-edged rail holding the roster tiles, rather than another parchment block
+     competing with the map - table-800 reads as part of the table's own furniture, not a card. */
+  background: var(--table-800);
+  border: 1px solid var(--table-panel-border);
+  border-radius: var(--r-lg);
+  padding: 0.5rem;
 }
 
 .shell-dock {
@@ -303,7 +320,7 @@
      purely an upper bound - height: 100% (below) still lets the item shrink under this whenever the
      row's actual leftover space is smaller, e.g. a tall question dock, which is what keeps the map
      from ever pushing the dock past the viewport on a short landscape phone. */
-  .shell-map {
+  .map-slot {
     max-height: clamp(9rem, 50vw, 16rem);
   }
 
@@ -366,6 +383,9 @@
        min-width: 0 on the grid item itself is what allows the column, and everything inside it, to
        actually shrink down to the viewport's width. */
     min-width: 0;
+    /* The rail's own padding (App.css's .shell-roster base rule) is desktop-generous - halved here
+       so it doesn't eat into the tight mobile dock height budget documented throughout this file. */
+    padding: 0.3rem;
   }
 
   .shell-roster .player-roster {
@@ -595,7 +615,8 @@
 }
 
 .landing h1 {
-  font-size: 3rem;
+  font-size: clamp(3rem, 2.5rem + 2.2vw, 4.5rem);
+  font-weight: 700;
   letter-spacing: 0.01em;
 }
 
@@ -833,6 +854,9 @@
 
 .battle-headline {
   margin: 0 0 0.6rem;
+  /* .turn-banner's own ink-700 (fine inside a .paper-card) is too dark here: this specific
+     instance renders bare at the top of .battle-dock, directly on the table. */
+  color: var(--table-ink-700);
 }
 
 /* ---------- Lobby ---------- */
@@ -1327,7 +1351,8 @@
   margin: 0;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--ink-700);
+  /* Renders bare on the table (this list sits directly in the dock, not inside a .paper-card). */
+  color: var(--table-ink-700);
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -1382,8 +1407,11 @@
 
 .answer-stamp.answered {
   border-color: var(--seat-2);
-  background: rgba(63, 107, 67, 0.14);
-  color: var(--ink-900);
+  /* Was a light 0.14-alpha tint (fine over the old cream page) - bare on the dark table that same
+     tint reads as a barely-there dark smudge, so this is now a near-opaque fill with light text
+     instead, matching .stamp-mark's own filled state below. */
+  background: rgba(72, 142, 78, 0.88);
+  color: var(--paper-050);
   font-weight: 600;
 }
 
@@ -1535,6 +1563,10 @@
   border-radius: var(--r-md);
   border: 1px solid var(--paper-300);
   background: var(--paper-050);
+  /* Explicit, not inherited: this card renders both inside a .paper-card (Lobby) and bare on the
+     dark table (the in-game roster rail, Results) - it always has its own cream background, so it
+     always needs dark ink text regardless of what surrounds it. */
+  color: var(--ink-900);
   transition: filter var(--dur-mid) var(--ease-paper), opacity var(--dur-mid) var(--ease-paper);
 }
 
@@ -1767,7 +1799,9 @@
   z-index: 1;
   font-size: 1.6rem;
   text-align: center;
-  background: linear-gradient(100deg, var(--ink-900) 40%, var(--gilt-500) 50%, var(--ink-900) 60%);
+  /* Bare on the table (the results dock has no .paper-card wrapper) - table-ink-900 in place of
+     the old ink-900 so the shimmer reads light-to-gold-to-light instead of vanishing into black. */
+  background: linear-gradient(100deg, var(--table-ink-900) 40%, var(--gilt-500) 50%, var(--table-ink-900) 60%);
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;

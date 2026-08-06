@@ -1,5 +1,16 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
+
+  /* table - the dark canvas the parchment map/cards sit on. Paper/ink below stays a separate
+     material used for the map surface and .paper-card, never the page body. */
+  --table-950: #14100a;
+  --table-800: #241c12;
+  --table-panel-border: rgba(181, 138, 43, 0.35);
+
+  /* text that sits directly on --table-*, not on paper */
+  --table-ink-900: #f2e9d6;
+  --table-ink-700: #cdbf9c;
+  --table-ink-500: #93856a;
 
   /* paper */
   --paper-050: #faf6ea;
@@ -9,27 +20,31 @@
   --paper-400: #cbb68c;
   --sea: #dcd3bd;
 
-  /* ink */
+  /* ink - text on paper surfaces only (map, .paper-card) */
   --ink-900: #2b2318;
   --ink-700: #463823;
   --ink-500: #6d5c40;
   --ink-300: #9c8a68;
   --ink-200: #bfae8c;
 
-  /* gilt (focus, active turn, victory) */
+  /* gilt/brass (focus, active turn, victory, panel framing) */
   --gilt-600: #9c7420;
   --gilt-500: #b58a2b;
   --gilt-300: #d9b45a;
 
-  /* heraldic seats - muted so they sit on cream, not on black */
-  --seat-0: #a8332c; /* gules - crimson */
-  --seat-1: #2f4a7a; /* azure - indigo  */
-  --seat-2: #3f6b43; /* vert  - forest  */
-  --seat-3: #8c621a; /* or    - ochre (darkened for 4.5:1 text contrast on paper-050) */
-  --wax: #8f2b22;
+  /* heraldic seats - brightened ~8-10% lightness / ~5-7% saturation off the original cream-tuned
+     values so the swatch/border/roster use of these colors clears a comfortable ratio against
+     --table-950/--table-800. In-map uses (hatch fills, region text) stay on the parchment map
+     surface and are unaffected by this bump; treat these as 3:1 graphical-element colors on dark,
+     not verified for small body text at 4.5:1 - lighten further at the call site if that's needed. */
+  --seat-0: #d4382f; /* gules - crimson */
+  --seat-1: #345ca3; /* azure - indigo  */
+  --seat-2: #488e4e; /* vert  - forest  */
+  --seat-3: #b87e1c; /* or    - ochre   */
+  --wax: #a92d22;
 
   --unclaimed: var(--paper-200);
-  --danger: #a8332c;
+  --danger: #d4382f;
 
   --r-sm: 4px;
   --r-md: 8px;

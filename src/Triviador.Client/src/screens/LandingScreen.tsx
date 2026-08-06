@@ -132,6 +132,7 @@ export function LandingScreen() {
 
   return (
     <main className="landing paper-card">
+      <div className="lamplight" aria-hidden="true" />
       <div className="language-toggle" role="group" aria-label="Language" data-testid="language-toggle">
         <button
           className={i18n.language === 'ru' ? 'language-option active' : 'language-option'}
