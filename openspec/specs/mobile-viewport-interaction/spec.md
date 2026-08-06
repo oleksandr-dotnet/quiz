@@ -138,6 +138,12 @@ viewport widths this breakpoint covers.
 - **THEN** the name truncates with an ellipsis and the seat's action button (fill-with-bot/open
   seat) remains fully visible within the row
 
+#### Scenario: A long unbroken signed-in username truncates instead of displacing "Sign out"
+- **WHEN** the landing screen's signed-in-identity row shows a long, unbroken (no-space) account
+  username on a narrow phone viewport
+- **THEN** the username text truncates with an ellipsis, the "Sign out" control remains fully
+  visible within the row, and no document-level horizontal scroll is introduced
+
 ### Requirement: Landing and Lobby remain scrollable when their content exceeds the viewport
 The client SHALL NOT apply the in-game fitted-viewport's document-level scroll lockout to the
 landing screen or the lobby screen — neither renders the gameplay shell the lockout exists to

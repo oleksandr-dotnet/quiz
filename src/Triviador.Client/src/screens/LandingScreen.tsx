@@ -163,8 +163,13 @@ export function LandingScreen() {
       {profile ? (
         <div className="signed-in-identity" data-testid="signed-in-identity">
           <span className="player-avatar">{avatarGlyph(profile.avatarId)}</span>
-          <span>{t('landing.signedInAs', { username: profile.username })}</span>
-          <button type="button" className="landing-how-to-play" onClick={() => void signOut()} data-testid="sign-out">
+          <span className="signed-in-name">{t('landing.signedInAs', { username: profile.username })}</span>
+          <button
+            type="button"
+            className="landing-how-to-play signed-in-signout"
+            onClick={() => void signOut()}
+            data-testid="sign-out"
+          >
             {t('landing.signOut')}
           </button>
         </div>

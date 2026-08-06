@@ -726,11 +726,29 @@
   margin-bottom: 0.25rem;
 }
 
+/* width: 100% is load-bearing here: .landing is a column flex container with align-items: center,
+   which sizes flex children to their own content width rather than stretching them - without an
+   explicit width this row would grow to fit an unbroken long username (no spaces to wrap on) and
+   overflow the viewport horizontally, pushing "Sign out" out of reach. Same failure mode .seat-name
+   guards against above. */
 .signed-in-identity {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 1.1rem;
+  width: 100%;
+}
+
+.signed-in-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signed-in-signout {
+  flex: 0 0 auto;
 }
 
 .landing-divider {
