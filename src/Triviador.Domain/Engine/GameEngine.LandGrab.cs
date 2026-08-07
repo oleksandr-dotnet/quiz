@@ -91,7 +91,17 @@ public sealed partial class GameEngine
         {
             var player = PlayerById(participantId);
             var ranked = result.Rankings.First(r => r.Player == participantId);
-            var answeredCorrectly = ranked.Score is { Tier: 0, Penalty: 0 };
+
+            // A numeric (Tip) question with more than one participant is won by whoever is closest,
+            // not by whoever happened to guess the exact value - an exact match is rare, and losing
+            // the streak over it would defeat the point of rewarding a won duel/assault/land-grab
+            // round. The single-participant case is always a self-heal, where Rank is trivially 1
+            // regardless of correctness, so it keeps the exact-match bar instead - matching
+            // self-heal's own healing criterion, so a failed heal doesn't quietly keep the streak
+            // alive.
+            var answeredCorrectly = result.Question.Prompt.Kind == QuestionKind.Tip && participants.Length > 1
+                ? ranked.Rank == 1
+                : ranked.Score is { Tier: 0, Penalty: 0 };
 
             if (!answeredCorrectly)
             {

@@ -1479,9 +1479,21 @@
   cursor: pointer;
 }
 
+/* The base `input {}` rule (index.css) styles every input as a full text-field plate - padding,
+   border, inset shadow - and `.lobby input { width: 100% }` (App.css, above) stretches every input
+   in this screen to fill its container, both meant for the name/room-code text fields. A checkbox
+   inheriting either turns into a full-width, oddly-padded bar that leaves this row's text almost no
+   space, forcing it into a near-zero-width wrapped column. Reset every base-input property back to a
+   normal small checkbox and give it an intrinsic, non-stretching size instead. */
 .game-settings-toggle input[type='checkbox'] {
-  margin-top: 0.2em;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0.15em 0 0;
+  padding: 0;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+  accent-color: var(--gilt-600);
 }
 
 .game-settings-toggle input[type='checkbox']:disabled {
@@ -1490,8 +1502,10 @@
 
 .game-settings-toggle span {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 0.1rem;
+  min-width: 0;
 }
 
 .game-settings-toggle small {
@@ -2022,6 +2036,58 @@
 .category-ban-submit {
   width: 100%;
   margin-bottom: 0.75rem;
+}
+
+/* Floating, non-blocking announcement of the draft's outcome (CategoryBanResultPopup) - deliberately
+   NOT a fixed full-screen overlay, since it appears the instant base selection (a live,
+   time-limited activity) begins and must never sit on top of the map intercepting clicks. */
+.category-ban-result-popup {
+  position: fixed;
+  top: 4.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 1rem 1.25rem;
+  text-align: center;
+}
+
+.category-ban-result-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--paper-100);
+  color: var(--ink-500);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.category-ban-result-title {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+}
+
+.category-ban-result-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 0.7rem;
+  font-size: 0.92rem;
+  color: var(--ink-700);
+}
+
+.category-ban-result-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 /* Persistent little indicator in the top bar for the rest of the game, once the draft has

@@ -186,6 +186,8 @@
   "categoryBan.submitWithCount": "Propose {{count}} for banning",
   "categoryBan.submitNone": "Propose none",
   "categoryBan.bannedTooltip": "Banned this game: {{categories}}",
+  "categoryBan.resultTitle": "Banned for this game",
+  "common.dismiss": "Dismiss",
   "categoryBan.category.geography": "Geography",
   "categoryBan.category.history": "History",
   "categoryBan.category.science": "Science",

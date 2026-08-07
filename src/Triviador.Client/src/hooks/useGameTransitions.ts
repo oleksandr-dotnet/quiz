@@ -12,6 +12,7 @@ export type GameTransition =
   | { kind: 'scoreDelta'; playerId: string; delta: number }
   | { kind: 'baseAssaultScoreAdjusted'; winnerPlayerId: string; loserPlayerId: string }
   | { kind: 'duelDefenseScoreAwarded'; defenderPlayerId: string; attackerPlayerId: string }
+  | { kind: 'categoryBansResolved'; categories: string[] }
 
 // Derives what changed between two consecutive server snapshots. The server broadcasts only full
 // snapshots (no event/delta channel - see design.md), so this is the only way the client learns
@@ -29,6 +30,12 @@ export function useGameTransitions(current: GameView | null, previous: GameView 
     }
     if (current.currentRound > previous.currentRound) {
       transitions.push({ kind: 'roundAdvanced', round: current.currentRound })
+    }
+    // The draft phase always hands off straight into BaseSelection the instant it resolves (see
+    // category-ban-draft), so "just left CategoryBan" is exactly "the draft just resolved" - a
+    // precise, one-shot signal independent of whether the resulting set happens to be non-empty.
+    if (previous.phase === 'CategoryBan' && current.phase !== 'CategoryBan' && current.bannedCategories.length > 0) {
+      transitions.push({ kind: 'categoryBansResolved', categories: current.bannedCategories })
     }
 
     const prevPlayers = new Map(previous.players.map((p) => [p.playerId, p]))
