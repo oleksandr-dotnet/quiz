@@ -27,4 +27,9 @@ public sealed class PlayerState
     // BaseAssaultScoreBonus in magnitude. Folded into GameState.ScoreOf alongside territory value;
     // never derived, since there is no region to derive it from.
     public int BonusScore { get; internal set; }
+
+    // Consecutive correct answers across the whole game, any question type (land grab, duel, base
+    // assault, self-heal, numeric tiebreak). Resets to 0 on any incorrect answer or timeout. Drives
+    // GameRules.AnswerStreakBonusPerStreak's scaling BonusScore award - see answer-streaks.
+    public int AnswerStreak { get; internal set; }
 }

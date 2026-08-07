@@ -30,7 +30,7 @@ public sealed partial class GameEngine
 
     private ImmutableArray<IGameEvent> AskLandGrabQuestion(ImmutableArray<PlayerId> participants, int deadRoundCount, Instant at)
     {
-        var question = _questions.Draw(new QuestionDraw(QuestionKindRequest.Any));
+        var question = _questions.Draw(new QuestionDraw(QuestionKindRequest.Any, _state.BannedCategories));
         var tieBreak = TieBreakOrder.Shuffled(participants, _random);
         var token = _state.IssueActivityToken();
         var durationSeconds = question.Prompt.Kind == QuestionKind.Choice
@@ -38,12 +38,84 @@ public sealed partial class GameEngine
             : _state.Rules.TipQuestionDurationSeconds;
         var deadline = at.Add(TimeSpan.FromSeconds(durationSeconds));
         var purpose = new QuestionPurpose.LandGrab(deadRoundCount);
+        var isGolden = RollGolden();
 
         _state.Pending = new PendingActivity.Question(
             token, deadline, at, question, purpose, participants,
-            ImmutableDictionary<PlayerId, AnswerSubmission>.Empty, tieBreak);
+            ImmutableDictionary<PlayerId, AnswerSubmission>.Empty, tieBreak, isGolden);
 
         return ImmutableArray.Create<IGameEvent>(new QuestionAsked(token, question.Prompt, purpose, participants, deadline));
+    }
+
+    // golden-question's per-game budget/cooldown scheduler: fires a seeded, probabilistic decision
+    // once the minimum cooldown of non-golden questions has elapsed, so golden questions land spread
+    // out rather than clustered or metronomically regular. A NumericTiebreak question never calls
+    // this - it always inherits its Original's flag instead (see AskBattleQuestion).
+    private const int GoldenFireChancePercent = 35;
+
+    private bool RollGolden()
+    {
+        if (!_state.Rules.EnableGoldenQuestion || _state.GoldenQuestionBudget <= 0)
+        {
+            return false;
+        }
+
+        _state.QuestionsSinceLastGolden += 1;
+        if (_state.QuestionsSinceLastGolden <= _state.Rules.GoldenQuestionCooldownQuestions)
+        {
+            return false;
+        }
+
+        if (_random.NextInt(0, 100) >= GoldenFireChancePercent)
+        {
+            return false;
+        }
+
+        _state.GoldenQuestionBudget -= 1;
+        _state.QuestionsSinceLastGolden = 0;
+        return true;
+    }
+
+    // Shared by every question-resolution point (land grab, duel, base assault, self-heal, numeric
+    // tiebreak) - answer-streaks' single hook. A no-op array when the feature is disabled.
+    private ImmutableArray<IGameEvent> ApplyAnswerStreaks(
+        ImmutableArray<PlayerId> participants, QuestionResult result, bool isGolden)
+    {
+        if (!_state.Rules.EnableAnswerStreaks)
+        {
+            return ImmutableArray<IGameEvent>.Empty;
+        }
+
+        var events = ImmutableArray.CreateBuilder<IGameEvent>();
+        foreach (var participantId in participants)
+        {
+            var player = PlayerById(participantId);
+            var ranked = result.Rankings.First(r => r.Player == participantId);
+            var answeredCorrectly = ranked.Score is { Tier: 0, Penalty: 0 };
+
+            if (!answeredCorrectly)
+            {
+                player.AnswerStreak = 0;
+                continue;
+            }
+
+            var priorStreak = player.AnswerStreak;
+            player.AnswerStreak = priorStreak + 1;
+
+            var bonus = priorStreak * _state.Rules.AnswerStreakBonusPerStreak;
+            if (isGolden)
+            {
+                bonus *= 2;
+            }
+
+            if (bonus > 0)
+            {
+                player.BonusScore += bonus;
+                events.Add(new StreakBonusAwarded(participantId, player.AnswerStreak, bonus));
+            }
+        }
+
+        return events.ToImmutable();
     }
 
     private CommandResult ExecuteSubmitAnswer(SubmitAnswer command)
@@ -110,11 +182,17 @@ public sealed partial class GameEngine
 
         var events = ImmutableArray.CreateBuilder<IGameEvent>();
         events.Add(new QuestionResolved(result));
+        if (pending.IsGolden)
+        {
+            events.Add(new GoldenQuestionRevealed(pending.Token));
+        }
 
         switch (pending.Purpose)
         {
             case QuestionPurpose.LandGrab landGrab:
             {
+                events.AddRange(ApplyAnswerStreaks(pending.Participants, result, pending.IsGolden));
+
                 var allSilent = submissions.All(s => s.Answer is AnswerValue.None);
                 if (allSilent)
                 {
@@ -122,7 +200,7 @@ public sealed partial class GameEngine
                     if (nextDeadRoundCount >= _state.Rules.LandGrabDeadRoundThreshold)
                     {
                         var shuffled = _random.Shuffle(pending.Participants);
-                        events.AddRange(StartAwardQueue(shuffled, at));
+                        events.AddRange(StartAwardQueue(shuffled, at, pending.IsGolden));
                     }
                     else
                     {
@@ -132,7 +210,7 @@ public sealed partial class GameEngine
                 else
                 {
                     var orderedByRank = result.Rankings.OrderBy(r => r.Rank).Select(r => r.Player).ToImmutableArray();
-                    events.AddRange(StartAwardQueue(orderedByRank, at));
+                    events.AddRange(StartAwardQueue(orderedByRank, at, pending.IsGolden));
                 }
 
                 break;
@@ -149,7 +227,7 @@ public sealed partial class GameEngine
                 // Original purpose would have applied.
                 var revealToken = _state.IssueActivityToken();
                 var revealDeadline = at.Add(TimeSpan.FromSeconds(_state.Rules.RevealHoldDurationSeconds));
-                _state.Pending = new PendingActivity.RevealHold(revealToken, revealDeadline, result, pending.Purpose);
+                _state.Pending = new PendingActivity.RevealHold(revealToken, revealDeadline, result, pending.Purpose, pending.IsGolden);
                 events.Add(new RevealHoldStarted(revealToken, result, revealDeadline));
                 break;
             }
@@ -158,16 +236,19 @@ public sealed partial class GameEngine
         return events.ToImmutable();
     }
 
-    private ImmutableArray<PlayerId> BuildAwardQueue(ImmutableArray<PlayerId> orderedByRank)
+    // golden-question doubles the award-queue pick counts (4/2 instead of 2/1) for a golden land-grab
+    // question's ranking - see golden-question's "doubles the award queue" scenario.
+    private ImmutableArray<PlayerId> BuildAwardQueue(ImmutableArray<PlayerId> orderedByRank, bool golden)
     {
+        var multiplier = golden ? 2 : 1;
         var columns = new List<PlayerId>();
-        var maxPicks = AwardPicksByRank.Max();
+        var maxPicks = AwardPicksByRank.Max() * multiplier;
 
         for (var column = 0; column < maxPicks; column++)
         {
             for (var rankIndex = 0; rankIndex < orderedByRank.Length; rankIndex++)
             {
-                var picks = rankIndex < AwardPicksByRank.Length ? AwardPicksByRank[rankIndex] : 0;
+                var picks = (rankIndex < AwardPicksByRank.Length ? AwardPicksByRank[rankIndex] : 0) * multiplier;
                 if (picks > column)
                 {
                     columns.Add(orderedByRank[rankIndex]);
@@ -179,9 +260,9 @@ public sealed partial class GameEngine
         return columns.Take(freeRegionCount).ToImmutableArray();
     }
 
-    private ImmutableArray<IGameEvent> StartAwardQueue(ImmutableArray<PlayerId> orderedByRank, Instant at)
+    private ImmutableArray<IGameEvent> StartAwardQueue(ImmutableArray<PlayerId> orderedByRank, Instant at, bool golden)
     {
-        var queue = BuildAwardQueue(orderedByRank);
+        var queue = BuildAwardQueue(orderedByRank, golden);
         if (queue.IsEmpty)
         {
             return CompleteLandGrab(at);

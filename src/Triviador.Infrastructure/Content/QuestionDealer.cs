@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Microsoft.Extensions.Logging;
 using Triviador.Application.Content;
 using Triviador.Domain.Abstractions;
+using Triviador.Domain.Primitives;
 using Triviador.Domain.Questions;
 using Triviador.Domain.State;
 
@@ -42,9 +43,19 @@ public sealed class QuestionDealer : IQuestionSource
         };
 
         return kind == QuestionKind.Choice
-            ? ShuffleOptions(PopFrom(_choiceBag, _allChoice))
-            : PopFrom(_tipBag, _allTip);
+            ? ShuffleOptions(PopFrom(_choiceBag, _allChoice, draw.ExcludedCategories))
+            : PopFrom(_tipBag, _allTip, draw.ExcludedCategories);
     }
+
+    // The canonical category set is whatever this content actually contains, sorted ordinally for a
+    // stable, deterministic order - see category-ban-draft's "not a duplicated literal list"
+    // requirement.
+    public ImmutableArray<CategoryId> AvailableCategories() =>
+        _allChoice.Concat(_allTip)
+            .Select(q => q.Category)
+            .Distinct()
+            .OrderBy(c => c.Value, StringComparer.Ordinal)
+            .ToImmutableArray();
 
     // The question bank stores the correct option at a fixed (usually first) index, so it must be
     // shuffled per draw or the UI would always show the answer in the same spot.
@@ -90,7 +101,7 @@ public sealed class QuestionDealer : IQuestionSource
         return _random.Next(choiceCount + tipCount) < choiceCount ? QuestionKind.Choice : QuestionKind.Tip;
     }
 
-    private Question PopFrom(Queue<Question> bag, ImmutableArray<Question> all)
+    private Question PopFrom(Queue<Question> bag, ImmutableArray<Question> all, ImmutableHashSet<CategoryId> excluded)
     {
         if (bag.Count == 0)
         {
@@ -99,6 +110,38 @@ public sealed class QuestionDealer : IQuestionSource
             {
                 bag.Enqueue(q);
             }
+        }
+
+        if (excluded.IsEmpty)
+        {
+            return bag.Dequeue();
+        }
+
+        // Pop-and-requeue: skip excluded-category entries without disturbing the bag's remaining
+        // draw order for anyone calling without exclusions later.
+        var skipped = new List<Question>();
+        while (bag.Count > 0)
+        {
+            var candidate = bag.Dequeue();
+            if (!excluded.Contains(candidate.Category))
+            {
+                foreach (var s in skipped)
+                {
+                    bag.Enqueue(s);
+                }
+                return candidate;
+            }
+            skipped.Add(candidate);
+        }
+
+        // Every remaining bag entry was excluded - reshuffle from the full eligible pool. Falls back
+        // to the unfiltered pool only if every category of this kind were somehow banned at once,
+        // which category-ban-draft's player-count-bounded ban count should never actually produce.
+        var eligible = all.Where(q => !excluded.Contains(q.Category)).ToImmutableArray();
+        var source = eligible.IsEmpty ? all : eligible;
+        foreach (var q in Shuffle(source))
+        {
+            bag.Enqueue(q);
         }
 
         return bag.Dequeue();

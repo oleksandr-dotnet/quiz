@@ -7,7 +7,8 @@ public sealed record RoomViewDto(
     Guid YouPlayerId,
     bool YouAreHost,
     IReadOnlyList<SeatDto> Seats,
-    Language Language);
+    Language Language,
+    GameSettingsDto GameSettings);
 
 public sealed record SeatDto(
     int SeatIndex,
@@ -17,3 +18,13 @@ public sealed record SeatDto(
     bool IsBot,
     bool IsConnected,
     bool IsHost);
+
+/// The three host-toggleable mechanics (see answer-streaks, category-ban-draft, golden-question),
+/// all default enabled. Visible to every seated player pre-start; only the host can change them.
+public sealed record GameSettingsDto(
+    bool EnableAnswerStreaks,
+    bool EnableCategoryBanDraft,
+    bool EnableGoldenQuestion)
+{
+    public static readonly GameSettingsDto Default = new(true, true, true);
+}

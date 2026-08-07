@@ -41,6 +41,19 @@ public sealed record ViewRequest(Guid PlayerId, TaskCompletionSource<RoomViewDto
 
 public sealed record ShutdownRequest(TaskCompletionSource Done) : RoomMessage;
 
+/// Host-only, Lobby-only. Never reaches the domain engine directly - identical in spirit to
+/// SetSeatRequest: purely RoomActor-level lobby state that GameRules is built from once StartGame
+/// runs. See game-setup-rules' "three gameplay mechanics are independently host-configurable".
+public sealed record SetGameSettingsRequest(
+    Guid RequestingPlayerId,
+    bool EnableAnswerStreaks,
+    bool EnableCategoryBanDraft,
+    bool EnableGoldenQuestion,
+    TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
+public sealed record ProposeCategoryBansRequest(
+    Guid RequestingPlayerId, IReadOnlyList<string> CategoryIds, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
 public sealed record StartGameRequest(Guid RequestingPlayerId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
 
 public sealed record SelectBaseRequest(

@@ -27,7 +27,9 @@ public sealed record GameViewDto(
     PendingBasePickViewDto? PendingBasePick,
     BattleContextDto? Battle,
     Language Language,
-    int RoundLimit);
+    int RoundLimit,
+    PendingCategoryBanViewDto? PendingCategoryBan,
+    IReadOnlyList<string> BannedCategories);
 
 public sealed record RegionViewDto(
     string RegionId, string Name, int Value, double CenterX, double CenterY, double Radius,
@@ -45,7 +47,17 @@ public sealed record PlayerViewDto(
     int Score,
     bool Eliminated,
     int? BaseHitPoints,
-    bool Withdrawn);
+    bool Withdrawn,
+    int AnswerStreak);
+
+/// Mirrors PendingQuestionViewDto's shape: HasSubmitted never reveals another player's proposed
+/// categories before the draft resolves (see category-ban-draft's "in-flight proposals stay
+/// private"), YourProposal echoes only the viewer's own submission back.
+public sealed record PendingCategoryBanViewDto(
+    IReadOnlyList<string> AvailableCategories,
+    IReadOnlyDictionary<string, bool> HasSubmitted,
+    IReadOnlyList<string>? YourProposal,
+    DateTimeOffset Deadline);
 
 /// Mirrors PendingRegionPickViewDto's shape for the one pending-activity kind that didn't already
 /// project an eligible set: base picking. CurrentPickerPlayerId/DeadlineUtc/YouAreCurrentPicker stay
@@ -107,7 +119,8 @@ public sealed record RevealedAnswerDto(Guid PlayerId, AnswerValueDto Answer, int
 public sealed record LastRevealDto(
     QuestionPromptDto Prompt,
     AnswerValueDto CorrectAnswer,
-    IReadOnlyList<RevealedAnswerDto> Answers);
+    IReadOnlyList<RevealedAnswerDto> Answers,
+    bool IsGolden);
 
 public sealed record PendingAttackTargetViewDto(
     Guid CurrentAttackerPlayerId,
@@ -121,6 +134,7 @@ public sealed record PendingRevealViewDto(
     QuestionPromptDto Prompt,
     AnswerValueDto CorrectAnswer,
     IReadOnlyList<RevealedAnswerDto> Answers,
-    DateTimeOffset Deadline);
+    DateTimeOffset Deadline,
+    bool IsGolden);
 
 public sealed record GameOutcomeDto(IReadOnlyList<Guid> WinnerPlayerIds);

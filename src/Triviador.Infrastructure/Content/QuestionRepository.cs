@@ -173,7 +173,8 @@ public sealed class QuestionRepository : IQuestionRepository
             builder.Add(new Question(
                 new QuestionPrompt(new QuestionId(q.Id), QuestionKind.Choice, text, options, null),
                 q.CorrectOptionIndex,
-                null));
+                null,
+                new CategoryId(q.Category)));
         }
 
         foreach (var q in _tip)
@@ -183,7 +184,8 @@ public sealed class QuestionRepository : IQuestionRepository
             builder.Add(new Question(
                 new QuestionPrompt(new QuestionId(q.Id), QuestionKind.Tip, text, ImmutableArray<string>.Empty, unit),
                 null,
-                q.CorrectNumericValue));
+                q.CorrectNumericValue,
+                new CategoryId(q.Category)));
         }
 
         return builder.MoveToImmutable();

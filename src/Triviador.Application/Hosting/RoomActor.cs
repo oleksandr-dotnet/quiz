@@ -34,6 +34,9 @@ public sealed class RoomActor
 
     private readonly Language _language;
     private Guid? _hostPlayerId;
+    private bool _enableAnswerStreaks = true;
+    private bool _enableCategoryBanDraft = true;
+    private bool _enableGoldenQuestion = true;
     private GameEngine? _engine;
     private Timer? _engineTimer;
     private DateTimeOffset _lastActivityUtc;
@@ -119,6 +122,28 @@ public sealed class RoomActor
         if (!TryPost(new ViewRequest(playerId, tcs)))
         {
             tcs.TrySetException(new InvalidOperationException("Room is closed."));
+        }
+        return tcs.Task;
+    }
+
+    public Task<CommandAck> SetGameSettingsAsync(
+        Guid requestingPlayerId, bool enableAnswerStreaks, bool enableCategoryBanDraft, bool enableGoldenQuestion)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new SetGameSettingsRequest(
+                requestingPlayerId, enableAnswerStreaks, enableCategoryBanDraft, enableGoldenQuestion, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
+    public Task<CommandAck> ProposeCategoryBansAsync(Guid requestingPlayerId, IReadOnlyList<string> categoryIds)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new ProposeCategoryBansRequest(requestingPlayerId, categoryIds, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
         }
         return tcs.Task;
     }
@@ -230,6 +255,8 @@ public sealed class RoomActor
         KickPlayerRequest m => HandleKickPlayerAsync(m),
         ConnectionLost m => HandleConnectionLostAsync(m),
         ViewRequest m => HandleViewRequest(m),
+        SetGameSettingsRequest m => HandleSetGameSettingsAsync(m),
+        ProposeCategoryBansRequest m => HandleProposeCategoryBansAsync(m),
         StartGameRequest m => HandleStartGameAsync(m),
         SelectBaseRequest m => HandleSelectBaseAsync(m),
         SubmitAnswerRequest m => HandleSubmitAnswerAsync(m),
@@ -460,6 +487,56 @@ public sealed class RoomActor
         return Task.CompletedTask;
     }
 
+    private async Task HandleSetGameSettingsAsync(SetGameSettingsRequest m)
+    {
+        if (m.RequestingPlayerId != _hostPlayerId)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotHost"));
+            return;
+        }
+        if (_engine is not null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameAlreadyStarted"));
+            return;
+        }
+
+        _enableAnswerStreaks = m.EnableAnswerStreaks;
+        _enableCategoryBanDraft = m.EnableCategoryBanDraft;
+        _enableGoldenQuestion = m.EnableGoldenQuestion;
+
+        await BroadcastAsync();
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
+    private async Task HandleProposeCategoryBansAsync(ProposeCategoryBansRequest m)
+    {
+        if (_engine is null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameNotStarted"));
+            return;
+        }
+        if (_engine.State.Pending is not PendingActivity.CategoryBanProposal pending)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotAwaitingThisInput"));
+            return;
+        }
+
+        var categories = m.CategoryIds.Select(id => new CategoryId(id)).ToImmutableArray();
+        var result = _engine.Execute(new ProposeCategoryBans(
+            Now(), new PlayerId(m.RequestingPlayerId), pending.Token, categories));
+
+        if (!result.IsAccepted)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject(result.Rejection!.Value.ToString()));
+            return;
+        }
+
+        LogNotableEvents(result.Events);
+        ArmEngineTimer();
+        await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
     private async Task HandleStartGameAsync(StartGameRequest m)
     {
         if (m.RequestingPlayerId != _hostPlayerId)
@@ -475,7 +552,13 @@ public sealed class RoomActor
 
         var occupiedSeats = _seats.Where(s => s.IsBot || s.PlayerId is not null)
             .OrderBy(s => s.Index).ToArray();
-        var rules = GameRules.Default with { Language = _language };
+        var rules = GameRules.Default with
+        {
+            Language = _language,
+            EnableAnswerStreaks = _enableAnswerStreaks,
+            EnableCategoryBanDraft = _enableCategoryBanDraft,
+            EnableGoldenQuestion = _enableGoldenQuestion,
+        };
         if (occupiedSeats.Length < rules.MinPlayers)
         {
             m.Reply.TrySetResult(CommandAck.Reject("NotEnoughSeatsFilled"));
@@ -631,8 +714,11 @@ public sealed class RoomActor
         m.Reply.TrySetResult(CommandAck.Ok);
     }
 
-    private static QuestionResult? ExtractLastReveal(ImmutableArray<IGameEvent> events) =>
-        events.OfType<QuestionResolved>().Select(e => e.Result).LastOrDefault();
+    private static (QuestionResult Result, bool IsGolden)? ExtractLastReveal(ImmutableArray<IGameEvent> events)
+    {
+        var result = events.OfType<QuestionResolved>().Select(e => e.Result).LastOrDefault();
+        return result is null ? null : (result, events.OfType<GoldenQuestionRevealed>().Any());
+    }
 
     // Only the rare, high-value events get an Information log here - a region captured in an
     // ordinary duel, a round advancing, or a question asked/resolved happen many times per game and
@@ -665,6 +751,10 @@ public sealed class RoomActor
                     _logger.LogInformation(
                         "Room {RoomCode}: duel-defense score awarded, defender {Defender} +{Amount} for {Region} (attacker {Attacker})",
                         RoomCode, dd.DefenderId.Value, dd.Amount, dd.RegionId.Value, dd.AttackerId.Value);
+                    break;
+                case CategoryBansResolved cb:
+                    _logger.LogInformation("Room {RoomCode}: category ban draft resolved, banned {Categories}",
+                        RoomCode, string.Join(", ", cb.BannedCategories.Select(c => c.Value)));
                     break;
                 case GameFinished gf:
                     _logger.LogInformation("Room {RoomCode}: game finished, winner(s) {Winners}",
@@ -750,7 +840,7 @@ public sealed class RoomActor
         await Task.WhenAll(sends);
     }
 
-    private async Task BroadcastGameViewAsync(QuestionResult? lastReveal = null)
+    private async Task BroadcastGameViewAsync((QuestionResult Result, bool IsGolden)? lastReveal = null)
     {
         var sends = _seats.Where(s => s.IsConnected)
             .Select(s => _broadcaster.SendGameViewAsync(s.ConnectionId!, BuildGameView(s.PlayerId!.Value, lastReveal)));
@@ -763,10 +853,11 @@ public sealed class RoomActor
             .Select(s => new SeatDto(s.Index, s.PlayerId, s.DisplayName, s.AvatarId, s.IsBot, s.IsConnected,
                 s.PlayerId.HasValue && s.PlayerId == _hostPlayerId))
             .ToArray();
-        return new RoomViewDto(RoomCode, viewerId, viewerId == _hostPlayerId, seats, _language);
+        var gameSettings = new GameSettingsDto(_enableAnswerStreaks, _enableCategoryBanDraft, _enableGoldenQuestion);
+        return new RoomViewDto(RoomCode, viewerId, viewerId == _hostPlayerId, seats, _language, gameSettings);
     }
 
-    private GameViewDto BuildGameView(Guid viewerId, QuestionResult? lastReveal = null)
+    private GameViewDto BuildGameView(Guid viewerId, (QuestionResult Result, bool IsGolden)? lastReveal = null)
     {
         var state = _engine!.State;
         var map = _mapRepository.GetDefaultMap();
@@ -782,7 +873,7 @@ public sealed class RoomActor
             return new PlayerViewDto(
                 p.Id.Value, p.Seat, seat?.DisplayName, seat?.AvatarId, seat?.IsBot ?? false, isConnected,
                 p.BaseRegion?.Value, state.ScoreOf(p.Id), p.Eliminated, p.BaseRegion is not null ? p.BaseHitPoints : null,
-                p.Withdrawn);
+                p.Withdrawn, p.AnswerStreak);
         }).ToArray();
 
         var regions = map.Regions.Select(r =>
@@ -806,6 +897,23 @@ public sealed class RoomActor
                 _engine.EligibleBaseRegions().Select(r => r.Value).ToArray(),
                 DateTimeOffset.FromUnixTimeMilliseconds(basePickActivity.Deadline.UnixMillis))
             : null;
+
+        PendingCategoryBanViewDto? pendingCategoryBan = null;
+        if (state.Pending is PendingActivity.CategoryBanProposal categoryBan)
+        {
+            var hasSubmitted = categoryBan.Participants.ToDictionary(
+                p => p.Value.ToString(), p => categoryBan.Proposals.ContainsKey(p));
+            var yourProposal = categoryBan.Proposals.TryGetValue(new PlayerId(viewerId), out var proposal)
+                ? proposal.Select(c => c.Value).ToArray()
+                : null;
+            pendingCategoryBan = new PendingCategoryBanViewDto(
+                categoryBan.AvailableCategories.Select(c => c.Value).ToArray(),
+                hasSubmitted,
+                yourProposal,
+                DateTimeOffset.FromUnixTimeMilliseconds(categoryBan.Deadline.UnixMillis));
+        }
+
+        var bannedCategories = state.BannedCategories.Select(c => c.Value).ToArray();
 
         PendingQuestionViewDto? pendingQuestion = null;
         PendingRegionPickViewDto? pendingRegionPick = null;
@@ -871,7 +979,7 @@ public sealed class RoomActor
             currentPickerId == viewerId,
             pendingQuestion,
             pendingRegionPick,
-            lastReveal is not null ? ToRevealDto(lastReveal) : null,
+            lastReveal is { } reveal ? ToRevealDto(reveal.Result, reveal.IsGolden) : null,
             state.CurrentRound,
             pendingAttackTarget,
             pendingReveal,
@@ -879,7 +987,9 @@ public sealed class RoomActor
             pendingBasePick,
             battle,
             state.Rules.Language,
-            state.Rules.RoundLimit);
+            state.Rules.RoundLimit,
+            pendingCategoryBan,
+            bannedCategories);
     }
 
     // Every field here is a fact both combatants already know (identities, the contested region,
@@ -908,7 +1018,7 @@ public sealed class RoomActor
         _ => AnswerValueDto.None,
     };
 
-    private static LastRevealDto ToRevealDto(QuestionResult result)
+    private static LastRevealDto ToRevealDto(QuestionResult result, bool isGolden)
     {
         var correct = result.Question.Prompt.Kind == QuestionKind.Choice
             ? AnswerValueDto.OfChoice(result.Question.CorrectOptionIndex ?? 0)
@@ -918,7 +1028,7 @@ public sealed class RoomActor
             .Select(r => new RevealedAnswerDto(r.Player.Value, ToAnswerDto(r.Answer), r.Rank, (long?)r.Elapsed?.TotalMilliseconds))
             .ToArray();
 
-        return new LastRevealDto(ToPromptDto(result.Question.Prompt), correct, answers);
+        return new LastRevealDto(ToPromptDto(result.Question.Prompt), correct, answers, isGolden);
     }
 
     private static PendingRevealViewDto ToPendingRevealDto(PendingActivity.RevealHold hold)
@@ -936,7 +1046,8 @@ public sealed class RoomActor
             ToPromptDto(result.Question.Prompt),
             correct,
             answers,
-            DateTimeOffset.FromUnixTimeMilliseconds(hold.Deadline.UnixMillis));
+            DateTimeOffset.FromUnixTimeMilliseconds(hold.Deadline.UnixMillis),
+            hold.IsGolden);
     }
 
     private void ArmEngineTimer()
@@ -973,6 +1084,16 @@ public sealed class RoomActor
 
         switch (pending)
         {
+            case PendingActivity.CategoryBanProposal categoryBan:
+                foreach (var participant in categoryBan.Participants)
+                {
+                    if (!categoryBan.Proposals.ContainsKey(participant))
+                    {
+                        ScheduleBotCategoryBanProposal(participant.Value, pending.Deadline, categoryBan.AvailableCategories);
+                    }
+                }
+                break;
+
             case PendingActivity.BasePick basePick:
                 ScheduleBotRegionChoice(basePick.Player.Value, pending.Deadline,
                     () => _engine!.EligibleBaseRegions(),
@@ -1015,6 +1136,19 @@ public sealed class RoomActor
         var regionId = BotChoice.PickRegion(eligible(), _botRandom!);
         var delay = BotChoice.ThinkingDelay(deadline.Since(Now()), _botRandom!);
         _botTimers.Add(new Timer(_ => submit(playerId, regionId.Value), null, delay, Timeout.InfiniteTimeSpan));
+    }
+
+    private void ScheduleBotCategoryBanProposal(Guid playerId, Instant deadline, ImmutableArray<CategoryId> available)
+    {
+        if (!IsBotPlayer(playerId) || !_scheduledBotPlayers.Add(playerId))
+        {
+            return;
+        }
+
+        var picks = BotChoice.PickCategoryBans(available, _botRandom!);
+        var delay = BotChoice.ThinkingDelay(deadline.Since(Now()), _botRandom!);
+        var categoryIds = picks.Select(c => c.Value).ToArray();
+        _botTimers.Add(new Timer(_ => ProposeCategoryBansAsync(playerId, categoryIds), null, delay, Timeout.InfiniteTimeSpan));
     }
 
     private void ScheduleBotAnswer(Guid playerId, Instant deadline, QuestionPrompt prompt)

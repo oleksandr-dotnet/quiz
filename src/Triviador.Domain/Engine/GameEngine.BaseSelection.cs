@@ -80,6 +80,7 @@ public sealed partial class GameEngine
 
         return _state.Pending switch
         {
+            PendingActivity.CategoryBanProposal proposal => CommandResult.Accepted(TimeoutCategoryBanProposal(proposal, command.At)),
             PendingActivity.BasePick pick => CommandResult.Accepted(TimeoutBasePick(pick, command.At)),
             PendingActivity.Question question => CommandResult.Accepted(TimeoutQuestion(question, command.At)),
             PendingActivity.RegionPicks picks => CommandResult.Accepted(TimeoutRegionPick(picks, command.At)),

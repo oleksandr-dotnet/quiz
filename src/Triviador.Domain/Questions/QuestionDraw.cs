@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using Triviador.Domain.Primitives;
+
 namespace Triviador.Domain.Questions;
 
 public enum QuestionKindRequest
@@ -7,4 +10,4 @@ public enum QuestionKindRequest
     Tip,
 }
 
-public sealed record QuestionDraw(QuestionKindRequest Kind);
+public sealed record QuestionDraw(QuestionKindRequest Kind, ImmutableHashSet<CategoryId> ExcludedCategories);

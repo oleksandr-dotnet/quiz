@@ -31,6 +31,7 @@ public sealed partial class GameEngine
             JoinGame c => ExecuteJoinGame(c),
             LeaveGame c => ExecuteLeaveGame(c),
             StartGame c => ExecuteStartGame(c),
+            ProposeCategoryBans c => ExecuteProposeCategoryBans(c),
             SelectBase c => ExecuteSelectBase(c),
             SubmitAnswer c => ExecuteSubmitAnswer(c),
             PickRegion c => ExecutePickRegion(c),

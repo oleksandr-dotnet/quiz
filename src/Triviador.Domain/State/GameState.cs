@@ -46,6 +46,15 @@ public sealed class GameState
     // top of every AdvanceTurn call rather than tracked via a separate flag.
     public ImmutableQueue<PlayerId> RoundQueue { get; internal set; } = ImmutableQueue<PlayerId>.Empty;
 
+    // Resolved once by category-ban-draft (empty if the draft is disabled or hasn't resolved yet);
+    // excluded from question selection for the rest of the game.
+    public ImmutableHashSet<CategoryId> BannedCategories { get; internal set; } = ImmutableHashSet<CategoryId>.Empty;
+
+    // golden-question's per-game budget/cooldown scheduler state — see GameEngine's RollGolden.
+    public int GoldenQuestionBudget { get; internal set; }
+
+    public int QuestionsSinceLastGolden { get; internal set; }
+
     public RegionState RegionOf(RegionId id) => _regionsById[id];
 
     public bool IsBase(RegionId id)

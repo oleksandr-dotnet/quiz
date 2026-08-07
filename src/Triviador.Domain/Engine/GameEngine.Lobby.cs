@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Triviador.Domain.Commands;
 using Triviador.Domain.Events;
 using Triviador.Domain.Primitives;
@@ -70,10 +71,22 @@ public sealed partial class GameEngine
             return CommandResult.Rejected(RejectionCode.NotEnoughPlayers);
         }
 
-        _state.Phase = GamePhase.BaseSelection;
-        var requested = StartBasePick(_state.Players[0].Id, command.At);
+        if (_state.Rules.EnableGoldenQuestion)
+        {
+            _state.GoldenQuestionBudget = _random.NextInt(
+                _state.Rules.GoldenQuestionMinCount, _state.Rules.GoldenQuestionMaxCount + 1);
+        }
+        // Cooldown starts already "satisfied" so the very first eligible question can roll golden -
+        // natural game flow (base picks, land grab progression) already spaces out the true first ask.
+        _state.QuestionsSinceLastGolden = _state.Rules.GoldenQuestionCooldownQuestions;
 
-        return CommandResult.Accepted(new GameStarted(), requested);
+        var events = ImmutableArray.CreateBuilder<IGameEvent>();
+        events.Add(new GameStarted());
+        events.AddRange(_state.Rules.EnableCategoryBanDraft
+            ? StartCategoryBanDraft(command.At)
+            : ImmutableArray.Create<IGameEvent>(StartBasePick(_state.Players[0].Id, command.At)));
+
+        return CommandResult.Accepted(events.ToImmutable());
     }
 
     private BasePickRequested StartBasePick(PlayerId player, Instant at)

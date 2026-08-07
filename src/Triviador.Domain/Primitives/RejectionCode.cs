@@ -18,4 +18,6 @@ public enum RejectionCode
     BaseTooCloseToExistingBase,
     RegionNotEligible,
     PlayerAlreadyWithdrawn,
+    InvalidCategoryProposal,
+    UnknownCategory,
 }
