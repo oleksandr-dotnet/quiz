@@ -65,6 +65,7 @@ export function LandGrabDock({ view, onError }: { view: GameView; onError: (mess
           prompt={visibleReveal.prompt}
           correctAnswer={visibleReveal.correctAnswer}
           answers={visibleReveal.answers}
+          isGolden={visibleReveal.isGolden}
         />
       )}
 

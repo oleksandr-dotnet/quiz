@@ -64,6 +64,23 @@ export function PlayerRoster({
   )
 }
 
+// Tiering per the confirmed spec: 0 = no badge, 1-3 bronze, 4-5 silver, 6 gold (static),
+// 7+ gold with an animated rainbow layer on top. The rainbow layer is opt-out via `reducedMotion`
+// (falls back to the plain static gold badge) rather than gated in CSS alone, matching how every
+// other `motion`-driven flourish in this file is disabled via usePrefersReducedMotion().
+function streakTierClass(streak: number, reducedMotion: boolean): string {
+  const classes = ['streak-badge']
+  if (streak >= 6) {
+    classes.push('streak-gold')
+    if (streak >= 7 && !reducedMotion) classes.push('streak-rainbow')
+  } else if (streak >= 4) {
+    classes.push('streak-silver')
+  } else {
+    classes.push('streak-bronze')
+  }
+  return classes.join(' ')
+}
+
 function PlayerCard({
   player,
   isActive,
@@ -148,6 +165,14 @@ function PlayerCard({
           </span>
         )}
       </span>
+      {player.answerStreak > 0 && !player.eliminated && !player.withdrawn && (
+        <span
+          className={streakTierClass(player.answerStreak, reducedMotion)}
+          aria-label={t('playerRoster.streakAriaLabel', { streak: player.answerStreak })}
+        >
+          {player.answerStreak}
+        </span>
+      )}
       {player.baseHitPoints !== null && !player.eliminated && (
         <span className="hit-points" aria-label={t('playerRoster.hitPointsAriaLabel', { hp: player.baseHitPoints })}>
           {Array.from({ length: BASE_HIT_POINTS_DEFAULT }, (_, i) => (

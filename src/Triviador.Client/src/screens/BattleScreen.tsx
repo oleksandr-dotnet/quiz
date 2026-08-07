@@ -129,6 +129,7 @@ export function BattleDock({ view, onError }: { view: GameView; onError: (messag
           correctAnswer={reveal.correctAnswer}
           answers={reveal.answers}
           secondsRemaining={secondsRemaining(remainingMs)}
+          isGolden={reveal.isGolden}
         />
       )}
 

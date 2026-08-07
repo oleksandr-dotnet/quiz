@@ -33,6 +33,19 @@ export function playCorrect() {
   tone(783.99, 0.2, 0.24, 'sine', 0.15) // G5
 }
 
+// A golden question resolving (see golden-question's hidden-until-reveal contract - the client only
+// learns a question was golden on its reveal, never while pending). Deliberately more elaborate than
+// playCorrect: more notes, a full two-octave spread, and a longer tail, so it reads as unmistakably
+// special rather than just a louder correct chime.
+export function playGolden() {
+  tone(523.25, 0, 0.14, 'sine', 0.16) // C5
+  tone(659.25, 0.08, 0.14, 'sine', 0.16) // E5
+  tone(783.99, 0.16, 0.14, 'sine', 0.16) // G5
+  tone(1046.5, 0.24, 0.18, 'sine', 0.15) // C6
+  tone(1318.51, 0.32, 0.22, 'sine', 0.14) // E6
+  tone(1567.98, 0.4, 0.32, 'triangle', 0.12) // G6 - sparkle tail
+}
+
 export function playIncorrect() {
   tone(220, 0, 0.22, 'sawtooth', 0.08) // A3
   tone(196, 0.12, 0.28, 'sawtooth', 0.08) // G3
