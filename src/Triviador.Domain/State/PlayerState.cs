@@ -22,8 +22,9 @@ public sealed class PlayerState
     // captured base stops needing hit points at all — see GameState.IsBase's ownership-derived model.
     public int BaseHitPoints { get; internal set; }
 
-    // Score that isn't tied to any region — currently only moved by base-assault question wins/
-    // losses (GameRules.BaseAssaultScoreBonus). Folded into GameState.ScoreOf alongside territory
-    // value; never derived, since there is no region to derive it from.
+    // Score that isn't tied to any region — moved by base-assault question wins/losses (symmetric)
+    // and by successfully defending an ordinary duel (defender-only), both GameRules.
+    // BaseAssaultScoreBonus in magnitude. Folded into GameState.ScoreOf alongside territory value;
+    // never derived, since there is no region to derive it from.
     public int BonusScore { get; internal set; }
 }

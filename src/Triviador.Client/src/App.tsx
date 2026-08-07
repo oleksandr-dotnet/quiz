@@ -233,6 +233,13 @@ function App() {
       }
     }
 
+    const duelDefended = transitions.find((t) => t.kind === 'duelDefenseScoreAwarded')
+    if (duelDefended && duelDefended.kind === 'duelDefenseScoreAwarded' && gameView) {
+      if (duelDefended.defenderPlayerId === gameView.youPlayerId) {
+        messages.push(t('app.duelDefenseBonusProclamation', { amount: BASE_ASSAULT_SCORE_BONUS }))
+      }
+    }
+
     if (messages.length > 0) {
       setProclamationQueue((prev) => [...prev, ...messages])
     }

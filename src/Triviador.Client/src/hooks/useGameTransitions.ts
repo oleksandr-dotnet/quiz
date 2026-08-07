@@ -11,6 +11,7 @@ export type GameTransition =
   | { kind: 'playerEliminated'; playerId: string }
   | { kind: 'scoreDelta'; playerId: string; delta: number }
   | { kind: 'baseAssaultScoreAdjusted'; winnerPlayerId: string; loserPlayerId: string }
+  | { kind: 'duelDefenseScoreAwarded'; defenderPlayerId: string; attackerPlayerId: string }
 
 // Derives what changed between two consecutive server snapshots. The server broadcasts only full
 // snapshots (no event/delta channel - see design.md), so this is the only way the client learns
@@ -96,6 +97,23 @@ export function useGameTransitions(current: GameView | null, previous: GameView 
         winnerPlayerId: attackerWon ? prevBattle.attackerPlayerId : prevBattle.defenderPlayerId,
         loserPlayerId: attackerWon ? prevBattle.defenderPlayerId : prevBattle.attackerPlayerId,
       })
+    }
+
+    // A duel's reveal that just closed either transferred its contested region to the attacker
+    // (regionCaptured already computed above) or left it with the defender - the latter is a
+    // successful defense and pays the defender-only bonus. Mirrors the BaseAssault derivation
+    // above, but one-sided since there's no attacker-loses-points counterpart for duels.
+    if (revealJustClosed && prevBattle?.kind === 'Duel') {
+      const attackerCaptured = transitions.some(
+        (t) => t.kind === 'regionCaptured' && t.regionId === prevBattle.contestedRegionId,
+      )
+      if (!attackerCaptured) {
+        transitions.push({
+          kind: 'duelDefenseScoreAwarded',
+          defenderPlayerId: prevBattle.defenderPlayerId,
+          attackerPlayerId: prevBattle.attackerPlayerId,
+        })
+      }
     }
 
     return transitions

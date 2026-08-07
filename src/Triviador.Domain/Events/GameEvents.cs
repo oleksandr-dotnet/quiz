@@ -72,6 +72,13 @@ public sealed record PlayerEliminated(PlayerId PlayerId) : IGameEvent;
 // regardless of who won.
 public sealed record BaseAssaultScoreAdjusted(PlayerId AttackerId, PlayerId DefenderId, int AttackerDelta, int DefenderDelta) : IGameEvent;
 
+// Emitted whenever an ordinary (non-base) duel resolves with the defender keeping the region -
+// a better rank, a tie (including a double timeout), or a withdrawn attacker. Unlike
+// BaseAssaultScoreAdjusted this is one-sided: only the defender's score moves, by
+// GameRules.BaseAssaultScoreBonus (the same tunable, reused rather than duplicated - see
+// battle-flow spec). Never emitted when the attacker captures the region.
+public sealed record DuelDefenseScoreAwarded(PlayerId DefenderId, PlayerId AttackerId, RegionId RegionId, int Amount) : IGameEvent;
+
 public sealed record PlayerWithdrawn(PlayerId PlayerId, ImmutableArray<RegionId> ReleasedRegionIds) : IGameEvent;
 
 public sealed record RoundAdvanced(int RoundNumber) : IGameEvent;

@@ -9,6 +9,7 @@
   "app.baseFallsProclamation": "Знамя игрока {{defenderName}} пало",
   "app.baseAssaultBonusWonProclamation": "+{{amount}} за победу в схватке за столицу",
   "app.baseAssaultBonusLostProclamation": "-{{amount}} за поражение в схватке за столицу",
+  "app.duelDefenseBonusProclamation": "+{{amount}} за успешную защиту территории",
   "app.ownEliminationProclamation": "Ваше знамя пало — вы можете продолжить наблюдать до конца игры.",
   "app.leaveGame": "Покинуть игру",
   "app.leaveGameConfirm": "Покинуть эту игру? Бот займёт ваше место до конца матча.",

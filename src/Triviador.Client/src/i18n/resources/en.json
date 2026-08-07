@@ -9,6 +9,7 @@
   "app.baseFallsProclamation": "{{defenderName}}'s banner falls",
   "app.baseAssaultBonusWonProclamation": "+{{amount}} for winning the clash over the capital",
   "app.baseAssaultBonusLostProclamation": "-{{amount}} for losing the clash over the capital",
+  "app.duelDefenseBonusProclamation": "+{{amount}} for successfully defending your territory",
   "app.ownEliminationProclamation": "Your banner has fallen - you can keep watching until the game ends.",
   "app.leaveGame": "Leave game",
   "app.leaveGameConfirm": "Leave this game? A bot will take over your seat for the rest of the match.",

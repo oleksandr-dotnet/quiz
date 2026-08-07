@@ -291,7 +291,10 @@ public sealed partial class GameEngine
     // A duel where neither side answered correctly is not an attacker win by rank alone — the
     // territory stays put rather than changing hands on two wrong guesses. A withdrawn attacker
     // (host-kicked with territory release, during this reveal window) never receives new territory
-    // either, regardless of how the question resolved.
+    // either, regardless of how the question resolved. Every case where the region stays with the
+    // defender — a better rank, a tie, or a withdrawn attacker — is a successful defense and pays
+    // GameRules.BaseAssaultScoreBonus to the defender alone (see DuelDefenseScoreAwarded); the
+    // attacker's score is never reduced by this, unlike the symmetric base-assault bonus.
     private ImmutableArray<IGameEvent> ApplyDuelOutcome(QuestionPurpose.Duel duel, QuestionResult result, Instant at)
     {
         var events = ImmutableArray.CreateBuilder<IGameEvent>();
@@ -302,6 +305,12 @@ public sealed partial class GameEngine
         {
             _state.RegionOf(duel.Region).OwnerId = duel.Attacker;
             events.Add(new RegionCaptured(duel.Attacker, duel.Defender, duel.Region));
+        }
+        else
+        {
+            var bonus = _state.Rules.BaseAssaultScoreBonus;
+            PlayerById(duel.Defender).BonusScore += bonus;
+            events.Add(new DuelDefenseScoreAwarded(duel.Defender, duel.Attacker, duel.Region, bonus));
         }
 
         var ended = CheckEndConditions();

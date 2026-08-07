@@ -14,6 +14,8 @@ public sealed record GameRules(
     int BaseHitPointsDefault = 5,
     int RevealHoldDurationSeconds = 7,
     int BaseAssaultUnlockRound = 8,
+    // Shared by two mechanics: symmetric win/loss on each base-assault question, and a
+    // defender-only award for successfully defending an ordinary duel — see PlayerState.BonusScore.
     int BaseAssaultScoreBonus = 200,
     Language Language = Language.Russian)
 {

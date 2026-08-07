@@ -650,6 +650,11 @@ public sealed class RoomActor
                         "Room {RoomCode}: base-assault score adjusted, attacker {Attacker} {AttackerDelta}, defender {Defender} {DefenderDelta}",
                         RoomCode, sa.AttackerId.Value, sa.AttackerDelta, sa.DefenderId.Value, sa.DefenderDelta);
                     break;
+                case DuelDefenseScoreAwarded dd:
+                    _logger.LogInformation(
+                        "Room {RoomCode}: duel-defense score awarded, defender {Defender} +{Amount} for {Region} (attacker {Attacker})",
+                        RoomCode, dd.DefenderId.Value, dd.Amount, dd.RegionId.Value, dd.AttackerId.Value);
+                    break;
                 case GameFinished gf:
                     _logger.LogInformation("Room {RoomCode}: game finished, winner(s) {Winners}",
                         RoomCode, string.Join(", ", gf.Outcome.Winners.Select(w => w.Value)));
