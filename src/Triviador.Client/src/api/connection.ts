@@ -29,6 +29,7 @@ export function getConnection(): HubConnection {
     store.kicked(reason)
     conn?.stop()
   })
+  conn.on('Emote', (playerId: string, emoteId: string) => store.receiveEmote(playerId, emoteId))
   conn.onreconnecting(() => store.setStatus('reconnecting'))
   conn.onreconnected(() => store.setStatus('connected'))
   conn.onclose(() => store.setStatus('closed'))

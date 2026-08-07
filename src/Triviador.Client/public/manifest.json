@@ -1,0 +1,9 @@
+{
+  "name": "Triviador",
+  "short_name": "Triviador",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14100a",
+  "theme_color": "#f4ecd8"
+}

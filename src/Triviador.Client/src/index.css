@@ -43,6 +43,14 @@ body {
      screen). Chosen over `overflow: hidden/auto` since flow-root has no clipping or scrollbar
      side effects of its own. */
   display: flow-root;
+  /* .lamplight's own `inset: -12% -8%` (paper.css) is tuned to bleed just past its hero card's
+     edge - harmless on desktop, where the card is far narrower than the viewport, but on a
+     phone-width viewport the card *is* essentially the viewport, so that same 8% bleeds a
+     genuine ~25-30px past the screen edge on both sides, opening a horizontal scrollbar with
+     nothing worth scrolling to (confirmed live: documentElement.scrollWidth exceeded
+     window.innerWidth on Landing at 393px). Never intentional at any width, so clipped here
+     rather than narrowing the glow itself. */
+  overflow-x: hidden;
 }
 
 a {

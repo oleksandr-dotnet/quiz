@@ -29,6 +29,38 @@ body::after {
   background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
 }
 
+/* The pre-game ambient backdrop (AmbientLifeBackground.tsx) - a small Game-of-Life canvas blown up
+   and heavily blurred so individual cells never read as pixels, just slow-drifting gilt/heraldic
+   colonies. Sits behind body::before/after (grain + vignette, z-index -1) so those still composite
+   on top of it - the life sim reads as part of the same table material, not a layer above it.
+   scale(1.08) hides the blur's soft falloff at the viewport edge, which would otherwise show as a
+   faint rectangle. Component self-gates on gameView, so this never competes with the map during
+   actual play. */
+.ambient-life-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient-life-backdrop canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform: scale(1.08);
+  filter: blur(26px) saturate(1.2);
+  opacity: 0.68;
+}
+
+/* A static (unblurred-timing, still rendered) single frame reads fine motionless - only the
+   animation loop itself is skipped in AmbientLifeBackground.tsx. */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-life-backdrop canvas {
+    opacity: 0.5;
+  }
+}
+
 /* A scoped "lit object on the table" glow. Consumers position an element with this class behind
    their hero surface (the landing/lobby card, the map) rather than relying on a page-wide tint -
    each screen's hero gets its own lamplight instead of the whole page carrying one ambient hue.

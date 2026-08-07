@@ -15,12 +15,26 @@
   "app.leaveGameConfirm": "Покинуть эту игру? Бот займёт ваше место до конца матча.",
   "app.menu": "Меню",
 
+  "rotatePrompt.title": "Поверните устройство",
+  "rotatePrompt.body": "Triviador удобнее в вертикальной ориентации — поверните телефон обратно, чтобы продолжить.",
+
   "errorBoundary.title": "Пергамент порвался",
   "errorBoundary.message": "В игре произошёл сбой. Перезагрузите страницу, чтобы продолжить игру.",
   "errorBoundary.reload": "Перезагрузить",
 
   "sound.mute": "Выключить звук",
   "sound.unmute": "Включить звук",
+
+  "emotes.openButton": "Эмоции",
+  "emotes.gg": "GG",
+  "emotes.fire": "Отличный ход!",
+  "emotes.lol": "ЛОЛ",
+  "emotes.wow": "Ого",
+  "emotes.thinking": "Хм...",
+  "emotes.cry": "Не-е-ет",
+  "emotes.angry": "Эх!",
+  "emotes.crown": "Я чемпион",
+  "emotes.clown": "Клоунада",
 
   "landing.namePlaceholder": "Ваше имя",
   "landing.createRoom": "Создать комнату",

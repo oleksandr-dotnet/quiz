@@ -11,4 +11,6 @@ public interface IGameClient
     Task RoomClosed(string reason);
 
     Task Kicked(string reason);
+
+    Task Emote(Guid playerId, string emoteId);
 }

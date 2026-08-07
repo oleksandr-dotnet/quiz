@@ -25,6 +25,11 @@ function saveSession(session: Session | null) {
   else sessionStorage.removeItem(SESSION_KEY)
 }
 
+interface EmoteEvent {
+  emoteId: string
+  nonce: number
+}
+
 interface GameStore {
   status: Status
   view: RoomView | null
@@ -33,6 +38,9 @@ interface GameStore {
   session: Session | null
   closedReason: string | null
   kickedReason: string | null
+  // Latest emote per sender, keyed by playerId - a re-send from the same player bumps `nonce` so a
+  // listener can re-trigger its own bubble animation even when the emoteId itself repeats.
+  emotesByPlayer: Record<string, EmoteEvent>
   setStatus: (status: Status) => void
   applyView: (view: RoomView) => void
   applyGameView: (view: GameView) => void
@@ -40,6 +48,7 @@ interface GameStore {
   leaveGame: () => void
   roomClosed: (reason: string) => void
   kicked: (reason: string) => void
+  receiveEmote: (playerId: string, emoteId: string) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -50,6 +59,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   session: loadSession(),
   closedReason: null,
   kickedReason: null,
+  emotesByPlayer: {},
   setStatus: (status) => set({ status }),
   applyView: (view) => set({ view }),
   // The previous snapshot is kept alongside the new one so useGameTransitions can diff
@@ -67,14 +77,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // game.
   leaveGame: () => {
     saveSession(null)
-    set({ session: null, view: null, gameView: null, previousGameView: null })
+    set({ session: null, view: null, gameView: null, previousGameView: null, emotesByPlayer: {} })
   },
   roomClosed: (reason) => {
     saveSession(null)
-    set({ session: null, view: null, gameView: null, previousGameView: null, closedReason: reason })
+    set({ session: null, view: null, gameView: null, previousGameView: null, closedReason: reason, emotesByPlayer: {} })
   },
   kicked: (reason) => {
     saveSession(null)
-    set({ session: null, view: null, gameView: null, previousGameView: null, kickedReason: reason })
+    set({ session: null, view: null, gameView: null, previousGameView: null, kickedReason: reason, emotesByPlayer: {} })
   },
+  receiveEmote: (playerId, emoteId) =>
+    set((s) => ({
+      emotesByPlayer: {
+        ...s.emotesByPlayer,
+        [playerId]: { emoteId, nonce: (s.emotesByPlayer[playerId]?.nonce ?? 0) + 1 },
+      },
+    })),
 }))

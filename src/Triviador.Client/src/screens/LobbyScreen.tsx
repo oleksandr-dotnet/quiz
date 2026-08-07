@@ -15,7 +15,7 @@ const MIN_SEATS_TO_START = 2
 export function LobbyScreen() {
   const { t } = useTranslation()
   const view = useGameStore((s) => s.view)
-  const setSession = useGameStore((s) => s.setSession)
+  const leaveGame = useGameStore((s) => s.leaveGame)
   const [startError, setStartError] = useState<string | null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
@@ -37,8 +37,13 @@ export function LobbyScreen() {
   }
 
   async function onLeave() {
-    await leaveRoom()
-    setSession(null)
+    try {
+      await leaveRoom()
+    } finally {
+      // leaveGame(), not a bare setSession(null) - it also clears view/gameView, without which a
+      // stale snapshot lingers in the store (see the store's own comment on why).
+      leaveGame()
+    }
   }
 
   async function onConfirmKick() {
@@ -85,6 +90,7 @@ export function LobbyScreen() {
 
   return (
     <main className="lobby paper-card">
+      <div className="lamplight" aria-hidden="true" />
       <h1>
         {t('lobby.titleLabel')}{' '}
         <button

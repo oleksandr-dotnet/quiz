@@ -7,11 +7,14 @@ import { findPlayer, playerLabel } from '../lib/format'
 import { playTurnAnnouncement } from '../lib/sound'
 import type { GameView } from '../api/contracts'
 
-// Desktop-only (App.tsx renders this behind useIsDesktop()) - what's happening right now (whose
-// turn, or the current battle's headline) restated in one line, independent of the dock's own more
-// detailed content below. Picking/attack-target sub-phases get their own "whose turn" line; a
-// question-answering sub-phase has no single actor to name (everyone's answering at once) so it's
-// left to the dock/AnswerRoster instead of being forced into a misleading announcement here.
+// Rendered unconditionally by App.tsx - what's happening right now (whose turn, or the current
+// battle's headline) restated in one line, independent of the dock's own more detailed content
+// below. Picking/attack-target sub-phases get their own "whose turn" line; a question-answering
+// sub-phase has no single actor to name (everyone's answering at once) so it's left to the
+// dock/AnswerRoster instead of being forced into a misleading announcement here. The docked pill
+// (.turn-announcement-docked) is desktop-only - no room for a persistent line in mobile's collapsed
+// top bar - but the one-shot centered spotlight (.turn-announcement-spotlight) shows at both widths,
+// scaled down on mobile (App.css), since it's a transient overlay that costs no layout space.
 function announcementText(view: GameView, t: (key: string, options?: Record<string, unknown>) => string): string | null {
   if (view.phase === 'BaseSelection') {
     return view.youAreCurrentPicker

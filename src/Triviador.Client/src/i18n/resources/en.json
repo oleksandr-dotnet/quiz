@@ -15,12 +15,26 @@
   "app.leaveGameConfirm": "Leave this game? A bot will take over your seat for the rest of the match.",
   "app.menu": "Menu",
 
+  "rotatePrompt.title": "Rotate your device",
+  "rotatePrompt.body": "Triviador plays best upright - turn your phone back to portrait to continue.",
+
   "errorBoundary.title": "Something tore the parchment",
   "errorBoundary.message": "The game hit an unexpected snag. Reloading the page will get you back on track.",
   "errorBoundary.reload": "Reload",
 
   "sound.mute": "Mute sound",
   "sound.unmute": "Unmute sound",
+
+  "emotes.openButton": "Emotes",
+  "emotes.gg": "GG",
+  "emotes.fire": "Nice play!",
+  "emotes.lol": "LOL",
+  "emotes.wow": "Wow",
+  "emotes.thinking": "Hmm...",
+  "emotes.cry": "Noooo",
+  "emotes.angry": "Ugh!",
+  "emotes.crown": "I'm the champion",
+  "emotes.clown": "Clown move",
 
   "landing.namePlaceholder": "Your name",
   "landing.createRoom": "Create room",

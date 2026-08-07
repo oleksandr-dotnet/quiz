@@ -20,6 +20,7 @@ import { PlayerRoster } from './components/PlayerRoster'
 import { TurnAnnouncement } from './components/TurnAnnouncement'
 import { ConnectionBadge } from './components/ConnectionBadge'
 import { MuteToggle } from './components/MuteToggle'
+import { EmoteButton } from './components/EmoteButton'
 import { AppMenu } from './components/AppMenu'
 import { Toast } from './components/Toast'
 import { KickConfirmModal } from './components/KickConfirmModal'
@@ -113,6 +114,7 @@ function TopBar({ view }: { view: GameView }) {
             </span>
           </>
         )}
+        <EmoteButton />
         <MuteToggle />
         {view.phase !== 'Finished' && (
           <button type="button" className="leave-game-button" onClick={() => setConfirmingLeave(true)}>
@@ -124,6 +126,7 @@ function TopBar({ view }: { view: GameView }) {
       {/* Mobile-only corner menu - hidden on desktop (App.css). Bundles sound + leave-game, the
           two actions the full top bar exposes, behind one small button instead of a wrapping row. */}
       <div className="top-bar-mobile-menu">
+        <EmoteButton />
         <button
           type="button"
           className="menu-button"
@@ -468,7 +471,7 @@ function App() {
   return (
     <>
       <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
-      {isDesktop && <TurnAnnouncement view={gameView} />}
+      <TurnAnnouncement view={gameView} />
       <AppShell
         dockKey={dockKey}
         mapShaking={mapShaking}

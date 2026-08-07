@@ -57,7 +57,7 @@ function WinCelebration() {
 export function ResultsDock() {
   const { t } = useTranslation()
   const view = useGameStore((s) => s.gameView)
-  const setSession = useGameStore((s) => s.setSession)
+  const leaveGame = useGameStore((s) => s.leaveGame)
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState<string | null>(null)
   const reducedMotion = usePrefersReducedMotion()
@@ -68,8 +68,13 @@ export function ResultsDock() {
   const isSoleWinnerForViewer = winnerIds.size === 1 && winnerIds.has(currentView.youPlayerId)
 
   async function onLeave() {
-    await leaveRoom()
-    setSession(null)
+    try {
+      await leaveRoom()
+    } finally {
+      // leaveGame(), not a bare setSession(null) - it also clears view/gameView, without which a
+      // stale finished-game snapshot lingers in the store (see the store's own comment on why).
+      leaveGame()
+    }
   }
 
   async function onCopyResult() {

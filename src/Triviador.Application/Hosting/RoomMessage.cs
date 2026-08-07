@@ -57,6 +57,11 @@ public sealed record SelectAttackTargetRequest(
 
 public sealed record GameViewRequest(Guid PlayerId, TaskCompletionSource<GameViewDto> Reply) : RoomMessage;
 
+/// A player-to-room emote/sticker broadcast - purely presentational (never touches engine state),
+/// so it's a fire-and-forget lobby-or-mid-game side channel rather than a domain command.
+public sealed record EmoteRequest(
+    Guid RequestingPlayerId, string EmoteId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
 /// Carries the exact token the timer was armed for, so a timer superseded by a newer pending
 /// activity (already resolved before this fires) is a harmless no-op - the engine's own
 /// TimeoutElapsed handling checks this token against whatever is currently pending.

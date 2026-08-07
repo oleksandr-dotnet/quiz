@@ -29,3 +29,5 @@ export const pickRegion = (regionId: string): Promise<void> => getConnection().i
 
 export const selectAttackTarget = (regionId: string): Promise<void> =>
   getConnection().invoke('SelectAttackTarget', regionId)
+
+export const sendEmote = (emoteId: string): Promise<void> => getConnection().invoke('SendEmote', emoteId)

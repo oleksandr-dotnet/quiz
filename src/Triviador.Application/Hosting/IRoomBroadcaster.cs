@@ -11,4 +11,6 @@ public interface IRoomBroadcaster
     Task SendClosedAsync(string connectionId, string reason, CancellationToken ct = default);
 
     Task SendKickedAsync(string connectionId, string reason, CancellationToken ct = default);
+
+    Task SendEmoteAsync(string connectionId, Guid fromPlayerId, string emoteId, CancellationToken ct = default);
 }

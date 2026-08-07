@@ -52,6 +52,7 @@ export function AccountSetupScreen() {
 
   return (
     <main className="landing paper-card">
+      <div className="lamplight" aria-hidden="true" />
       <div className="landing-brand">
         <h1>{t('accountSetup.title')}</h1>
         <p className="landing-tagline">{t('accountSetup.tagline')}</p>

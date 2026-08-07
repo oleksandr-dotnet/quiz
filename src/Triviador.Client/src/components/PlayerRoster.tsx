@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import type { GameView, PlayerView } from '../api/contracts'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { avatarGlyph } from '../lib/avatars'
+import { emoteGlyph } from '../lib/emotes'
 import { BASE_HIT_POINTS_DEFAULT } from '../lib/gameRules'
 import { playerDisplayName } from '../lib/format'
 import { SEAT_COLORS, hatchPatternIdFor } from '../lib/seats'
+import { useGameStore } from '../store/gameStore'
 import { Odometer } from './Odometer'
 import { PlayerActionMenu } from './PlayerActionMenu'
 
@@ -84,6 +86,7 @@ function PlayerCard({
   onKick: () => void
 }) {
   const { t } = useTranslation()
+  const emote = useGameStore((s) => s.emotesByPlayer[player.playerId])
   const seatColor = SEAT_COLORS[player.seat % SEAT_COLORS.length]
   const classes = ['player-card']
   if (isActive) classes.push('active-turn')
@@ -125,6 +128,7 @@ function PlayerCard({
         zIndex: menuOpen ? 30 : undefined,
       }}
     >
+      {emote && <EmoteBubble emoteId={emote.emoteId} nonce={emote.nonce} />}
       <svg className="seat-swatch" width={18} height={18} viewBox="0 0 18 18" aria-hidden="true">
         <rect width={18} height={18} rx={3} fill={seatColor} fillOpacity={0.35} />
         <rect width={18} height={18} rx={3} fill={`url(#${hatchPatternIdFor(player.seat)})`} fillOpacity={0.4} />
@@ -165,5 +169,38 @@ function PlayerCard({
         />
       )}
     </motion.li>
+  )
+}
+
+// Owns its own visibility timer (keyed by `nonce`, not just `emoteId` - a repeat of the same emote
+// must still restart the animation) so PlayerRoster doesn't need to schedule per-player cleanup
+// itself; gameStore.emotesByPlayer simply keeps holding the last-received value forever.
+const EMOTE_BUBBLE_DURATION_MS = 2200
+
+function EmoteBubble({ emoteId, nonce }: { emoteId: string; nonce: number }) {
+  const [visible, setVisible] = useState(true)
+
+  useEffect(() => {
+    setVisible(true)
+    const id = window.setTimeout(() => setVisible(false), EMOTE_BUBBLE_DURATION_MS)
+    return () => window.clearTimeout(id)
+  }, [nonce])
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.span
+          key={nonce}
+          className="emote-bubble"
+          aria-hidden="true"
+          initial={{ opacity: 0, y: 6, scale: 0.7 }}
+          animate={{ opacity: 1, y: -2, scale: 1 }}
+          exit={{ opacity: 0, y: -16, scale: 0.85 }}
+          transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
+        >
+          {emoteGlyph(emoteId)}
+        </motion.span>
+      )}
+    </AnimatePresence>
   )
 }

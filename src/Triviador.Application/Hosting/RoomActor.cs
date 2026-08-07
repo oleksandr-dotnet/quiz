@@ -173,6 +173,16 @@ public sealed class RoomActor
         return tcs.Task;
     }
 
+    public Task<CommandAck> EmoteAsync(Guid requestingPlayerId, string emoteId)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new EmoteRequest(requestingPlayerId, emoteId, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
     public Task<GameViewDto> GetGameViewAsync(Guid playerId)
     {
         var tcs = new TaskCompletionSource<GameViewDto>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -226,6 +236,7 @@ public sealed class RoomActor
         PickRegionRequest m => HandlePickRegionAsync(m),
         SelectAttackTargetRequest m => HandleSelectAttackTargetAsync(m),
         GameViewRequest m => HandleGameViewRequest(m),
+        EmoteRequest m => HandleEmoteAsync(m),
         EngineTimerElapsed m => HandleEngineTimerElapsedAsync(m),
         ShutdownRequest m => HandleShutdownAsync(m),
         _ => Task.CompletedTask,
@@ -661,6 +672,32 @@ public sealed class RoomActor
                     break;
             }
         }
+    }
+
+    // Keep in sync with the client's EMOTES list (emotes.ts) - a closed set rather than free text,
+    // so a room never has to render/sanitize arbitrary strings broadcast by another player.
+    private static readonly HashSet<string> ValidEmoteIds =
+        ["gg", "lol", "wow", "cry", "angry", "thinking", "crown", "clown", "fire"];
+
+    private async Task HandleEmoteAsync(EmoteRequest m)
+    {
+        if (!ValidEmoteIds.Contains(m.EmoteId))
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("UnknownEmote"));
+            return;
+        }
+
+        var sender = _seats.FirstOrDefault(s => s.PlayerId == m.RequestingPlayerId);
+        if (sender is null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotSeated"));
+            return;
+        }
+
+        var sends = _seats.Where(s => s.IsConnected)
+            .Select(s => _broadcaster.SendEmoteAsync(s.ConnectionId!, m.RequestingPlayerId, m.EmoteId));
+        await Task.WhenAll(sends);
+        m.Reply.TrySetResult(CommandAck.Ok);
     }
 
     private Task HandleGameViewRequest(GameViewRequest m)

@@ -156,6 +156,13 @@ public sealed class GameHub(
         EnsureSuccess(ack, nameof(SelectAttackTarget));
     }
 
+    public async Task SendEmote(string emoteId)
+    {
+        var (room, playerId) = ResolveConnection();
+        var ack = await room.EmoteAsync(playerId, emoteId);
+        EnsureSuccess(ack, nameof(SendEmote));
+    }
+
     public override Task OnConnectedAsync()
     {
         logger.LogInformation("Connection {ConnectionId} connected", Context.ConnectionId);
