@@ -83,12 +83,13 @@ export function GameMap({ view, eligibleRegionIds, contestedRegionId, interactiv
       <HeraldicDefs />
 
       {/* Backdrop: sits behind the graph so the board reads as a territory map, not a blank void.
-          Desktop (showDecorative) uses a muted land tone here instead of the open-water --sea tint -
-          the terra incognita ring below is meant to read as one continuous continent filling the
-          whole screen, so any sliver its own geometry doesn't quite reach (an extreme aspect ratio,
-          say) still reads as unmapped land rather than a pale gap. Mobile's tight, unpadded viewBox
-          has no such margin to fill and keeps the original sea backdrop. */}
-      <rect x={-9999} y={-9999} width={19998} height={19998} fill={showDecorative ? 'var(--terra-fallback)' : 'var(--sea)'} />
+          Desktop (showDecorative) tiles the terra-distant pattern (HeraldicDefs.tsx) here instead of
+          the open-water --sea tint or a flat color - an infinitely-repeating hazy terrain texture, so
+          the terra incognita ring in front of it never needs to geometrically guarantee covering
+          every corner of every aspect ratio; whatever sliver of backdrop peeks past the ring's own
+          edge still reads as more (fainter, more distant) land. Mobile's tight, unpadded viewBox has
+          no such margin to fill and keeps the original sea backdrop. */}
+      <rect x={-9999} y={-9999} width={19998} height={19998} fill={showDecorative ? 'url(#terra-distant)' : 'var(--sea)'} />
 
       {/* Terra incognita: the decorative ring, drawn beneath everything else so its coastline reads
           as touching (never overlapping) the playable regions' own outer edge. Desktop only - see

@@ -9,6 +9,28 @@ export function HeraldicDefs() {
       {SEAT_COLORS.map((color, seat) => (
         <SeatPattern key={seat} seat={seat} color={color} />
       ))}
+      {/* Infinite "distant terrain" backdrop - GameMap.tsx fills the map's outermost rect with this
+          instead of a flat color so the desktop board never shows a plain patch behind the terra
+          incognita ring: the ring's own reach only has to look good, not mathematically guarantee
+          covering every corner of every aspect ratio, since this tile repeats forever underneath it.
+          Soft overlapping blobs in the same terra palette, deliberately lower-contrast/hazier than
+          the ring's own crisper, glyph-bearing blobs - reads as land fading into the unmapped
+          distance rather than a second copy of the same foreground texture. */}
+      <filter id="distant-terrain-blur" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation={22} />
+      </filter>
+      <pattern id="terra-distant" width={420} height={420} patternUnits="userSpaceOnUse" patternTransform="rotate(8)">
+        <rect width={420} height={420} fill="var(--terra-fallback)" />
+        <g filter="url(#distant-terrain-blur)">
+          <circle cx={70} cy={90} r={130} fill="var(--terra-forest)" fillOpacity={0.55} />
+          <circle cx={320} cy={60} r={105} fill="var(--terra-hill)" fillOpacity={0.5} />
+          <circle cx={210} cy={280} r={150} fill="var(--terra-marsh)" fillOpacity={0.48} />
+          <circle cx={395} cy={350} r={95} fill="var(--terra-forest)" fillOpacity={0.45} />
+          <circle cx={20} cy={380} r={90} fill="var(--terra-hill)" fillOpacity={0.48} />
+          <circle cx={245} cy={20} r={70} fill="var(--terra-marsh)" fillOpacity={0.45} />
+        </g>
+      </pattern>
+
       <radialGradient id="wax-seal-gradient" cx="35%" cy="30%" r="75%">
         <stop offset="0%" stopColor="#c24b3e" />
         <stop offset="60%" stopColor="var(--wax)" />

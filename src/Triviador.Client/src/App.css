@@ -312,8 +312,25 @@
   }
 
   .shell-roster .player-card {
-    background: rgba(250, 246, 234, 0.99);
-    box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(160deg, var(--paper-050) 0%, var(--paper-200) 100%);
+    border: 1px solid var(--gilt-700);
+    box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.6), inset 0 0 0 2px var(--gilt-300);
+    padding: 0.55em 0.85em;
+  }
+
+  /* Brass corner brackets (same technique as .landing/.lobby's signature mark, App.css further
+     down) at roster-chip scale - the flat cream rectangle read as a plain web widget next to the
+     map's heraldic chrome; a heavier gilt border alone wasn't enough to place it in the same
+     material family. */
+  .shell-roster .player-card::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    pointer-events: none;
+    background: linear-gradient(var(--gilt-600), var(--gilt-600)) top left / 9px 2px no-repeat,
+      linear-gradient(var(--gilt-600), var(--gilt-600)) top left / 2px 9px no-repeat,
+      linear-gradient(var(--gilt-600), var(--gilt-600)) bottom right / 9px 2px no-repeat,
+      linear-gradient(var(--gilt-600), var(--gilt-600)) bottom right / 2px 9px no-repeat;
   }
 
   /* The floating dock: question cards, pick prompts, reveals - anchored bottom-center over the map,
@@ -342,10 +359,26 @@
     overflow-y: auto;
     z-index: 45;
     background: rgba(250, 246, 234, 0.99);
-    border: 1px solid var(--paper-300);
+    border: 1px solid var(--gilt-700);
     border-radius: var(--r-lg);
     padding: 1.1rem 1.25rem;
-    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.75);
+    /* A brass inlay ring just inside the border (matching the roster chips' own gilt-300 inset,
+       above) plus a heavier gilt border color - the old thin paper-300 border read as a plain web
+       card floating over the map; this reads as a framed panel instead. */
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.75), inset 0 0 0 3px var(--gilt-300);
+  }
+
+  /* Brass corner brackets, same signature mark as .landing/.lobby and the roster chips above -
+     sits just inside the inlay ring rather than the card edge itself. */
+  .shell-dock::after {
+    content: '';
+    position: absolute;
+    inset: 11px;
+    pointer-events: none;
+    background: linear-gradient(var(--gilt-600), var(--gilt-600)) top left / 22px 2px no-repeat,
+      linear-gradient(var(--gilt-600), var(--gilt-600)) top left / 2px 22px no-repeat,
+      linear-gradient(var(--gilt-600), var(--gilt-600)) bottom right / 22px 2px no-repeat,
+      linear-gradient(var(--gilt-600), var(--gilt-600)) bottom right / 2px 22px no-repeat;
   }
 
   /* Deliberately not flattening nested .paper-card sections here even though this now duplicates

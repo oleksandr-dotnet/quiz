@@ -276,10 +276,11 @@ const landCentroid = vertices.reduce(
 // Kept deliberately modest (a coastal fringe, not a second continent) - GameMap.tsx renders these
 // against a viewBox only padded by DECORATIVE_MARGIN beyond the playable grid's own 0..1200x0..640,
 // so anything extruded much further than that would simply be clipped off-canvas.
-// Reaches much further than the previous coastal fringe (0.42-0.92*minCell) so the ring comfortably
-// covers ultra-wide and narrow desktop viewports alike once GameMap.tsx's "slice" crop reveals more
-// of the padded viewBox's corners than a plain 16:9 window would - see GameMap.tsx's paddedViewBox
-// doc comment and App.css's desktop map background for the belt-and-braces fallback fill underneath.
+// A tight-ish coastal fringe - full corner-to-corner coverage on any aspect ratio no longer depends
+// on this ring's own reach at all (GameMap.tsx tiles an infinite "distant terrain" pattern behind
+// it, see HeraldicDefs.tsx's terra-distant pattern), so this dial is now purely about how much of
+// the padded viewBox the playable grid itself occupies once "slice" crops it to the viewport - a
+// smaller margin here means the same 1200x640 grid renders visibly larger on screen.
 const outerPoints = perimeter.map((vi) => {
   const v = vertices[vi];
   const dx = v.x - landCentroid.x;
@@ -287,8 +288,8 @@ const outerPoints = perimeter.map((vi) => {
   const len = Math.hypot(dx, dy) || 1;
   const nx = dx / len;
   const ny = dy / len;
-  const dist = minCell * (0.9 + rand() * 1.1);
-  return { x: v.x + nx * dist + jitter(minCell * 0.16), y: v.y + ny * dist + jitter(minCell * 0.16) };
+  const dist = minCell * (0.3 + rand() * 0.4);
+  return { x: v.x + nx * dist + jitter(minCell * 0.12), y: v.y + ny * dist + jitter(minCell * 0.12) };
 });
 
 const n = perimeter.length;
