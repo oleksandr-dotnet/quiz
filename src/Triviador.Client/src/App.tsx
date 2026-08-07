@@ -10,6 +10,7 @@ import { useGameStore } from './store/gameStore'
 import { LandingScreen } from './screens/LandingScreen'
 import { AccountSetupScreen } from './screens/AccountSetupScreen'
 import { LobbyScreen } from './screens/LobbyScreen'
+import { CategoryBanDock } from './screens/CategoryBanScreen'
 import { BaseSelectionDock, baseSelectionMapProps, baseSelectionOnSelect } from './screens/BaseSelectionScreen'
 import { LandGrabDock, landGrabMapProps, landGrabOnSelect } from './screens/LandGrabScreen'
 import { BattleDock, battleMapProps, battleOnSelect } from './screens/BattleScreen'
@@ -30,6 +31,7 @@ import { useIsDesktop } from './hooks/useIsDesktop'
 import { useLandGrabReveal } from './hooks/useLandGrabReveal'
 import { findPlayer, playerDisplayName } from './lib/format'
 import { BASE_ASSAULT_SCORE_BONUS } from './lib/gameRules'
+import { categoryEmoji } from './lib/categoryEmojis'
 import type { GameView, PlayerView } from './api/contracts'
 
 function urlRoomCode(): string | null {
@@ -47,6 +49,8 @@ function isYourTurn(view: GameView): boolean {
 
 function phaseLabelKey(phase: GameView['phase']): string {
   switch (phase) {
+    case 'CategoryBan':
+      return 'app.phase.categoryBan'
     case 'BaseSelection':
       return 'app.phase.baseSelection'
     case 'LandGrab':
@@ -86,6 +90,20 @@ function TopBar({ view }: { view: GameView }) {
         <h1>{t('app.title')}</h1>
         <span>&middot;</span>
         <span className="phase-label">{phaseKey && t(phaseKey)}</span>
+        {view.bannedCategories.length > 0 && (
+          <span
+            className="banned-categories-badge"
+            title={t('categoryBan.bannedTooltip', { categories: view.bannedCategories.join(', ') })}
+            aria-label={t('categoryBan.bannedTooltip', { categories: view.bannedCategories.join(', ') })}
+          >
+            🚫{' '}
+            {view.bannedCategories.map((c) => (
+              <span key={c} aria-hidden="true">
+                {categoryEmoji(c)}
+              </span>
+            ))}
+          </span>
+        )}
         {view.phase === 'Battle' && (
           <>
             <span>&middot;</span>
@@ -421,6 +439,9 @@ function App() {
   let activePlayerId: string | null = null
 
   switch (gameView.phase) {
+    case 'CategoryBan':
+      dock = <CategoryBanDock view={gameView} onError={setActionError} />
+      break
     case 'BaseSelection':
       mapProps = baseSelectionMapProps(gameView)
       onSelect = (id) => void baseSelectionOnSelect(gameView, id, setActionError)

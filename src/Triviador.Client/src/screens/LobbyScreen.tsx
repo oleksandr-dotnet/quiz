@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
-import { setSeat, leaveRoom, startGame, kickPlayer } from '../api/commands'
+import { setSeat, setGameSettings, leaveRoom, startGame, kickPlayer } from '../api/commands'
 import { useGameStore } from '../store/gameStore'
 import { Toast } from '../components/Toast'
 import { KickConfirmModal } from '../components/KickConfirmModal'
 import { HeraldicDefs } from '../components/map/HeraldicDefs'
 import { avatarGlyph } from '../lib/avatars'
 import { SEAT_COLORS, hatchPatternIdFor } from '../lib/seats'
-import type { SeatDto } from '../api/contracts'
+import type { GameSettingsView, SeatDto } from '../api/contracts'
 
 const MIN_SEATS_TO_START = 2
+
+type GameSettingKey = keyof GameSettingsView
 
 export function LobbyScreen() {
   const { t } = useTranslation()
@@ -26,6 +28,18 @@ export function LobbyScreen() {
   const occupiedCount = view.seats.filter((s) => s.isBot || s.displayName !== null).length
   const canStart = view.youAreHost && occupiedCount >= MIN_SEATS_TO_START
   const deepLink = `${window.location.origin}${window.location.pathname}#/room/${view.roomCode}`
+
+  async function toggleSetting(key: GameSettingKey) {
+    if (!view!.youAreHost) return
+    const settings = view!.gameSettings
+    const next = { ...settings, [key]: !settings[key] }
+    try {
+      await setGameSettings(next.enableAnswerStreaks, next.enableCategoryBanDraft, next.enableGoldenQuestion)
+    } catch {
+      // Rejection surfaces as a HubException the server logs; the checkbox simply won't change,
+      // same tolerance level as toggleSeat below.
+    }
+  }
 
   async function toggleSeat(seatIndex: number, currentlyBot: boolean) {
     try {
@@ -124,6 +138,48 @@ export function LobbyScreen() {
           {linkCopied ? t('common.copied') : t('lobby.copyInviteLink')}
         </button>
       </div>
+      <section className="game-settings-panel" data-testid="game-settings-panel">
+        <h2 className="game-settings-title">{t('lobby.gameSettingsTitle')}</h2>
+        <label className="game-settings-toggle">
+          <input
+            type="checkbox"
+            checked={view.gameSettings.enableAnswerStreaks}
+            disabled={!view.youAreHost}
+            onChange={() => void toggleSetting('enableAnswerStreaks')}
+            data-testid="setting-answer-streaks"
+          />
+          <span>
+            <strong>{t('lobby.settingAnswerStreaksTitle')}</strong>
+            <small>{t('lobby.settingAnswerStreaksDescription')}</small>
+          </span>
+        </label>
+        <label className="game-settings-toggle">
+          <input
+            type="checkbox"
+            checked={view.gameSettings.enableCategoryBanDraft}
+            disabled={!view.youAreHost}
+            onChange={() => void toggleSetting('enableCategoryBanDraft')}
+            data-testid="setting-category-ban-draft"
+          />
+          <span>
+            <strong>{t('lobby.settingCategoryBanTitle')}</strong>
+            <small>{t('lobby.settingCategoryBanDescription')}</small>
+          </span>
+        </label>
+        <label className="game-settings-toggle">
+          <input
+            type="checkbox"
+            checked={view.gameSettings.enableGoldenQuestion}
+            disabled={!view.youAreHost}
+            onChange={() => void toggleSetting('enableGoldenQuestion')}
+            data-testid="setting-golden-question"
+          />
+          <span>
+            <strong>{t('lobby.settingGoldenQuestionTitle')}</strong>
+            <small>{t('lobby.settingGoldenQuestionDescription')}</small>
+          </span>
+        </label>
+      </section>
       <ul className="seat-list">
         {view.seats.map((seat) => (
           <li key={seat.seatIndex} className={seat.isHost ? 'seat seat-host' : 'seat'} data-testid={`seat-${seat.seatIndex}`}>

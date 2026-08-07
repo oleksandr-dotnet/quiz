@@ -15,6 +15,16 @@ export const leaveRoom = (): Promise<void> => getConnection().invoke('LeaveRoom'
 export const kickPlayer = (targetPlayerId: string, landPolicy: KickLandPolicy): Promise<void> =>
   getConnection().invoke('KickPlayer', targetPlayerId, landPolicy)
 
+export const setGameSettings = (
+  enableAnswerStreaks: boolean,
+  enableCategoryBanDraft: boolean,
+  enableGoldenQuestion: boolean,
+): Promise<void> =>
+  getConnection().invoke('SetGameSettings', enableAnswerStreaks, enableCategoryBanDraft, enableGoldenQuestion)
+
+export const proposeCategoryBans = (categoryIds: string[]): Promise<void> =>
+  getConnection().invoke('ProposeCategoryBans', categoryIds)
+
 export const startGame = (): Promise<void> => getConnection().invoke('StartGame')
 
 export const selectBase = (regionId: string): Promise<void> => getConnection().invoke('SelectBase', regionId)
