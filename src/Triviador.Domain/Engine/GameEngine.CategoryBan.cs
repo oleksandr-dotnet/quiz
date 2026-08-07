@@ -121,6 +121,7 @@ public sealed partial class GameEngine
         }
 
         _state.BannedCategories = banned.ToImmutable();
+        _state.Phase = GamePhase.BaseSelection;
         _state.Pending = null;
 
         var events = ImmutableArray.CreateBuilder<IGameEvent>();

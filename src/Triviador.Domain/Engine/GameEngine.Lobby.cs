@@ -82,9 +82,15 @@ public sealed partial class GameEngine
 
         var events = ImmutableArray.CreateBuilder<IGameEvent>();
         events.Add(new GameStarted());
-        events.AddRange(_state.Rules.EnableCategoryBanDraft
-            ? StartCategoryBanDraft(command.At)
-            : ImmutableArray.Create<IGameEvent>(StartBasePick(_state.Players[0].Id, command.At)));
+        if (_state.Rules.EnableCategoryBanDraft)
+        {
+            events.AddRange(StartCategoryBanDraft(command.At));
+        }
+        else
+        {
+            _state.Phase = GamePhase.BaseSelection;
+            events.Add(StartBasePick(_state.Players[0].Id, command.At));
+        }
 
         return CommandResult.Accepted(events.ToImmutable());
     }
