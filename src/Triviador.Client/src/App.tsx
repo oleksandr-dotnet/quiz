@@ -11,6 +11,7 @@ import { LandingScreen } from './screens/LandingScreen'
 import { AccountSetupScreen } from './screens/AccountSetupScreen'
 import { LobbyScreen } from './screens/LobbyScreen'
 import { CategoryBanDock } from './screens/CategoryBanScreen'
+import { CategoryBanResultPopup } from './components/CategoryBanResultPopup'
 import { BaseSelectionDock, baseSelectionMapProps, baseSelectionOnSelect } from './screens/BaseSelectionScreen'
 import { LandGrabDock, landGrabMapProps, landGrabOnSelect } from './screens/LandGrabScreen'
 import { BattleDock, battleMapProps, battleOnSelect } from './screens/BattleScreen'
@@ -208,6 +209,7 @@ function App() {
   const [proclamationQueue, setProclamationQueue] = useState<string[]>([])
   const [mapShaking, setMapShaking] = useState(false)
   const [kickTarget, setKickTarget] = useState<PlayerView | null>(null)
+  const [bannedCategoriesResult, setBannedCategoriesResult] = useState<string[] | null>(null)
   // Shared with LandGrabDock (same hook, same window) purely to know when a reveal is on screen -
   // AppShell uses it to hide the map on mobile while it's up (see mapHiddenMobile below).
   const landGrabVisibleReveal = useLandGrabReveal(gameView)
@@ -267,6 +269,15 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transitions])
 
+  // A floating, non-blocking popup (not the proclamation queue - base selection starts the instant
+  // this fires, and that's a live, time-limited activity the player shouldn't be locked out of).
+  useEffect(() => {
+    const banResolved = transitions.find((t) => t.kind === 'categoryBansResolved')
+    if (banResolved && banResolved.kind === 'categoryBansResolved') {
+      setBannedCategoriesResult(banResolved.categories)
+    }
+  }, [transitions])
+
   // Drains proclamationQueue one message at a time: shows the next queued message only once
   // nothing is currently showing, so a fast follow-up batch queues up behind an in-progress
   // proclamation instead of cutting it off.
@@ -275,9 +286,18 @@ function App() {
     const [next, ...rest] = proclamationQueue
     setProclamation(next)
     setProclamationQueue(rest)
+  }, [proclamationQueue, proclamation])
+
+  // Auto-dismiss, kept in its own effect keyed only on `proclamation`. Sharing the dequeue effect
+  // above would re-run this on the very state update that shows the message (proclamation:
+  // null -> next), and the cleanup from that stale run would clear the timeout it had just armed
+  // before it ever fired - the toast would then sit on screen until a *different* message replaced
+  // it, never on its own.
+  useEffect(() => {
+    if (proclamation === null) return
     const id = window.setTimeout(() => setProclamation(null), 4000)
     return () => window.clearTimeout(id)
-  }, [proclamationQueue, proclamation])
+  }, [proclamation])
 
   // Map-shake feedback for base damage is independent of whichever proclamation (if any) also
   // fires from the same batch - a shake and a banner don't visually conflict.
@@ -493,6 +513,15 @@ function App() {
     <>
       <ConnectionBadge status={status} closedReason={closedReason} kickedReason={kickedReason} />
       <TurnAnnouncement view={gameView} />
+      <AnimatePresence>
+        {bannedCategoriesResult && (
+          <CategoryBanResultPopup
+            key="category-ban-result"
+            categories={bannedCategoriesResult}
+            onDismiss={() => setBannedCategoriesResult(null)}
+          />
+        )}
+      </AnimatePresence>
       <AppShell
         dockKey={dockKey}
         mapShaking={mapShaking}

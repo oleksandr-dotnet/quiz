@@ -186,6 +186,8 @@
   "categoryBan.submitWithCount": "Предложить {{count}} к запрету",
   "categoryBan.submitNone": "Не предлагать",
   "categoryBan.bannedTooltip": "Запрещено в этой игре: {{categories}}",
+  "categoryBan.resultTitle": "Запрещено в этой игре",
+  "common.dismiss": "Закрыть",
   "categoryBan.category.geography": "География",
   "categoryBan.category.history": "История",
   "categoryBan.category.science": "Наука",
