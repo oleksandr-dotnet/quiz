@@ -10,9 +10,9 @@
 //      the server's map contract is untouched by this file's existence).
 //
 // Topology: 18 playable regions in a 6x3 grid, 4-neighbour (rook) adjacency - trivially fully
-// connected. Middle row worth 400, outer rows worth 200. Region names are invented (English +
-// Russian), deliberately not real-world places - this is an abstract territory board, not a map of
-// anywhere. Re-running this script against an unmodified tree must reproduce every committed output
+// connected, every region worth the same 200 points. Region names are invented (English + Russian),
+// deliberately not real-world places - this is an abstract territory board, not a map of anywhere.
+// Re-running this script against an unmodified tree must reproduce every committed output
 // byte-for-byte, since the seed and every input here are fixed.
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -83,14 +83,16 @@ for (let row = 0; row < vertexRows; row++) {
 }
 
 // Each lattice edge is computed exactly once and shared by both adjoining regions (traversed in
-// opposite directions), so territories meet with identical geometry - no seams or gutters. Unlike a
-// single symmetric bow, each edge now carries an independently-jittered midpoint plus two half-bows
-// (one per half), so a border reads as a small irregular headland/bay pair rather than one smooth
-// arc - closer to a real coastline. Every value stored here is an absolute point in board space, not
-// a direction-relative offset, which is what makes the whole thing reversal-symmetric for free: a
-// neighbour drawing the same edge the other way round just calls bezierSegment with from/to swapped
-// against the same cached mid/bow points and traces the identical curve (see bezierSegment's own
-// comment).
+// opposite directions), so territories meet with identical geometry - no seams or gutters. Each edge
+// is chopped into SEGMENTS_PER_EDGE independently-jittered sub-points plus one bow per segment, so a
+// border reads as a small chain of headlands/bays rather than one or two smooth arcs - closer to a
+// real, many-inlet coastline. `points` is stored in a fixed a->b canonical order (a is always the
+// lower lattice index, per the cache key below) and `bows` line up with the segments in that same
+// order - every value here is an absolute point in board space, not a direction-relative offset,
+// which is what makes the whole thing reversal-symmetric for free: a neighbour drawing the same edge
+// the other way round just calls bezierSegment with from/to swapped and walks the same points/bows
+// backward (see bezierSegment's own comment).
+const SEGMENTS_PER_EDGE = 3;
 const edgeCache = new Map();
 function edgeBetween(iA, iB) {
   const key = iA < iB ? `${iA}:${iB}` : `${iB}:${iA}`;
@@ -107,21 +109,21 @@ function edgeBetween(iA, iB) {
   const nx = -dy / len;
   const ny = dx / len;
 
-  const midBaseX = (a.x + b.x) / 2;
-  const midBaseY = (a.y + b.y) / 2;
-  // The midpoint's own displacement (perpendicular + a touch of along-edge drift) is what turns two
-  // independent half-bows into a visible headland rather than just a slightly-off-center single arc.
-  const midDisplace = jitter(minCell * 0.11);
-  const midDrift = jitter(minCell * 0.05);
-  const mid = {
-    x: midBaseX + nx * midDisplace + (dx / len) * midDrift,
-    y: midBaseY + ny * midDisplace + (dy / len) * midDrift,
-  };
+  const points = [];
+  for (let i = 1; i < SEGMENTS_PER_EDGE; i++) {
+    const t = i / SEGMENTS_PER_EDGE;
+    const baseX = a.x + dx * t;
+    const baseY = a.y + dy * t;
+    // Perpendicular displacement (headland/bay depth) plus a touch of along-edge drift, same
+    // rationale as the old single-midpoint version, just repeated at every interior sub-point.
+    const displace = jitter(minCell * 0.1);
+    const drift = jitter(minCell * 0.045);
+    points.push({ x: baseX + nx * displace + (dx / len) * drift, y: baseY + ny * displace + (dy / len) * drift });
+  }
 
-  const bow1 = jitter(minCell * 0.1); // a -> mid
-  const bow2 = jitter(minCell * 0.1); // mid -> b
+  const bows = Array.from({ length: SEGMENTS_PER_EDGE }, () => jitter(minCell * 0.09));
 
-  edge = { a, b, mid, bow1, bow2 };
+  edge = { a, b, points, bows };
   edgeCache.set(key, edge);
   return edge;
 }
@@ -146,21 +148,23 @@ function bowSegment(fromPoint, toPoint, bow) {
   return `C${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${toPoint.x.toFixed(2)},${toPoint.y.toFixed(2)}`;
 }
 
-// Two-segment edge (see edgeBetween's doc comment): traces fromVertex -> edge.mid -> toVertex,
-// choosing which cached half-bow belongs to which half based on which direction is actually being
-// walked - `bow1` always belongs to the `edge.a` side and `bow2` to the `edge.b` side, so reversing
-// the walk direction reverses which bow comes first, exactly mirroring the two-segment curve back
-// on itself rather than drawing a different shape.
+// Multi-segment edge (see edgeBetween's doc comment): traces fromVertex through every interior
+// point to toVertex. `edge.points`/`edge.bows` are stored in the fixed a->b canonical order;
+// walking a->b uses them forward, walking b->a walks the point chain backward and negates+reverses
+// the bows - bowSegment(X, Y, +b) and bowSegment(Y, X, -b) trace the identical absolute curve
+// (bowSegment's perpendicular flips sign when the direction flips, so negating `bow` cancels that
+// flip), so the reversed walk isn't just "same segments in the other order", each one's bow must
+// flip too, or the two regions sharing this edge would draw physically different curves for what's
+// supposed to be one shared border.
 function bezierSegment(fromVertex, edge, toVertex) {
   const forward = fromVertex === edge.a;
-  // bowSegment(X, Y, +b) and bowSegment(Y, X, -b) trace the identical absolute curve (bowSegment's
-  // perpendicular flips sign when the direction flips, so negating `bow` cancels that flip) - so the
-  // reversed walk isn't just "same two bows in the other order", each bow's sign must flip too, or
-  // the two regions sharing this edge draw physically different curves for what's supposed to be
-  // one shared border.
-  const firstBow = forward ? edge.bow1 : -edge.bow2;
-  const secondBow = forward ? edge.bow2 : -edge.bow1;
-  return `${bowSegment(fromVertex, edge.mid, firstBow)} ${bowSegment(edge.mid, toVertex, secondBow)}`;
+  const chain = forward ? [edge.a, ...edge.points, edge.b] : [edge.b, ...edge.points.slice().reverse(), edge.a];
+  const bows = forward ? edge.bows : edge.bows.slice().reverse().map((b) => -b);
+  const parts = [];
+  for (let i = 0; i < chain.length - 1; i++) {
+    parts.push(bowSegment(chain[i], chain[i + 1], bows[i]));
+  }
+  return parts.join(' ');
 }
 
 // True area-weighted polygon centroid (shoelace formula) of a closed vertex loop - more accurate
@@ -188,7 +192,9 @@ function polygonCentroid(poly) {
 
 const round2 = (n) => Math.round(n * 100) / 100;
 const regionId = (row, col) => `r${String(row * COLS + col + 1).padStart(2, '0')}`;
-const valueForRow = (row) => (row === 1 ? 400 : 200); // middle row is 400, outer rows are 200
+// Every region is worth the same 200 - an earlier "middle row worth 400" premium read as an
+// arbitrary, unexplained cost spike once players actually hit it mid-game and has been dropped.
+const REGION_VALUE = 200;
 const radius = Math.round((minCell / 2) * RADIUS_FACTOR);
 
 const mapRegions = [];
@@ -231,7 +237,7 @@ for (let row = 0; row < ROWS; row++) {
       id,
       nameEn: NAMES_EN[ordinal],
       nameRu: NAMES_RU[ordinal],
-      value: valueForRow(row),
+      value: REGION_VALUE,
       centerX,
       centerY,
       radius,
@@ -270,6 +276,10 @@ const landCentroid = vertices.reduce(
 // Kept deliberately modest (a coastal fringe, not a second continent) - GameMap.tsx renders these
 // against a viewBox only padded by DECORATIVE_MARGIN beyond the playable grid's own 0..1200x0..640,
 // so anything extruded much further than that would simply be clipped off-canvas.
+// Reaches much further than the previous coastal fringe (0.42-0.92*minCell) so the ring comfortably
+// covers ultra-wide and narrow desktop viewports alike once GameMap.tsx's "slice" crop reveals more
+// of the padded viewBox's corners than a plain 16:9 window would - see GameMap.tsx's paddedViewBox
+// doc comment and App.css's desktop map background for the belt-and-braces fallback fill underneath.
 const outerPoints = perimeter.map((vi) => {
   const v = vertices[vi];
   const dx = v.x - landCentroid.x;
@@ -277,8 +287,8 @@ const outerPoints = perimeter.map((vi) => {
   const len = Math.hypot(dx, dy) || 1;
   const nx = dx / len;
   const ny = dy / len;
-  const dist = minCell * (0.42 + rand() * 0.5);
-  return { x: v.x + nx * dist + jitter(minCell * 0.12), y: v.y + ny * dist + jitter(minCell * 0.12) };
+  const dist = minCell * (0.9 + rand() * 1.1);
+  return { x: v.x + nx * dist + jitter(minCell * 0.16), y: v.y + ny * dist + jitter(minCell * 0.16) };
 });
 
 const n = perimeter.length;

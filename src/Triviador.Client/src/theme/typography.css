@@ -1,9 +1,16 @@
 @import '@fontsource-variable/fraunces';
 @import '@fontsource-variable/inter';
+@import '@fontsource/ruslan-display';
 
 :root {
   --font-display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
   --font-body: 'Inter Variable', Inter, system-ui, sans-serif;
+  /* Ruslan Display - a carved, heraldic Slavic-epic face (native Cyrillic glyphs, not a Latin font
+     faking it) - reserved for the HUD's phase/round banner text (the "Battle · Round 10/12" line
+     and its TurnAnnouncement echo), not swapped in globally for --font-display: at body-text sizes
+     its heavy carved strokes would hurt legibility, but at the HUD banner's larger size it's exactly
+     the "RPG, castle" read the rest of the map's redesign is going for. */
+  --font-heading: 'Ruslan Display', var(--font-display);
 }
 
 body {

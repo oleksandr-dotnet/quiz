@@ -41,11 +41,23 @@
   min-width: 0;
 }
 
+/* The HUD's phase label ("Битва"/"Battle") - same carved heraldic face and size bump as
+   .round-progress right next to it, so the two read as one banner line, not a small label next to
+   a large one. */
+.phase-label {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+
 .round-progress {
   display: inline-flex;
   flex-direction: column;
   gap: 0.2rem;
   justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
   /* Without this, a narrow flex leftover (e.g. next to the title on a phone-width top bar) wraps
      the text word-by-word into a tall, ragged column instead of the whole phrase moving as one
      unit to its own line (see .shell-top-bar's mobile flex-wrap). */
@@ -75,8 +87,8 @@
   background: none;
   border: none;
   border-radius: 999px;
-  padding: 0.25rem;
-  font-size: 1.1rem;
+  padding: 0.5rem;
+  font-size: 1.65rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -95,9 +107,10 @@
 .leave-game-button {
   background: none;
   border: 1px solid var(--table-ink-500);
-  border-radius: 4px;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.8rem;
+  border-radius: var(--r-md);
+  padding: 0.5rem 1.1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
   color: var(--table-ink-700);
   cursor: pointer;
 }
@@ -299,7 +312,7 @@
   }
 
   .shell-roster .player-card {
-    background: rgba(250, 246, 234, 0.94);
+    background: rgba(250, 246, 234, 0.99);
     box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.6);
   }
 
@@ -319,10 +332,16 @@
     bottom: 2rem;
     transform: translateX(-50%);
     width: min(46rem, 90vw);
-    max-height: 62vh;
+    /* Clears the fixed hud-top banner (title/phase/round + roster, ~7.5rem - see
+       .turn-announcement-docked's own `top: 7.5rem` comment) and the 2rem bottom gap, so a full
+       4-option question card fits without its own scrollbar on any realistic desktop viewport height
+       - overflow-y stays as a safety net for pathologically short windows rather than clipping
+       content outright, not as the everyday behavior. */
+    max-height: calc(100vh - 9.5rem);
+    max-height: calc(100svh - 9.5rem);
     overflow-y: auto;
     z-index: 45;
-    background: rgba(250, 246, 234, 0.97);
+    background: rgba(250, 246, 234, 0.99);
     border: 1px solid var(--paper-300);
     border-radius: var(--r-lg);
     padding: 1.1rem 1.25rem;
@@ -376,9 +395,10 @@
   background: rgba(20, 16, 10, 0.62);
   border: 1px solid var(--table-panel-border);
   color: var(--table-ink-900);
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
+  letter-spacing: 0.02em;
   text-align: center;
   white-space: nowrap;
   max-width: min(34rem, 70vw);
@@ -403,9 +423,10 @@
   border: 1px solid var(--gilt-500);
   box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8), 0 0 40px -10px var(--glow-gilt);
   color: var(--table-ink-900);
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-weight: 700;
   font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.4rem);
+  letter-spacing: 0.02em;
   text-align: center;
   max-width: min(50rem, 80vw);
   pointer-events: none;
@@ -1224,17 +1245,17 @@
 
 .decorative-forest .decorative-fill {
   fill: var(--terra-forest);
-  fill-opacity: 0.55;
+  fill-opacity: 0.9;
 }
 
 .decorative-hill .decorative-fill {
   fill: var(--terra-hill);
-  fill-opacity: 0.5;
+  fill-opacity: 0.88;
 }
 
 .decorative-marsh .decorative-fill {
   fill: var(--terra-marsh);
-  fill-opacity: 0.5;
+  fill-opacity: 0.88;
 }
 
 .terrain-glyph path {

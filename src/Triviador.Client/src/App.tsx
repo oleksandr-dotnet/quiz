@@ -84,7 +84,7 @@ function TopBar({ view }: { view: GameView }) {
       <div className="top-bar-full">
         <h1>{t('app.title')}</h1>
         <span>&middot;</span>
-        <span>{phaseKey && t(phaseKey)}</span>
+        <span className="phase-label">{phaseKey && t(phaseKey)}</span>
         {view.phase === 'Battle' && (
           <>
             <span>&middot;</span>

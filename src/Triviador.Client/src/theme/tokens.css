@@ -54,6 +54,10 @@
   --terra-hill: #9c8058;
   --terra-marsh: #6d7a6e;
   --terra-stroke: #3c3524;
+  /* Fallback fill for the desktop map's outermost backdrop rect, behind even the terra incognita
+     ring - a muted earth tone (not --sea's pale water tint) so any sliver the ring's own geometry
+     doesn't quite reach still reads as unmapped land, never a blank gap. */
+  --terra-fallback: #7c6a45;
 
   --r-sm: 4px;
   --r-md: 8px;
