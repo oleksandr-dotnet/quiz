@@ -29,14 +29,14 @@ body::after {
   background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
 }
 
-/* The pre-game ambient backdrop (AmbientLifeBackground.tsx) - a small Game-of-Life canvas blown up
-   and heavily blurred so individual cells never read as pixels, just slow-drifting gilt/heraldic
-   colonies. Sits behind body::before/after (grain + vignette, z-index -1) so those still composite
-   on top of it - the life sim reads as part of the same table material, not a layer above it.
-   scale(1.08) hides the blur's soft falloff at the viewport edge, which would otherwise show as a
-   faint rectangle. Component self-gates on gameView, so this never competes with the map during
-   actual play. */
-.ambient-life-backdrop {
+/* The pre-game ambient backdrop (AmbientBattleBackground.tsx) - the real 18-territory map, fought
+   over by 4 bot colonies in an endless unattended loop, heavily blurred so it reads as a hazy scene
+   rather than a legible (and redundant-looking, with no HUD around it) game board. Sits behind
+   body::before/after (grain + vignette, z-index -1) so those still composite on top of it - the
+   battle reads as part of the same table material, not a layer above it. scale(1.1) hides the
+   blur's soft falloff at the viewport edge, which would otherwise show as a faint rectangle.
+   Component self-gates on gameView, so this never competes with the real map during actual play. */
+.ambient-battle-backdrop {
   position: fixed;
   inset: 0;
   z-index: -2;
@@ -44,20 +44,24 @@ body::after {
   pointer-events: none;
 }
 
-.ambient-life-backdrop canvas {
+.ambient-battle-backdrop svg {
   width: 100%;
   height: 100%;
   display: block;
-  transform: scale(1.08);
-  filter: blur(26px) saturate(1.2);
-  opacity: 0.68;
+  transform: scale(1.1);
+  filter: blur(22px) saturate(1.15);
+  opacity: 0.6;
 }
 
-/* A static (unblurred-timing, still rendered) single frame reads fine motionless - only the
-   animation loop itself is skipped in AmbientLifeBackground.tsx. */
+.ambient-battle-region {
+  stroke: rgba(20, 16, 10, 0.4);
+  stroke-width: 3;
+  transition: fill 0.55s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ambient-life-backdrop canvas {
-    opacity: 0.5;
+  .ambient-battle-backdrop svg {
+    opacity: 0.45;
   }
 }
 
