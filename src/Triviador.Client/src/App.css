@@ -294,7 +294,12 @@
   }
 
   .shell-top-bar {
-    margin-bottom: 0.85rem;
+    /* Was 0.85rem - the phase/round text bumping up to font-heading at 1.35rem (above) taxed a
+       taller top-bar row than this margin was tuned against, so the roster row below it ended up
+       sitting visibly lower than the title/leave-game row it's meant to read as one HUD banner
+       with. Tightened rather than removed - the roster still needs to read as its own row, just
+       not with a conspicuous gap. */
+    margin-bottom: 0.45rem;
   }
 
   .shell-roster {
@@ -308,14 +313,56 @@
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.6rem;
+    gap: 0.7rem;
   }
 
   .shell-roster .player-card {
     background: linear-gradient(160deg, var(--paper-050) 0%, var(--paper-200) 100%);
     border: 1px solid var(--gilt-700);
     box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.6), inset 0 0 0 2px var(--gilt-300);
+    /* ~20% up from the base .player-card scale (padding/gap there are em-based so this alone pulls
+       them along); seat-swatch/hit-points below are sized in raw px so they get their own bump. */
+    font-size: 1.2em;
     padding: 0.55em 0.85em;
+  }
+
+  .shell-roster .seat-swatch {
+    width: 22px;
+    height: 22px;
+  }
+
+  .shell-roster .hp-pip {
+    width: 8px;
+    height: 8px;
+  }
+
+  /* Higher specificity than the base .player-card.active-turn rule further down this file (which
+     would otherwise win on source order alone and flatten this card's own richer box-shadow down to
+     its plain thin ring) - needed because the resting desktop card above already wears a gilt-700
+     border, so the base rule's gilt-500 border-color swap read as barely-there next to it. A
+     brighter gilt-300 border plus a wider glow ring layered on top of (not replacing) the resting
+     shadow is what actually reads as "this one's different" at this card's now-larger scale. */
+  .shell-roster .player-card.active-turn {
+    border-color: var(--gilt-300);
+    box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.6), inset 0 0 0 2px var(--gilt-300), 0 0 0 2px var(--gilt-500);
+    animation: active-turn-glow-desktop 1.6s ease-in-out infinite;
+  }
+
+  @keyframes active-turn-glow-desktop {
+    0%,
+    100% {
+      box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.6), inset 0 0 0 2px var(--gilt-300), 0 0 0 2px var(--gilt-500);
+    }
+    50% {
+      box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.6), inset 0 0 0 2px var(--gilt-300), 0 0 0 3px var(--gilt-500),
+        0 0 24px 4px var(--glow-gilt);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shell-roster .player-card.active-turn {
+      animation: none;
+    }
   }
 
   /* Brass corner brackets (same technique as .landing/.lobby's signature mark, App.css further
