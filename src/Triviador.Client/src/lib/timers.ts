@@ -8,6 +8,7 @@ export const TIMER_TOTALS_MS = {
   landGrabPick: 10_000,
   attackTargetSelection: 15_000,
   revealHold: 7_000,
+  categoryBanProposal: 20_000,
 }
 
 export function questionTotalMs(kind: QuestionKind): number {

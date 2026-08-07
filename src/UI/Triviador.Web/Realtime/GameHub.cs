@@ -114,6 +114,20 @@ public sealed class GameHub(
             playerId, targetPlayerId, room.RoomCode, parsedPolicy);
     }
 
+    public async Task SetGameSettings(bool enableAnswerStreaks, bool enableCategoryBanDraft, bool enableGoldenQuestion)
+    {
+        var (room, playerId) = ResolveConnection();
+        var ack = await room.SetGameSettingsAsync(playerId, enableAnswerStreaks, enableCategoryBanDraft, enableGoldenQuestion);
+        EnsureSuccess(ack, nameof(SetGameSettings));
+    }
+
+    public async Task ProposeCategoryBans(string[] categoryIds)
+    {
+        var (room, playerId) = ResolveConnection();
+        var ack = await room.ProposeCategoryBansAsync(playerId, categoryIds);
+        EnsureSuccess(ack, nameof(ProposeCategoryBans));
+    }
+
     public async Task StartGame()
     {
         var (room, playerId) = ResolveConnection();

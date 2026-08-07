@@ -15,6 +15,21 @@ public static class BotChoice
     public static RegionId PickRegion(ImmutableArray<RegionId> eligible, IRandomSource random) =>
         eligible[random.NextInt(0, eligible.Length)];
 
+    // Up to 3 categories, drawn the same way a human might idly pick a few they'd rather not see -
+    // never an empty proposal, so a bot's ban slot is drawn from its own picks like a human's,
+    // rather than always falling back to the shared remaining-pool path.
+    public static ImmutableArray<CategoryId> PickCategoryBans(ImmutableArray<CategoryId> available, IRandomSource random)
+    {
+        if (available.IsEmpty)
+        {
+            return ImmutableArray<CategoryId>.Empty;
+        }
+
+        var shuffled = random.Shuffle(available);
+        var count = Math.Min(3, shuffled.Length);
+        return shuffled.Take(count).ToImmutableArray();
+    }
+
     public static AnswerValue Answer(QuestionPrompt prompt, IRandomSource random) => prompt.Kind switch
     {
         QuestionKind.Choice => new AnswerValue.Choice(random.NextInt(0, prompt.Options.Length)),

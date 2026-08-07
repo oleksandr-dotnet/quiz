@@ -25,12 +25,21 @@ export const AVATAR_IDS = [
 
 export type AvatarId = (typeof AVATAR_IDS)[number]
 
+// The three independently host-toggleable mechanics - see answer-streaks, category-ban-draft,
+// golden-question. All default true.
+export interface GameSettingsView {
+  enableAnswerStreaks: boolean
+  enableCategoryBanDraft: boolean
+  enableGoldenQuestion: boolean
+}
+
 export interface RoomView {
   roomCode: string
   youPlayerId: string
   youAreHost: boolean
   seats: SeatDto[]
   language: Language
+  gameSettings: GameSettingsView
 }
 
 export interface JoinResult {
@@ -42,7 +51,7 @@ export interface JoinResult {
   view: RoomView | null
 }
 
-export type GamePhase = 'Lobby' | 'BaseSelection' | 'LandGrab' | 'Battle' | 'Finished'
+export type GamePhase = 'Lobby' | 'CategoryBan' | 'BaseSelection' | 'LandGrab' | 'Battle' | 'Finished'
 
 export interface RegionView {
   regionId: string
@@ -70,6 +79,9 @@ export interface PlayerView {
   eliminated: boolean
   baseHitPoints: number | null
   withdrawn: boolean
+  // Consecutive correct answers, any question type - see answer-streaks. 0 when the player has no
+  // active streak or GameSettingsView.enableAnswerStreaks is false for this game.
+  answerStreak: number
 }
 
 export type KickLandPolicy = 'ReleaseLand' | 'BotTakeover'
@@ -117,6 +129,8 @@ export interface LastRevealView {
   prompt: QuestionPromptView
   correctAnswer: AnswerValueView
   answers: RevealedAnswerView[]
+  // Never true until this reveal - see golden-question's hidden-until-reveal requirement.
+  isGolden: boolean
 }
 
 export interface PendingAttackTargetView {
@@ -129,6 +143,16 @@ export interface PendingRevealView {
   prompt: QuestionPromptView
   correctAnswer: AnswerValueView
   answers: RevealedAnswerView[]
+  deadline: string
+  isGolden: boolean
+}
+
+// Mirrors PendingQuestionView's shape: hasSubmitted never reveals another player's proposed
+// categories before the draft resolves; yourProposal echoes only the viewer's own submission.
+export interface PendingCategoryBanView {
+  availableCategories: string[]
+  hasSubmitted: Record<string, boolean>
+  yourProposal: string[] | null
   deadline: string
 }
 
@@ -174,4 +198,8 @@ export interface GameView {
   battle: BattleContextView | null
   language: Language
   roundLimit: number
+  pendingCategoryBan: PendingCategoryBanView | null
+  // Empty when category-ban-draft is disabled or hasn't resolved yet; fixed for the rest of the
+  // game once it has.
+  bannedCategories: string[]
 }

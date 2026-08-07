@@ -179,9 +179,9 @@ public sealed partial class GameEngine
 
     private ImmutableArray<IGameEvent> AskBattleQuestion(
         QuestionPurpose purpose, PlayerId attacker, PlayerId defender, Instant at,
-        QuestionKindRequest kindRequest = QuestionKindRequest.Any)
+        QuestionKindRequest kindRequest = QuestionKindRequest.Any, bool? inheritedGolden = null)
     {
-        var question = _questions.Draw(new QuestionDraw(kindRequest));
+        var question = _questions.Draw(new QuestionDraw(kindRequest, _state.BannedCategories));
         // The defender is always placed first, so a tie (including a double-timeout, where both
         // submissions are AnswerValue.None) is always won by the defender.
         var tieBreak = TieBreakOrder.Prefer(defender, attacker);
@@ -196,10 +196,14 @@ public sealed partial class GameEngine
         var participants = attacker == defender
             ? ImmutableArray.Create(attacker)
             : ImmutableArray.Create(attacker, defender);
+        // A NumericTiebreak question never rolls its own golden decision - it always carries whatever
+        // its Original question was, per golden-question's "not itself independently golden"
+        // requirement. Every other battle question rolls through the same scheduler land grab uses.
+        var isGolden = inheritedGolden ?? RollGolden();
 
         _state.Pending = new PendingActivity.Question(
             token, deadline, at, question, purpose, participants,
-            ImmutableDictionary<PlayerId, AnswerSubmission>.Empty, tieBreak);
+            ImmutableDictionary<PlayerId, AnswerSubmission>.Empty, tieBreak, isGolden);
 
         return ImmutableArray.Create<IGameEvent>(new QuestionAsked(token, question.Prompt, purpose, participants, deadline));
     }
@@ -224,15 +228,20 @@ public sealed partial class GameEngine
         {
             case QuestionPurpose.Duel duel:
             {
+                events.AddRange(ApplyAnswerStreaks(
+                    ImmutableArray.Create(duel.Attacker, duel.Defender), pending.Result, pending.IsGolden));
                 events.AddRange(RequiresNumericTiebreak(pending.Result, duel.Attacker, duel.Defender)
                     ? AskBattleQuestion(new QuestionPurpose.NumericTiebreak(duel, duel.Attacker, duel.Defender),
-                        duel.Attacker, duel.Defender, at, QuestionKindRequest.Tip)
-                    : ApplyDuelOutcome(duel, pending.Result, at));
+                        duel.Attacker, duel.Defender, at, QuestionKindRequest.Tip, pending.IsGolden)
+                    : ApplyDuelOutcome(duel, pending.Result, at, pending.IsGolden));
                 break;
             }
 
             case QuestionPurpose.BaseAssault assault when assault.Attacker == assault.Defender:
             {
+                events.AddRange(ApplyAnswerStreaks(
+                    ImmutableArray.Create(assault.Attacker), pending.Result, pending.IsGolden));
+
                 // Self-heal: success heals rather than damages, and — unlike a lost self-heal —
                 // keeps the turn. AttackerWon can't apply here — it compares the attacker's and
                 // defender's ranks, which are the same single ranked answer when attacker ==
@@ -247,7 +256,8 @@ public sealed partial class GameEngine
                 if (healed)
                 {
                     var self = PlayerById(assault.Attacker);
-                    self.BaseHitPoints = Math.Min(self.BaseHitPoints + 1, _state.Rules.BaseHitPointsDefault);
+                    var healAmount = pending.IsGolden ? 2 : 1;
+                    self.BaseHitPoints = Math.Min(self.BaseHitPoints + healAmount, _state.Rules.BaseHitPointsDefault);
                     events.Add(new BaseHitPointsChanged(assault.Attacker, self.BaseHitPoints));
                 }
 
@@ -260,10 +270,12 @@ public sealed partial class GameEngine
 
             case QuestionPurpose.BaseAssault assault:
             {
+                events.AddRange(ApplyAnswerStreaks(
+                    ImmutableArray.Create(assault.Attacker, assault.Defender), pending.Result, pending.IsGolden));
                 events.AddRange(RequiresNumericTiebreak(pending.Result, assault.Attacker, assault.Defender)
                     ? AskBattleQuestion(new QuestionPurpose.NumericTiebreak(assault, assault.Attacker, assault.Defender),
-                        assault.Attacker, assault.Defender, at, QuestionKindRequest.Tip)
-                    : ApplyBaseAssaultOutcome(assault, pending.Result, at));
+                        assault.Attacker, assault.Defender, at, QuestionKindRequest.Tip, pending.IsGolden)
+                    : ApplyBaseAssaultOutcome(assault, pending.Result, at, pending.IsGolden));
                 break;
             }
 
@@ -273,11 +285,21 @@ public sealed partial class GameEngine
                 // order as any other numeric question — closeness first, elapsed time only if
                 // equally close, the defender-favored TieBreakOrder only if that's tied too. Its
                 // outcome is applied through whichever purpose it wraps, using this question's
-                // result instead of the tied one that triggered it.
+                // result instead of the tied one that triggered it. This is a genuinely separate
+                // question from the tied original, so it gets its own streak evaluation too.
+                var tiebreakParticipants = tiebreak.Original switch
+                {
+                    QuestionPurpose.Duel d => ImmutableArray.Create(d.Attacker, d.Defender),
+                    QuestionPurpose.BaseAssault a => ImmutableArray.Create(a.Attacker, a.Defender),
+                    _ => throw new InvalidOperationException(
+                        $"NumericTiebreak.Original must be Duel or BaseAssault, was {tiebreak.Original.GetType().Name}."),
+                };
+                events.AddRange(ApplyAnswerStreaks(tiebreakParticipants, pending.Result, pending.IsGolden));
+
                 events.AddRange(tiebreak.Original switch
                 {
-                    QuestionPurpose.Duel duel => ApplyDuelOutcome(duel, pending.Result, at),
-                    QuestionPurpose.BaseAssault assault => ApplyBaseAssaultOutcome(assault, pending.Result, at),
+                    QuestionPurpose.Duel duel => ApplyDuelOutcome(duel, pending.Result, at, pending.IsGolden),
+                    QuestionPurpose.BaseAssault assault => ApplyBaseAssaultOutcome(assault, pending.Result, at, pending.IsGolden),
                     _ => throw new InvalidOperationException(
                         $"NumericTiebreak.Original must be Duel or BaseAssault, was {tiebreak.Original.GetType().Name}."),
                 });
@@ -295,7 +317,7 @@ public sealed partial class GameEngine
     // defender — a better rank, a tie, or a withdrawn attacker — is a successful defense and pays
     // GameRules.BaseAssaultScoreBonus to the defender alone (see DuelDefenseScoreAwarded); the
     // attacker's score is never reduced by this, unlike the symmetric base-assault bonus.
-    private ImmutableArray<IGameEvent> ApplyDuelOutcome(QuestionPurpose.Duel duel, QuestionResult result, Instant at)
+    private ImmutableArray<IGameEvent> ApplyDuelOutcome(QuestionPurpose.Duel duel, QuestionResult result, Instant at, bool isGolden)
     {
         var events = ImmutableArray.CreateBuilder<IGameEvent>();
 
@@ -308,7 +330,7 @@ public sealed partial class GameEngine
         }
         else
         {
-            var bonus = _state.Rules.BaseAssaultScoreBonus;
+            var bonus = _state.Rules.BaseAssaultScoreBonus * (isGolden ? 2 : 1);
             PlayerById(duel.Defender).BonusScore += bonus;
             events.Add(new DuelDefenseScoreAwarded(duel.Defender, duel.Attacker, duel.Region, bonus));
         }
@@ -324,12 +346,13 @@ public sealed partial class GameEngine
     // here — each hit in a chain, and the one that ends a chain on a tie/defender win — moves
     // GameRules.BaseAssaultScoreBonus between attacker and defender, independent of hit points or any
     // territory the attacker separately gains from a capture.
-    private ImmutableArray<IGameEvent> ApplyBaseAssaultOutcome(QuestionPurpose.BaseAssault assault, QuestionResult result, Instant at)
+    private ImmutableArray<IGameEvent> ApplyBaseAssaultOutcome(
+        QuestionPurpose.BaseAssault assault, QuestionResult result, Instant at, bool isGolden)
     {
         var events = ImmutableArray.CreateBuilder<IGameEvent>();
         var attackerWon = !PlayerById(assault.Attacker).Withdrawn && AttackerWon(result, assault.Attacker, assault.Defender);
 
-        var bonus = _state.Rules.BaseAssaultScoreBonus;
+        var bonus = _state.Rules.BaseAssaultScoreBonus * (isGolden ? 2 : 1);
         var (winnerId, loserId) = attackerWon ? (assault.Attacker, assault.Defender) : (assault.Defender, assault.Attacker);
         PlayerById(winnerId).BonusScore += bonus;
         PlayerById(loserId).BonusScore -= bonus;
@@ -339,7 +362,8 @@ public sealed partial class GameEngine
         if (attackerWon)
         {
             var defender = PlayerById(assault.Defender);
-            defender.BaseHitPoints -= 1;
+            var damage = isGolden ? 2 : 1;
+            defender.BaseHitPoints = Math.Max(0, defender.BaseHitPoints - damage);
             events.Add(new BaseHitPointsChanged(assault.Defender, defender.BaseHitPoints));
 
             if (defender.BaseHitPoints <= 0)

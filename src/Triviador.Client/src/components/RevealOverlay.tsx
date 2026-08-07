@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { motion } from 'motion/react'
 import i18next from '../i18n'
 import type { AnswerValueView, GameView, QuestionPromptView, RevealedAnswerView } from '../api/contracts'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { findPlayer, laurelNumeral, playerDisplayName } from '../lib/format'
 import { colorForPlayer } from '../lib/seats'
-import { playCorrect, playIncorrect } from '../lib/sound'
+import { playCorrect, playGolden, playIncorrect } from '../lib/sound'
 import { ArcheryTargetReveal } from './ArcheryTargetReveal'
 
 export interface RevealOverlayProps {
@@ -13,6 +15,7 @@ export interface RevealOverlayProps {
   correctAnswer: AnswerValueView
   answers: readonly RevealedAnswerView[]
   secondsRemaining?: number | null
+  isGolden?: boolean
 }
 
 const MAX_SPEED_BAR_MS = 8000
@@ -20,12 +23,21 @@ const MAX_SPEED_BAR_MS = 8000
 // Shared between land grab (a non-blocking 3s overlay) and battle (a live RevealHold window):
 // a ranked scroll with a tick/cross, a laurel numeral for rank, and elapsedMs as a speed bar -
 // both fields already exist on RevealedAnswerDto and were previously computed then discarded.
-export function RevealOverlay({ view, prompt, correctAnswer, answers, secondsRemaining }: RevealOverlayProps) {
+export function RevealOverlay({ view, prompt, correctAnswer, answers, secondsRemaining, isGolden = false }: RevealOverlayProps) {
   const { t } = useTranslation()
+  const reducedMotion = usePrefersReducedMotion()
   const correctText = answerText(prompt, correctAnswer)
   const ranked = [...answers].sort((a, b) => a.rank - b.rank)
 
   useEffect(() => {
+    // Golden replaces the ordinary correct/incorrect cue rather than layering on top of it - the
+    // fanfare is the headline moment here, and the ✓/✗ marks in the scroll below already carry the
+    // per-player correctness detail, so there is no information lost by not also playing the plain
+    // chime.
+    if (isGolden) {
+      playGolden()
+      return
+    }
     const own = ranked.find((a) => a.playerId === view.youPlayerId)
     if (!own || own.answer.kind === 'None') return
     if (answerText(prompt, own.answer) === correctText) playCorrect()
@@ -36,7 +48,26 @@ export function RevealOverlay({ view, prompt, correctAnswer, answers, secondsRem
   }, [prompt.questionId])
 
   return (
-    <section className="paper-card reveal-overlay" data-testid="reveal-overlay">
+    <section
+      className={isGolden ? 'paper-card reveal-overlay reveal-overlay-golden' : 'paper-card reveal-overlay'}
+      data-testid="reveal-overlay"
+    >
+      {isGolden &&
+        (reducedMotion ? (
+          <div className="golden-reveal-banner" data-testid="golden-reveal-banner">
+            {t('reveal.goldenLabel')}
+          </div>
+        ) : (
+          <motion.div
+            className="golden-reveal-banner"
+            data-testid="golden-reveal-banner"
+            initial={{ opacity: 0, scale: 0.85, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+            {t('reveal.goldenLabel')}
+          </motion.div>
+        ))}
       <p className="question-text">{prompt.text}</p>
       <p className="correct-answer">
         {t('reveal.correctAnswerLabel')} <strong>{correctText}</strong>

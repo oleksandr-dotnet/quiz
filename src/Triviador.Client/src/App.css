@@ -1452,6 +1452,53 @@
   color: var(--seat-2);
 }
 
+/* ---------- Lobby game-settings panel ---------- */
+
+.game-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75em 1em;
+  margin-bottom: 0.75rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--paper-300);
+  background: var(--paper-050);
+}
+
+.game-settings-title {
+  margin: 0 0 0.15rem;
+  font-size: 1rem;
+  color: var(--ink-700);
+}
+
+.game-settings-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+
+.game-settings-toggle input[type='checkbox'] {
+  margin-top: 0.2em;
+  flex-shrink: 0;
+}
+
+.game-settings-toggle input[type='checkbox']:disabled {
+  cursor: default;
+}
+
+.game-settings-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.game-settings-toggle small {
+  color: var(--ink-500);
+  font-size: 0.82rem;
+}
+
 .copy-feedback {
   margin-left: 0.5rem;
   font-family: var(--font-body);
@@ -1932,6 +1979,61 @@
   }
 }
 
+/* ---------- Category ban draft ---------- */
+
+.category-ban-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.category-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+  background: var(--paper-050);
+  font-size: 0.95rem;
+  line-height: 1.3;
+  padding: 0.6em 0.8em;
+  width: 100%;
+  transition: background-color var(--dur-fast) var(--ease-paper), border-color var(--dur-fast) var(--ease-paper),
+    transform var(--dur-fast) var(--ease-paper), box-shadow var(--dur-fast) var(--ease-paper);
+}
+
+.category-chip:hover:not(:disabled) {
+  background: var(--paper-100);
+  border-color: var(--gilt-500);
+}
+
+.category-chip.selected {
+  background: var(--gilt-300);
+  border-color: var(--gilt-600);
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.category-chip-emoji {
+  flex-shrink: 0;
+  font-size: 1.2em;
+}
+
+.category-ban-submit {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+/* Persistent little indicator in the top bar for the rest of the game, once the draft has
+   resolved - a subtle reminder of which categories won't come up again. */
+.banned-categories-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.95rem;
+  color: var(--table-ink-700);
+}
+
 .sealed-plate {
   padding: 0.6em 1em;
   text-align: center;
@@ -2149,6 +2251,61 @@
 /* Numeric-reveal (Tip question) visualization moved to ArcheryTargetReveal.tsx/.css - see
    archery-reveal-animation change. */
 
+/* ---------- Golden reveal (golden-question flourish) ---------- */
+
+/* Gilded, breathing border/glow on the reveal card itself - the golden flag only ever arrives on
+   reveal data (never while a question is pending, see contracts.ts), so this treatment only ever
+   appears alongside a resolved question, not a live one. Duration rides --dur-cinematic so it is
+   already zeroed by the reduced-motion media query in theme/tokens.css - an infinite 0ms animation
+   just renders at its end state, giving a static gilded border instead of a pulse. */
+.reveal-overlay-golden {
+  position: relative;
+  box-shadow:
+    0 0 0 2px var(--gilt-500),
+    0 0 22px 4px rgba(181, 138, 43, 0.5),
+    var(--shadow-card);
+  animation: golden-glow-pulse var(--dur-cinematic) ease-in-out infinite;
+}
+
+@keyframes golden-glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--gilt-500),
+      0 0 16px 2px rgba(181, 138, 43, 0.4),
+      var(--shadow-card);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--gilt-300),
+      0 0 32px 8px rgba(217, 180, 90, 0.7),
+      var(--shadow-card);
+  }
+}
+
+.golden-reveal-banner {
+  align-self: center;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--gilt-500);
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--gilt-700);
+  background: linear-gradient(90deg, var(--paper-100), var(--gilt-300), var(--paper-100));
+  background-size: 200% 100%;
+  animation: golden-shimmer var(--dur-cinematic) linear infinite;
+}
+
+@keyframes golden-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
 /* ---------- Player roster ---------- */
 
 .player-roster {
@@ -2305,6 +2462,64 @@
 
 .hp-pip.filled {
   background: var(--gilt-500);
+}
+
+/* ---------- Answer streak badge (PlayerRoster) ---------- */
+
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4em;
+  height: 1.4em;
+  padding: 0 0.35em;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-900);
+  border: 1px solid rgba(43, 35, 24, 0.35);
+  flex-shrink: 0;
+}
+
+.streak-bronze {
+  background: #cd7f32;
+}
+
+.streak-silver {
+  background: #c0c0c0;
+}
+
+.streak-gold {
+  background: var(--gilt-300);
+  box-shadow: 0 0 6px 1px var(--glow-gilt);
+}
+
+.streak-rainbow {
+  animation: streak-rainbow-spin 2.4s linear infinite;
+  box-shadow:
+    0 0 8px 2px var(--glow-gilt),
+    0 0 14px 3px rgba(217, 180, 90, 0.35);
+}
+
+@keyframes streak-rainbow-spin {
+  0% {
+    filter: hue-rotate(0deg) saturate(1.5);
+  }
+  100% {
+    filter: hue-rotate(360deg) saturate(1.5);
+  }
+}
+
+/* Belt-and-suspenders: PlayerRoster.tsx already omits the `streak-rainbow` class entirely when
+   usePrefersReducedMotion() is true (falling back to plain .streak-gold), matching the pattern used
+   for every other `motion`-driven flourish in that file. This media query covers the class being
+   present anyway (e.g. a stale render). */
+@media (prefers-reduced-motion: reduce) {
+  .streak-rainbow {
+    animation: none;
+    filter: none;
+  }
 }
 
 .fallen-banner,
