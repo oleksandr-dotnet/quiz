@@ -8,16 +8,26 @@ import type { RecapSummary } from '../api/contracts'
 export function MyRecapsScreen() {
   const { t } = useTranslation()
   const accessToken = useAuthStore((s) => s.accessToken)
-  const restoreAttempted = useAuthStore((s) => s.restoreAttempted)
   const restoreSession = useAuthStore((s) => s.restoreSession)
+  const [refreshed, setRefreshed] = useState(false)
   const [recaps, setRecaps] = useState<RecapSummary[] | null>(null)
 
+  // Always re-validate on mount rather than trusting whatever restoreAttempted/accessToken already
+  // hold - the access token is short-lived (~15 min) and this screen may be opened long after it
+  // was last refreshed (e.g. straight from a long game's results screen), so a stale in-memory
+  // token would otherwise read as "not signed in" even for an actually-signed-in player.
   useEffect(() => {
-    if (!restoreAttempted) void restoreSession()
-  }, [restoreAttempted, restoreSession])
+    let cancelled = false
+    void restoreSession().then(() => {
+      if (!cancelled) setRefreshed(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [restoreSession])
 
   useEffect(() => {
-    if (!accessToken) return
+    if (!refreshed || !accessToken) return
     let cancelled = false
     fetchMyRecaps(accessToken).then((result) => {
       if (!cancelled) setRecaps(result ?? [])
@@ -25,9 +35,9 @@ export function MyRecapsScreen() {
     return () => {
       cancelled = true
     }
-  }, [accessToken])
+  }, [refreshed, accessToken])
 
-  if (!restoreAttempted) {
+  if (!refreshed) {
     return <main className="landing paper-card" data-testid="my-recaps-screen" />
   }
 

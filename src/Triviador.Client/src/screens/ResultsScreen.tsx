@@ -63,8 +63,7 @@ export function ResultsDock() {
   const session = useGameStore((s) => s.session)
   const matchLog = useGameStore((s) => s.matchLog)
   const leaveGame = useGameStore((s) => s.leaveGame)
-  const accessToken = useAuthStore((s) => s.accessToken)
-  const [copied, setCopied] = useState(false)
+  const restoreSession = useAuthStore((s) => s.restoreSession)
   const [copyError, setCopyError] = useState<string | null>(null)
   const [shareState, setShareState] = useState<'idle' | 'sharing' | 'error'>('idle')
   const [recapUrl, setRecapUrl] = useState<string | null>(null)
@@ -86,16 +85,6 @@ export function ResultsDock() {
     }
   }
 
-  async function onCopyResult() {
-    try {
-      await navigator.clipboard.writeText(resultSummary(currentView, winnerIds))
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
-    } catch {
-      setCopyError(t('common.copyFailed'))
-    }
-  }
-
   // The recap is only ever persisted here, on explicit click - see add-shareable-game-recap's
   // "share, don't auto-save" requirement. Built entirely from data this client already legitimately
   // holds (buildRecapPayload); the POST is the first and only time any of it leaves the browser.
@@ -103,8 +92,15 @@ export function ResultsDock() {
     if (!session) return
     setShareState('sharing')
     try {
+      // The access token is short-lived (~15 min) and only ever refreshed on initial page load - a
+      // real game can easily outlast that, so the in-memory token by the time Finished is reached
+      // is often already expired. Refreshing right before this specific authenticated call (rather
+      // than relying on whatever restoreSession() set minutes ago) is what makes SharedByUserId
+      // land correctly instead of silently falling back to an anonymous share.
+      await restoreSession()
+      const freshAccessToken = useAuthStore.getState().accessToken
       const payload = buildRecapPayload(currentView, session.roomCode, matchLog)
-      const id = await shareRecap(payload, accessToken)
+      const id = await shareRecap(payload, freshAccessToken)
       if (!id) {
         setShareState('error')
         return
@@ -141,7 +137,6 @@ export function ResultsDock() {
       </div>
       <PlayerRoster view={view} sort="score" showWinners={winnerIds} />
       <div className="landing-actions">
-        <button onClick={onCopyResult}>{copied ? t('common.copied') : t('results.copyResult')}</button>
         {!recapUrl && (
           <button onClick={onShareRecap} disabled={shareState === 'sharing'} data-testid="share-recap">
             {shareState === 'sharing' ? t('results.sharingRecap') : t('results.shareRecap')}
@@ -181,16 +176,4 @@ function outcomeHeadline(view: GameView, winnerIds: Set<string>): string {
   if (winnerIds.size > 1) return i18next.t('results.draw')
   const player = view.players.find((p) => winnerIds.has(p.playerId))
   return i18next.t('results.winnerHeadline', { playerName: playerDisplayName(player) })
-}
-
-function resultSummary(view: GameView, winnerIds: Set<string>): string {
-  const lines = [i18next.t('results.summaryTitle'), outcomeHeadline(view, winnerIds)]
-  const standings = [...view.players].sort((a, b) => b.score - a.score)
-  for (const p of standings) {
-    lines.push(
-      i18next.t('results.summaryLine', { playerName: playerDisplayName(p), score: p.score }) +
-        (p.eliminated ? i18next.t('results.summaryEliminatedSuffix') : ''),
-    )
-  }
-  return lines.join('\n')
 }
