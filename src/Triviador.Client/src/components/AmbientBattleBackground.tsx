@@ -119,6 +119,16 @@ export function AmbientBattleBackground() {
   return (
     <div className="ambient-battle-backdrop" aria-hidden="true">
       <svg viewBox="0 0 1200 640" preserveAspectRatio="xMidYMid slice">
+        {/* The 18 region paths below don't reach the viewBox's own edges (they leave room for the
+            real map's terra-incognita ring, which this decorative sim never draws) - harmless on a
+            desktop-wide viewport, where slice's crop stays close to the full 1200x640 frame, but a
+            portrait phone's slice crops a narrow *vertical* strip through the map's width while
+            still mapping the *entire* 0-640 height onto the screen, so the screen's top/bottom
+            reliably land in that undrawn ring - confirmed live: raw --table-950 showing through
+            solid black near both edges on a 393x852 viewport. Same fallback-fill technique the real
+            map already uses for the same reason (see --terra-fallback's own definition in
+            tokens.css) so every crop of this backdrop is fully painted, never gapped. */}
+        <rect x="0" y="0" width="1200" height="640" fill="var(--terra-fallback)" />
         {REGION_IDS.map((id) => (
           <path
             key={id}

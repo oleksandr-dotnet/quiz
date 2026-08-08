@@ -29,6 +29,40 @@ body::after {
   background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
 }
 
+/* The default `ellipse` shape above auto-conforms its two radii to the *box's own aspect ratio* so
+   the ellipse's edge always passes exactly through the farthest corner - fine on a wide desktop
+   viewport, where that ellipse stays gently oblate, but on a tall narrow phone the same rule
+   produces a hugely elongated vertical ellipse whose edge reaches straight up/down to the
+   top/bottom-center points almost as fast as it reaches the true corners. Confirmed live at
+   393x852: top-center and bottom-center already sample within a couple percent of the ellipse's
+   100% (fully opaque) stop, crushing nearly the entire screen above/below the hero card to
+   near-black - the "everything is black" look, not a deliberate vignette. Explicit percentage radii
+   (a fraction of the box's own width/height respectively, not aspect-locked) fix this directly:
+   tuned so a portrait phone's top/bottom edges land partway through the gradient ramp instead of
+   past its end, while corners still darken same as before. Screen-width scoped rather than a
+   general replacement so the desktop vignette (already tuned and fine at wide aspect ratios) is
+   untouched. */
+@media (max-width: 900px) {
+  body::after {
+    background: radial-gradient(ellipse 85% 62% at 50% 42%, transparent 45%, rgba(0, 0, 0, 0.42) 100%);
+  }
+
+  /* In-game mobile only (AmbientBattleBackground.tsx unmounts the moment a real match starts, by
+     design - the busy ambient sim would compete with the actual HUD for attention). Desktop never
+     needs an answer for "what does the table look like during play" because the map goes full-
+     bleed and covers the entire screen at that breakpoint (see .app-shell's own min-width: 901px
+     rule) - the table is simply never seen. Mobile's grid layout can't do that (roster/dock need
+     their own dedicated rows), so real table area stays visible in the gaps around the map/dock
+     cards, and with nothing but the plain --table-950 fill it read as a flat black void rather than
+     a lit surface - confirmed live, this was the single biggest contributor to the "in-game
+     background is black" impression. The same warm gilt haze .lamplight washes the map card with
+     (same --glow-gilt token), just spread across the whole shell instead of hugging one card,
+     answers that the same way the desktop board's own glow does. */
+  body:has(.app-shell) {
+    background: radial-gradient(ellipse 110% 60% at 50% 32%, var(--glow-gilt), transparent 68%), var(--table-950);
+  }
+}
+
 /* The pre-game ambient backdrop (AmbientBattleBackground.tsx) - the real 18-territory map, fought
    over by 4 bot colonies in an endless unattended loop, heavily blurred so it reads as a hazy scene
    rather than a legible (and redundant-looking, with no HUD around it) game board. Sits behind

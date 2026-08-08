@@ -1941,7 +1941,15 @@
 
 .numeric-keypad-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, 1fr), not a bare 1fr - a bare 1fr track's automatic minimum is `auto` (its content's
+     own min-content size), which a button's padding-driven intrinsic width can exceed; on the
+     mobile-only shrink below, that silently made the columns (and the buttons in them) ignore the
+     narrower .numeric-keypad max-width entirely and keep rendering at their unshrunk min-content
+     size, overflowing the grid's own box instead of actually shrinking - confirmed live: shrinking
+     the container changed nothing about the rendered key size until this was added. No effect on
+     desktop's own layout (a wide-open 11.5rem container never gets near any button's min-content
+     floor there), so safe as a base-rule fix rather than needing its own mobile override. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.4rem;
   width: 100%;
 }
@@ -1990,6 +1998,72 @@
 @media (min-width: 901px) {
   .numeric-keypad {
     display: none;
+  }
+}
+
+/* On mobile the keypad above isn't a nice-to-have, it's the only way to enter a Tip answer, and a
+   numeric question's header + input row + full keypad + submit is already the tallest dock content
+   in the game (this file's own comment on the desktop cutoff above). At the base rule's size above
+   (each key ~57px on a 393px viewport, from an 11.5rem-wide 3-column grid tuned for a comfortable
+   desktop "pocket calculator" look) a routine numeric question with a longer-than-average prompt
+   reliably pushed the dock ~80-95px past its 70dvh cap (App.css's mobile .shell-dock rule) -
+   confirmed live - forcing the scroll fallback for the *keypad itself*, not just an edge-case long
+   prompt (the case that fallback actually exists for, per that rule's own comment). Shrinking the
+   grid's own max-width scales every key proportionally down via their existing aspect-ratio: 1 -
+   explicit min-width/min-height above stops it going below the 44px touch-target floor, and 9.25rem
+   is tuned so real keys land just above that floor (~45px), not exactly on it. Placed after (so it
+   wins the cascade over) the base .numeric-keypad rules above, which is why this can't simply live
+   in the earlier general mobile-breakpoint block further up this file alongside every other
+   touch-target rule - width/max-width/gap set there would lose to these same properties set again,
+   unconditionally, by the base rule that appears later in the file. */
+@media (max-width: 900px) {
+  .numeric-keypad {
+    max-width: 9.25rem;
+    gap: 0.3rem;
+  }
+
+  .numeric-keypad-grid {
+    gap: 0.3rem;
+  }
+
+  /* The base rule's font-size/padding (1.4rem, and the global button rule's 0.6em/1.2em riding off
+     that same font-size) were sized for an unshrunk ~57px key - left alone against a ~45px key the
+     padding alone (2 * 0.6em*1.4rem =~ 27px a side) would exceed the whole key's width, squashing
+     the glyph against border-box's clamp-to-zero content area. A smaller font-size (which the
+     padding's own em units ride along with, shrinking proportionally) keeps every glyph comfortably
+     centered instead. */
+  .numeric-keypad-key {
+    font-size: 1rem;
+    padding: 0.3em;
+  }
+
+  /* Same tight-height budget as the keypad above - shaving a couple mm of breathing room between
+     the header/input/keypad stack costs nothing readability-wise (these are single-line rows, not
+     wrapped text) but is what actually closes the remaining gap between the keypad shrink above and
+     the numeric dock fitting fully unscrolled. */
+  .question-card {
+    gap: 0.45rem;
+  }
+
+  .question-card-header {
+    gap: 0.5rem;
+  }
+
+  .numeric-input {
+    gap: 0.25rem;
+  }
+
+  .shell-dock {
+    padding-top: 0.35rem;
+  }
+
+  /* The question bank's own longest real Tip prompt (checked directly against
+     src/UI/Triviador.Web/Data/questions/tip/*.json - 139 characters, the actual worst case a player
+     can hit, not a hypothetical one) wraps to enough lines at the base 1.4 line-height that it alone
+     ate the last ~12px of headroom the trims above didn't reach. A touch tighter leading is still
+     comfortably readable at this font size and closes it with room to spare. */
+  .question-text {
+    line-height: 1.3;
   }
 }
 
@@ -2050,6 +2124,21 @@
   width: min(22rem, calc(100vw - 2rem));
   padding: 1rem 1.25rem;
   text-align: center;
+}
+
+/* The bare 4.75rem above assumes a notch-free top edge - true for desktop's own top bar (no
+   env(safe-area-inset-top) anywhere in its own padding either) but not for the mobile top bar,
+   which pads itself down by exactly that inset (.app-shell's own padding-top, mobile breakpoint
+   above) to clear a Dynamic Island/notch. Left unscoped, this popup's fixed top would land at a
+   fixed 76px from the physical screen edge regardless of device, undershooting the actual top bar's
+   bottom edge on every notched target phone (iPhone 16/17/Pro/Pro Max all have one) and overlapping
+   the emote/menu buttons instead of clearing them - the same failure mode
+   .turn-announcement-spotlight-anchor's own safe-area-aware top already exists to avoid, just not
+   yet applied here. */
+@media (max-width: 900px) {
+  .category-ban-result-popup {
+    top: calc(4.75rem + env(safe-area-inset-top));
+  }
 }
 
 .category-ban-result-close {

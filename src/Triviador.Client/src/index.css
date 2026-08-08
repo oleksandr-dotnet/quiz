@@ -33,6 +33,17 @@
   }
 }
 
+html {
+  /* See body's own overflow-x: hidden comment just below - clipping body alone stops the visible
+     scrollbar, but leaves documentElement.scrollWidth (the html element) still reporting the
+     lamplight's full unclipped bleed as the page's real width (confirmed live: 423px reported at a
+     393px viewport with only body clipped, html left at the UA default overflow-x: visible). That
+     mismatch is exactly the kind of thing mobile Safari's rubber-band overscroll can expose as a
+     genuine, if brief, horizontal scroll to a stray dark sliver past the card's edge - clipping the
+     root element itself closes that gap for real rather than just hiding its symptom. */
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   /* Establishes a new block-formatting context so a child's margin (e.g. .landing/.lobby's
