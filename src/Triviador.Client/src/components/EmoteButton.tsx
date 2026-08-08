@@ -74,7 +74,7 @@ export function EmoteButton() {
                 key={emote.id}
                 type="button"
                 role="menuitem"
-                className="emote-option"
+                className={emote.text ? 'emote-option emote-option-text' : 'emote-option'}
                 title={t(emote.labelKey)}
                 aria-label={t(emote.labelKey)}
                 onClick={() => void onPick(emote.id)}

@@ -16,6 +16,8 @@ import { BaseSelectionDock, baseSelectionMapProps, baseSelectionOnSelect } from 
 import { LandGrabDock, landGrabMapProps, landGrabOnSelect } from './screens/LandGrabScreen'
 import { BattleDock, battleMapProps, battleOnSelect } from './screens/BattleScreen'
 import { ResultsDock } from './screens/ResultsScreen'
+import { RecapScreen } from './screens/RecapScreen'
+import { MyRecapsScreen } from './screens/MyRecapsScreen'
 import { AppShell } from './components/AppShell'
 import { GameMap } from './components/map/GameMap'
 import { PlayerRoster } from './components/PlayerRoster'
@@ -33,11 +35,25 @@ import { useLandGrabReveal } from './hooks/useLandGrabReveal'
 import { findPlayer, playerDisplayName } from './lib/format'
 import { BASE_ASSAULT_SCORE_BONUS } from './lib/gameRules'
 import { categoryEmoji } from './lib/categoryEmojis'
+import { playStreakMilestone } from './lib/sound'
 import type { GameView, PlayerView } from './api/contracts'
 
 function urlRoomCode(): string | null {
   const match = /^#\/room\/([A-Za-z0-9]{4})/.exec(window.location.hash)
   return match ? match[1].toUpperCase() : null
+}
+
+// Real path routes (not `#/...` hash routes like urlRoomCode above) - a shared recap link must
+// work without JS for its OG meta tags (see the server-side shell route), and /recaps has no
+// reason to be hash-based either. Checked before any of the session/room bootstrap logic below, so
+// a recap link never gets swallowed by the landing/lobby flow.
+function urlRecapId(): string | null {
+  const match = /^\/recap\/([0-9a-fA-F-]{36})$/.exec(window.location.pathname)
+  return match ? match[1] : null
+}
+
+function isMyRecapsRoute(): boolean {
+  return window.location.pathname === '/recaps'
 }
 
 function isYourTurn(view: GameView): boolean {
@@ -263,6 +279,15 @@ function App() {
       }
     }
 
+    // A room-wide, escalating callout (see streak-callouts) - shown to everyone, not just the
+    // streaking player, since the point is a shared moment at the table, not a private notification.
+    const streakMilestone = transitions.find((t) => t.kind === 'streakMilestone')
+    if (streakMilestone && streakMilestone.kind === 'streakMilestone' && gameView) {
+      const player = findPlayer(gameView, streakMilestone.playerId)
+      messages.push(t(`app.streakMilestoneProclamation.tier${streakMilestone.tier}`, { playerName: playerDisplayName(player) }))
+      playStreakMilestone(streakMilestone.tier)
+    }
+
     if (messages.length > 0) {
       setProclamationQueue((prev) => [...prev, ...messages])
     }
@@ -404,6 +429,16 @@ function App() {
     const id = window.setTimeout(() => setActionError(null), 4000)
     return () => window.clearTimeout(id)
   }, [actionError])
+
+  // Checked ahead of the session/lobby bootstrap below - a shared recap link or the recap list must
+  // render regardless of whether the visitor has (or wants) an active room session.
+  const recapId = urlRecapId()
+  if (recapId) {
+    return <RecapScreen id={recapId} />
+  }
+  if (isMyRecapsRoute()) {
+    return <MyRecapsScreen />
+  }
 
   if (!sessionUsable || !view) {
     if (!restoreAttempted) {

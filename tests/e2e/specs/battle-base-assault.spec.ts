@@ -330,5 +330,43 @@ test.describe('base assault: lock/unlock, chained damage, persistence, capture, 
       const attackerScoreAfter = await readScoreWithinResultsDock(attacker, attackerSeat)
       expect(attackerScoreAfter).toBe(attackerScoreBeforeFinalChain + 200 * wins + 200 * defenderRegionsBeforeCapture.length)
     })
+
+    // Reuses this test's own already-reached Finished state rather than paying the several-minutes
+    // cost of driving a second game to completion just for this - see add-shareable-game-recap's
+    // e2e tasks. Covers: a recap isn't persisted until shared, sharing produces a link with a
+    // working Telegram affordance, and two different players sharing the same finished game land on
+    // the same link (fingerprint dedup).
+    await test.step('scenario 7: sharing the finished game produces a recap only on click, deduped across sharers', async () => {
+      const shareRequests: string[] = []
+      attacker.on('request', (req) => {
+        if (req.method() === 'POST' && req.url().endsWith('/api/recaps')) shareRequests.push(req.url())
+      })
+
+      // Nobody has shared yet - no recap exists for this match.
+      await attacker.waitForTimeout(500)
+      expect(shareRequests).toHaveLength(0)
+
+      await attacker.getByTestId('share-recap').click()
+      await expect(attacker.getByTestId('recap-link')).toBeVisible({ timeout: 15_000 })
+      expect(shareRequests).toHaveLength(1)
+      const attackerLink = await attacker.getByTestId('recap-link').textContent()
+
+      await expect(attacker.getByTestId('share-telegram')).toHaveAttribute('href', /^https:\/\/t\.me\/share\/url\?/)
+
+      // The defender independently shares the same finished match - dedup means the same link, not
+      // a second recap row.
+      await defender.getByTestId('share-recap').click()
+      await expect(defender.getByTestId('recap-link')).toBeVisible({ timeout: 15_000 })
+      const defenderLink = await defender.getByTestId('recap-link').textContent()
+      expect(defenderLink).toBe(attackerLink)
+
+      // A third, unrelated visitor opens the shared link with no session of their own and sees the
+      // same outcome the players themselves just saw.
+      const viewerPage = await attacker.context().newPage()
+      await viewerPage.goto(attackerLink!)
+      await expect(viewerPage.getByTestId('recap-screen')).toBeVisible({ timeout: 15_000 })
+      await expect(viewerPage.getByTestId('recap-screen')).toContainText(attackerName)
+      await viewerPage.close()
+    })
   })
 })

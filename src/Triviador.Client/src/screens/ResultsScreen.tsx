@@ -3,11 +3,14 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence } from 'motion/react'
 import i18next from '../i18n'
 import { leaveRoom } from '../api/commands'
+import { shareRecap } from '../api/recaps'
+import { useAuthStore } from '../store/authStore'
 import { useGameStore } from '../store/gameStore'
 import { PlayerRoster } from '../components/PlayerRoster'
 import { Toast } from '../components/Toast'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { playerDisplayName } from '../lib/format'
+import { buildRecapPayload } from '../lib/recap'
 import type { GameView } from '../api/contracts'
 
 const SPARK_COUNT = 14
@@ -57,9 +60,15 @@ function WinCelebration() {
 export function ResultsDock() {
   const { t } = useTranslation()
   const view = useGameStore((s) => s.gameView)
+  const session = useGameStore((s) => s.session)
+  const matchLog = useGameStore((s) => s.matchLog)
   const leaveGame = useGameStore((s) => s.leaveGame)
+  const accessToken = useAuthStore((s) => s.accessToken)
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState<string | null>(null)
+  const [shareState, setShareState] = useState<'idle' | 'sharing' | 'error'>('idle')
+  const [recapUrl, setRecapUrl] = useState<string | null>(null)
+  const [linkCopied, setLinkCopied] = useState(false)
   const reducedMotion = usePrefersReducedMotion()
   if (!view) return null
   const currentView = view
@@ -87,6 +96,41 @@ export function ResultsDock() {
     }
   }
 
+  // The recap is only ever persisted here, on explicit click - see add-shareable-game-recap's
+  // "share, don't auto-save" requirement. Built entirely from data this client already legitimately
+  // holds (buildRecapPayload); the POST is the first and only time any of it leaves the browser.
+  async function onShareRecap() {
+    if (!session) return
+    setShareState('sharing')
+    try {
+      const payload = buildRecapPayload(currentView, session.roomCode, matchLog)
+      const id = await shareRecap(payload, accessToken)
+      if (!id) {
+        setShareState('error')
+        return
+      }
+      setRecapUrl(`${window.location.origin}/recap/${id}`)
+      setShareState('idle')
+    } catch {
+      setShareState('error')
+    }
+  }
+
+  async function onCopyRecapLink() {
+    if (!recapUrl) return
+    try {
+      await navigator.clipboard.writeText(recapUrl)
+      setLinkCopied(true)
+      window.setTimeout(() => setLinkCopied(false), 2000)
+    } catch {
+      setCopyError(t('common.copyFailed'))
+    }
+  }
+
+  const telegramShareUrl = recapUrl
+    ? `https://t.me/share/url?url=${encodeURIComponent(recapUrl)}&text=${encodeURIComponent(t('results.telegramShareText'))}`
+    : null
+
   return (
     <div className="results" data-testid="results-dock">
       <div className="winner-headline-frame">
@@ -98,11 +142,36 @@ export function ResultsDock() {
       <PlayerRoster view={view} sort="score" showWinners={winnerIds} />
       <div className="landing-actions">
         <button onClick={onCopyResult}>{copied ? t('common.copied') : t('results.copyResult')}</button>
+        {!recapUrl && (
+          <button onClick={onShareRecap} disabled={shareState === 'sharing'} data-testid="share-recap">
+            {shareState === 'sharing' ? t('results.sharingRecap') : t('results.shareRecap')}
+          </button>
+        )}
         <button className="primary" onClick={onLeave} data-testid="return-to-start">
           {t('results.returnToStart')}
         </button>
       </div>
+      {recapUrl && (
+        <div className="recap-share-result" data-testid="recap-share-result">
+          <a href={recapUrl} target="_blank" rel="noreferrer" data-testid="recap-link">
+            {recapUrl}
+          </a>
+          <div className="landing-actions">
+            <button onClick={onCopyRecapLink} data-testid="copy-recap-link">
+              {linkCopied ? t('common.copied') : t('results.copyRecapLink')}
+            </button>
+            {telegramShareUrl && (
+              <a className="primary" href={telegramShareUrl} target="_blank" rel="noreferrer" data-testid="share-telegram">
+                {t('results.shareViaTelegram')}
+              </a>
+            )}
+          </div>
+        </div>
+      )}
       <AnimatePresence>{copyError && <Toast key="results-copy-error" message={copyError} />}</AnimatePresence>
+      <AnimatePresence>
+        {shareState === 'error' && <Toast key="results-share-error" message={t('results.shareRecapFailed')} />}
+      </AnimatePresence>
     </div>
   )
 }

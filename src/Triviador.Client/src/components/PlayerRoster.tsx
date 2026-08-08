@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import type { GameView, PlayerView } from '../api/contracts'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
-import { avatarGlyph } from '../lib/avatars'
+import { Avatar } from './Avatar'
 import { emoteGlyph } from '../lib/emotes'
 import { BASE_HIT_POINTS_DEFAULT } from '../lib/gameRules'
 import { playerDisplayName } from '../lib/format'
@@ -152,11 +152,7 @@ function PlayerCard({
         <rect width={18} height={18} rx={3} fill="none" stroke={seatColor} strokeWidth={1.5} />
       </svg>
       <span className="player-name">
-        {player.avatarId && (
-          <span className="player-avatar" aria-hidden="true">
-            {avatarGlyph(player.avatarId)}
-          </span>
-        )}
+        <Avatar avatarId={player.avatarId} />
         {playerDisplayName(player)}
         {!player.isConnected && (
           <span className="disconnected-glyph" title={t('common.disconnected')} aria-label={t('common.disconnected')}>

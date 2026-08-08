@@ -152,6 +152,13 @@
   border-color: var(--gilt-500);
 }
 
+.emote-option-text {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--gilt-500);
+}
+
 /* A transient reaction floating above the sender's roster card - .player-card already sets
    position: relative (PlayerRoster.tsx's inline style), so this anchors to that card specifically
    rather than the roster list as a whole. */
@@ -2611,6 +2618,59 @@
   white-space: nowrap;
 }
 
+/* ---------- Recap screen (RecapScreen.tsx) ---------- */
+
+/* The server-rendered SVG summary image (RecapImage.cs) carries its own intrinsic 1200x630 size -
+   without this, a plain <img> renders at that native size and overflows a mobile-width card
+   entirely instead of scaling down to fit it. */
+.recap-summary-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: var(--r-md);
+  border: 1px solid var(--paper-300);
+  margin: 0.5rem 0;
+}
+
+/* A standings row needs its stats line to wrap onto its own row rather than fight the name for
+   space in one flex row - unlike PlayerRoster's .player-card (designed around a name plus a
+   handful of small, bounded badges), a recap row's stats segment is a full sentence, which would
+   collapse .player-name's flex-basis:0 to zero width if reused as-is. Stacked, not reused. */
+.recap-standings {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.recap-standing-row {
+  padding: 0.5em 0.7em;
+  border-radius: var(--r-md);
+  border: 1px solid var(--paper-300);
+  background: var(--paper-050);
+  color: var(--ink-900);
+}
+
+.recap-standing-row.winner {
+  border-color: var(--gilt-300);
+}
+
+.recap-standing-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.recap-standing-stats {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-top: 0.15em;
+}
+
 .hit-points {
   display: inline-flex;
   gap: 2px;
@@ -2772,6 +2832,19 @@
   max-width: 32rem;
   margin: 2rem auto;
   padding: 0 1rem;
+}
+
+.recap-share-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.recap-share-result a {
+  word-break: break-all;
+  text-align: center;
 }
 
 .winner-headline-frame {

@@ -779,7 +779,7 @@ public sealed class RoomActor
     // Keep in sync with the client's EMOTES list (emotes.ts) - a closed set rather than free text,
     // so a room never has to render/sanitize arbitrary strings broadcast by another player.
     private static readonly HashSet<string> ValidEmoteIds =
-        ["gg", "lol", "wow", "cry", "angry", "thinking", "crown", "clown", "fire"];
+        ["gg", "ggtext", "lol", "wow", "monkey", "cry", "angry", "cringe", "clown", "horror", "loltext"];
 
     private async Task HandleEmoteAsync(EmoteRequest m)
     {

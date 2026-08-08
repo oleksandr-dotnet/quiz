@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { GameView, RoomView } from '../api/contracts'
+import { EMPTY_MATCH_LOG, updateMatchLog, type MatchLog } from '../lib/recap'
 
 type Status = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'closed'
 
@@ -41,6 +42,9 @@ interface GameStore {
   // Latest emote per sender, keyed by playerId - a re-send from the same player bumps `nonce` so a
   // listener can re-trigger its own bubble animation even when the emoteId itself repeats.
   emotesByPlayer: Record<string, EmoteEvent>
+  // Whole-match recap bookkeeping (see lib/recap.ts) - accumulated snapshot by snapshot for the
+  // life of one match, not just the transient per-render transitions useGameTransitions derives.
+  matchLog: MatchLog
   setStatus: (status: Status) => void
   applyView: (view: RoomView) => void
   applyGameView: (view: GameView) => void
@@ -60,12 +64,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   closedReason: null,
   kickedReason: null,
   emotesByPlayer: {},
+  matchLog: EMPTY_MATCH_LOG,
   setStatus: (status) => set({ status }),
   applyView: (view) => set({ view }),
   // The previous snapshot is kept alongside the new one so useGameTransitions can diff
   // (previous, current) to derive what changed - the server only ever broadcasts full snapshots,
-  // never a delta/event channel.
-  applyGameView: (gameView) => set({ previousGameView: get().gameView, gameView }),
+  // never a delta/event channel. matchLog folds the same diff into a persistent, whole-match
+  // recap history (see lib/recap.ts), not just the transient per-render transitions the hook uses.
+  applyGameView: (gameView) => {
+    const previousGameView = get().gameView
+    set({ previousGameView, gameView, matchLog: updateMatchLog(get().matchLog, gameView, previousGameView) })
+  },
   setSession: (session) => {
     saveSession(session)
     set({ session })
@@ -74,18 +83,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // stale view/gameView must be cleared just the same - otherwise the next room created or joined
   // renders on top of this match's leftover snapshot until the server happens to broadcast a fresh
   // GameState (which a not-yet-started room never does), making a brand new room look like the old
-  // game.
+  // game. matchLog resets alongside for the same reason.
   leaveGame: () => {
     saveSession(null)
-    set({ session: null, view: null, gameView: null, previousGameView: null, emotesByPlayer: {} })
+    set({ session: null, view: null, gameView: null, previousGameView: null, emotesByPlayer: {}, matchLog: EMPTY_MATCH_LOG })
   },
   roomClosed: (reason) => {
     saveSession(null)
-    set({ session: null, view: null, gameView: null, previousGameView: null, closedReason: reason, emotesByPlayer: {} })
+    set({
+      session: null, view: null, gameView: null, previousGameView: null,
+      closedReason: reason, emotesByPlayer: {}, matchLog: EMPTY_MATCH_LOG,
+    })
   },
   kicked: (reason) => {
     saveSession(null)
-    set({ session: null, view: null, gameView: null, previousGameView: null, kickedReason: reason, emotesByPlayer: {} })
+    set({
+      session: null, view: null, gameView: null, previousGameView: null,
+      kickedReason: reason, emotesByPlayer: {}, matchLog: EMPTY_MATCH_LOG,
+    })
   },
   receiveEmote: (playerId, emoteId) =>
     set((s) => ({

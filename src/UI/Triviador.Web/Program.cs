@@ -6,11 +6,14 @@ using Npgsql;
 using Triviador.Application.Accounts;
 using Triviador.Application.Content;
 using Triviador.Application.Hosting;
+using Triviador.Application.Recaps;
 using Triviador.Infrastructure.Accounts;
 using Triviador.Infrastructure.Content;
 using Triviador.Infrastructure.Hosting;
+using Triviador.Infrastructure.Recaps;
 using Triviador.Web.Auth;
 using Triviador.Web.Realtime;
+using Triviador.Web.Recaps;
 
 // Containers (e.g. Render) can have a very low inotify instance/fd limit, which the default
 // config-reload FileSystemWatcher on appsettings*.json can exhaust, crashing the process before
@@ -57,6 +60,18 @@ builder.Services.AddScoped<IGoogleIdTokenVerifier, GoogleIdTokenVerifier>();
 builder.Services.AddSingleton<ITokenIssuer, JwtTokenIssuer>();
 builder.Services.AddScoped<GoogleSignInService>();
 builder.Services.AddScoped<AccountSetupService>();
+
+// --- Game recaps: shared, permanent match summaries (Recap:RetentionDays, default 14, overridable
+// without a redeploy via the Recap__RetentionDays env var - see design.md Decision 6) ---
+builder.Services.Configure<RecapOptions>(builder.Configuration.GetSection("Recap"));
+builder.Services.AddScoped<IRecapRepository, EfRecapRepository>();
+builder.Services.AddHostedService<RecapJanitor>();
+
+// Minimal-API JSON responses (POST/GET /api/recaps/*) serialize enums (Language,
+// RecapHighlightKindDto) as strings, matching how the SignalR JSON protocol above already
+// serializes GameViewDto's own enums - keeps the wire format consistent across both transports.
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(o =>
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
 if (string.IsNullOrEmpty(jwtOptions.SigningKey))
@@ -129,6 +144,7 @@ app.UseAuthorization();
 app.MapHub<GameHub>("/hub/game");
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 app.MapAuthEndpoints();
+app.MapRecapEndpoints();
 app.MapFallbackToFile("index.html");
 
 app.Run();

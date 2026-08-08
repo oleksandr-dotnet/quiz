@@ -67,6 +67,17 @@ export function playTurnAnnouncement() {
   tone(1174.66, 0.06, 0.18, 'triangle', 0.09) // D6
 }
 
+// An answer streak crossing a milestone (see useGameTransitions's STREAK_MILESTONES) - each tier
+// adds one more rising note and a touch more gain than the last, so tier 3 reads as unmistakably
+// bigger than tier 1 without needing a separate synthesis shape per tier.
+export function playStreakMilestone(tier: 1 | 2 | 3) {
+  const notes = [523.25, 659.25, 783.99, 1046.5] // C5 E5 G5 C6
+  const count = tier + 1
+  for (let i = 0; i < count; i++) {
+    tone(notes[i], i * 0.09, 0.16, 'triangle', 0.13 + tier * 0.02)
+  }
+}
+
 export function isMuted(): boolean {
   return muted
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Triviador.Infrastructure.Accounts.Entities;
+using Triviador.Infrastructure.Recaps.Entities;
 
 namespace Triviador.Infrastructure.Accounts;
 
@@ -10,6 +11,8 @@ public sealed class TriviadorDbContext(DbContextOptions<TriviadorDbContext> opti
     public DbSet<GoogleIdentity> GoogleIdentities => Set<GoogleIdentity>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<GameRecap> GameRecaps => Set<GameRecap>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,6 +44,20 @@ public sealed class TriviadorDbContext(DbContextOptions<TriviadorDbContext> opti
             b.HasIndex(r => r.TokenHash).IsUnique();
             b.HasIndex(r => r.FamilyId);
             b.HasOne<User>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<GameRecap>(b =>
+        {
+            b.HasKey(r => r.Id);
+            b.Property(r => r.Fingerprint).HasMaxLength(64).IsRequired();
+            b.Property(r => r.RoomCode).HasMaxLength(16).IsRequired();
+            b.Property(r => r.PayloadJson).HasColumnType("jsonb").IsRequired();
+            b.HasIndex(r => r.Fingerprint).IsUnique();
+            b.HasIndex(r => r.ExpiresAtUtc);
+            // Deliberately no navigation/cascade to User - an anonymous share (SharedByUserId null)
+            // must remain a valid, independently-retained row even if the sharer's account is later
+            // deleted, unlike GoogleIdentity/RefreshToken which only ever exist alongside their User.
+            b.HasOne<User>().WithMany().HasForeignKey(r => r.SharedByUserId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

@@ -4,18 +4,22 @@ export interface EmoteDef {
   id: string
   glyph: string
   labelKey: string
+  // Renders glyph as bold letters (a "GG"/"LOL" sticker) instead of an emoji pictograph.
+  text?: boolean
 }
 
 export const EMOTES: EmoteDef[] = [
   { id: 'gg', glyph: '🤝', labelKey: 'emotes.gg' },
-  { id: 'fire', glyph: '🔥', labelKey: 'emotes.fire' },
+  { id: 'ggtext', glyph: 'GG', labelKey: 'emotes.ggtext', text: true },
   { id: 'lol', glyph: '😂', labelKey: 'emotes.lol' },
   { id: 'wow', glyph: '😮', labelKey: 'emotes.wow' },
-  { id: 'thinking', glyph: '🤔', labelKey: 'emotes.thinking' },
-  { id: 'cry', glyph: '😢', labelKey: 'emotes.cry' },
+  { id: 'monkey', glyph: '🐵', labelKey: 'emotes.monkey' },
+  { id: 'cry', glyph: '😭', labelKey: 'emotes.cry' },
   { id: 'angry', glyph: '😡', labelKey: 'emotes.angry' },
-  { id: 'crown', glyph: '👑', labelKey: 'emotes.crown' },
+  { id: 'cringe', glyph: '😬', labelKey: 'emotes.cringe' },
   { id: 'clown', glyph: '🤡', labelKey: 'emotes.clown' },
+  { id: 'horror', glyph: '😱', labelKey: 'emotes.horror' },
+  { id: 'loltext', glyph: 'LOL', labelKey: 'emotes.loltext', text: true },
 ]
 
 const BY_ID = new Map(EMOTES.map((e) => [e.id, e]))

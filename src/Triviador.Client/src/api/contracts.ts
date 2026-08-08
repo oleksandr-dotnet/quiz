@@ -178,6 +178,57 @@ export interface BattleContextView {
   isTiebreakRound: boolean
 }
 
+// Mirrors Triviador.Application/Recaps/RecapPayloadDto.cs - see add-shareable-game-recap's
+// design.md. RecapHighlight flattens the C# tagged union onto one shape; only the fields relevant
+// to `kind` are populated, the rest are null.
+export type RecapHighlightKind = 'BaseAssault' | 'GoldenQuestion' | 'CategoryBansResolved'
+
+export interface RecapHighlight {
+  kind: RecapHighlightKind
+  attackerPlayerId: string | null
+  defenderPlayerId: string | null
+  baseRegionId: string | null
+  attackerWon: boolean | null
+  winnerPlayerIds: string[] | null
+  categories: string[] | null
+}
+
+export interface RecapPlayer {
+  playerId: string
+  displayName: string
+  avatarId: string | null
+  isBot: boolean
+  finalScore: number
+  territoriesHeld: number
+  longestStreak: number
+  eliminated: boolean
+}
+
+export interface RecapRegionOwnership {
+  regionId: string
+  ownerPlayerId: string | null
+}
+
+export interface RecapPayload {
+  roomCode: string
+  finishedAtUtc: string
+  roundsPlayed: number
+  language: Language
+  mapViewBox: string
+  winnerPlayerIds: string[]
+  players: RecapPlayer[]
+  regionOwnership: RecapRegionOwnership[]
+  highlights: RecapHighlight[]
+}
+
+export interface RecapSummary {
+  id: string
+  roomCode: string
+  finishedAtUtc: string
+  createdAtUtc: string
+  winnerDisplayNames: string[]
+}
+
 export interface GameView {
   phase: GamePhase
   mapViewBox: string
