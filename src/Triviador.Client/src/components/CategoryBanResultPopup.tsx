@@ -24,33 +24,40 @@ export function CategoryBanResultPopup({ categories, onDismiss }: CategoryBanRes
   }, [onDismiss])
 
   return (
-    <motion.div
-      className="category-ban-result-popup paper-card"
-      role="status"
-      aria-live="polite"
-      data-testid="category-ban-result-popup"
-      initial={reducedMotion ? false : { opacity: 0, y: -16, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.97 }}
-      transition={{ duration: reducedMotion ? 0 : 0.3, ease: [0.22, 0.61, 0.36, 1] }}
-    >
-      <button
-        type="button"
-        className="category-ban-result-close"
-        onClick={onDismiss}
-        aria-label={t('common.dismiss')}
+    // Centering lives on this plain (non-motion) wrapper, not on the motion.div below - a
+    // motion.div writes its own animated x/y/scale straight to the element's inline `transform`,
+    // which silently clobbers a CSS `transform: translateX(-50%)` instead of composing with it
+    // (the same failure TurnAnnouncement.tsx's own spotlight-anchor comment documents). Confirmed
+    // live: without this split, the popup's left edge sat at exactly 50vw with no offset, pushing
+    // most of it off-screen past the right edge on a phone-width viewport - not shifted, over a
+    // third of the card clipped off the visible screen entirely.
+    <div className="category-ban-result-popup" role="status" aria-live="polite">
+      <motion.div
+        className="category-ban-result-card paper-card"
+        data-testid="category-ban-result-popup"
+        initial={reducedMotion ? false : { opacity: 0, y: -16, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.97 }}
+        transition={{ duration: reducedMotion ? 0 : 0.3, ease: [0.22, 0.61, 0.36, 1] }}
       >
-        ×
-      </button>
-      <h2 className="category-ban-result-title">{t('categoryBan.resultTitle')}</h2>
-      <ul className="category-ban-result-list">
-        {categories.map((c) => (
-          <li key={c}>
-            <span aria-hidden="true">{categoryEmoji(c)}</span>
-            {t(`categoryBan.category.${c}`, { defaultValue: c })}
-          </li>
-        ))}
-      </ul>
-    </motion.div>
+        <button
+          type="button"
+          className="category-ban-result-close"
+          onClick={onDismiss}
+          aria-label={t('common.dismiss')}
+        >
+          ×
+        </button>
+        <h2 className="category-ban-result-title">{t('categoryBan.resultTitle')}</h2>
+        <ul className="category-ban-result-list">
+          {categories.map((c) => (
+            <li key={c}>
+              <span aria-hidden="true">{categoryEmoji(c)}</span>
+              {t(`categoryBan.category.${c}`, { defaultValue: c })}
+            </li>
+          ))}
+        </ul>
+      </motion.div>
+    </div>
   )
 }

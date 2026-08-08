@@ -2114,7 +2114,17 @@
 
 /* Floating, non-blocking announcement of the draft's outcome (CategoryBanResultPopup) - deliberately
    NOT a fixed full-screen overlay, since it appears the instant base selection (a live,
-   time-limited activity) begins and must never sit on top of the map intercepting clicks. */
+   time-limited activity) begins and must never sit on top of the map intercepting clicks.
+
+   Split into this plain positioning wrapper plus .category-ban-result-card (the actual visual
+   card, animated by a nested motion.div) rather than one fixed+centered+animated element - a
+   motion.div writes its own animated x/y/scale straight to the element's inline `transform`,
+   which silently clobbers a CSS `transform: translateX(-50%)` set on that same element instead of
+   composing with it (same failure TurnAnnouncement.tsx's spotlight-anchor comment documents).
+   Confirmed live on a 393px viewport: with both on one element, the card's left edge sat at
+   exactly 50vw with no centering offset, pushing well over a third of it past the right edge of
+   the screen - not off-center, genuinely unreadable. The centering transform now lives on this
+   inert wrapper, which motion never touches. */
 .category-ban-result-popup {
   position: fixed;
   top: 4.75rem;
@@ -2122,6 +2132,9 @@
   transform: translateX(-50%);
   z-index: 90;
   width: min(22rem, calc(100vw - 2rem));
+}
+
+.category-ban-result-card {
   padding: 1rem 1.25rem;
   text-align: center;
 }
