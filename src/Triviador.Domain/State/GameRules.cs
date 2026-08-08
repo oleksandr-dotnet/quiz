@@ -35,4 +35,25 @@ public sealed record GameRules(
     public static readonly GameRules Default = new();
 
     public static readonly GameRules Marathon = Default with { RoundLimit = 30 };
+
+    // Used only by dev-facing sandbox rooms (see test-mechanics-playground) - every duration is
+    // stretched to an hour so a countdown never misleadingly reaches zero while a tester is mid
+    // click (sandbox rooms never arm the real per-activity timer at all; every pending activity
+    // only ever resolves via an explicit debug command), base assaults are legal from round one so
+    // reaching that mechanic doesn't require playing out seven ordinary rounds first, and golden
+    // questions are eligible on every question instead of spaced out. Every other rule (base HP,
+    // score bonuses, streak bonus, round limit) stays identical to Default so scores/balance the
+    // tester sees match a real game exactly.
+    public static readonly GameRules Sandbox = Default with
+    {
+        BasePickDurationSeconds = 3600,
+        LandGrabPickDurationSeconds = 3600,
+        ChoiceQuestionDurationSeconds = 3600,
+        TipQuestionDurationSeconds = 3600,
+        AttackTargetSelectionDurationSeconds = 3600,
+        RevealHoldDurationSeconds = 3600,
+        CategoryBanProposalDurationSeconds = 3600,
+        BaseAssaultUnlockRound = 1,
+        GoldenQuestionCooldownQuestions = 0,
+    };
 }

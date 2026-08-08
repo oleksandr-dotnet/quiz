@@ -18,7 +18,9 @@ import { BattleDock, battleMapProps, battleOnSelect } from './screens/BattleScre
 import { ResultsDock } from './screens/ResultsScreen'
 import { RecapScreen } from './screens/RecapScreen'
 import { MyRecapsScreen } from './screens/MyRecapsScreen'
+import { TestMechanicsScreen } from './screens/TestMechanicsScreen'
 import { AppShell } from './components/AppShell'
+import { SandboxControlPanel } from './components/SandboxControlPanel'
 import { GameMap } from './components/map/GameMap'
 import { PlayerRoster } from './components/PlayerRoster'
 import { TurnAnnouncement } from './components/TurnAnnouncement'
@@ -54,6 +56,12 @@ function urlRecapId(): string | null {
 
 function isMyRecapsRoute(): boolean {
   return window.location.pathname === '/recaps'
+}
+
+// A developer-only playground (see components/SandboxControlPanel.tsx) - real path route like
+// /recaps above, checked at the same tier so it never gets swallowed by the landing/lobby flow.
+function isTestMechanicsRoute(): boolean {
+  return window.location.pathname === '/test-mechanics'
 }
 
 function isYourTurn(view: GameView): boolean {
@@ -439,6 +447,9 @@ function App() {
   if (isMyRecapsRoute()) {
     return <MyRecapsScreen />
   }
+  if (isTestMechanicsRoute()) {
+    return <TestMechanicsScreen />
+  }
 
   if (!sessionUsable || !view) {
     if (!restoreAttempted) {
@@ -608,6 +619,7 @@ function App() {
         onCancel={() => setConfirmingLeave(false)}
         onConfirm={() => void onConfirmLeaveGame()}
       />
+      {session?.isSandbox && <SandboxControlPanel view={gameView} />}
     </>
   )
 }

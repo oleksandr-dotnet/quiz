@@ -85,6 +85,67 @@ public sealed class GameHub(
         return JoinResultDto.Ok(room.RoomCode, result.PlayerId.Value, result.PlayerToken, result.View);
     }
 
+    /// Dev-only, never routed to from a real player flow (see test-mechanics-playground): creates a
+    /// room flagged IsSandbox, joins the caller as its lone human, fills the remaining seats with
+    /// bots, and starts it immediately with GameRules.Sandbox - one round trip from "nothing" to a
+    /// fully live GameView, mirroring CreateRoom's shape (JoinResultDto) so the client can treat it
+    /// exactly like a normal room join/create.
+    public async Task<JoinResultDto> CreateSandboxRoom(int botCount)
+    {
+        var accountResult = await ResolveAuthenticatedAccountAsync();
+        if (accountResult.Rejected)
+        {
+            return JoinResultDto.Failure(accountResult.RejectionReason!);
+        }
+
+        var room = registry.CreateRoom(Language.Russian, isSandbox: true);
+        var hostJoin = await room.JoinAsync("Tester", playerToken: null, Context.ConnectionId, accountResult.Account);
+        if (!hostJoin.Success || hostJoin.PlayerId is null || hostJoin.PlayerToken is null)
+        {
+            registry.Remove(room.RoomCode);
+            return JoinResultDto.Failure(hostJoin.RejectionReason ?? "Unknown");
+        }
+
+        connectionMap.Bind(Context.ConnectionId, room.RoomCode, hostJoin.PlayerId.Value);
+
+        var seatCount = hostJoin.View!.Seats.Count;
+        var clampedBotSeats = Math.Clamp(botCount, 1, seatCount - 1);
+        for (var seatIndex = 1; seatIndex <= clampedBotSeats; seatIndex++)
+        {
+            await room.SetSeatAsync(hostJoin.PlayerId.Value, seatIndex, isBot: true);
+        }
+
+        var startAck = await room.StartGameAsync(hostJoin.PlayerId.Value);
+        if (!startAck.Success)
+        {
+            registry.Remove(room.RoomCode);
+            connectionMap.Remove(Context.ConnectionId);
+            return JoinResultDto.Failure(startAck.RejectionReason ?? "StartFailed");
+        }
+
+        var view = await room.GetViewAsync(hostJoin.PlayerId.Value);
+        logger.LogInformation("Sandbox room {RoomCode} created by {PlayerId} with {BotSeats} bots",
+            room.RoomCode, hostJoin.PlayerId, clampedBotSeats);
+
+        return JoinResultDto.Ok(room.RoomCode, hostJoin.PlayerId.Value, hostJoin.PlayerToken, view);
+    }
+
+    /// Sandbox-only debug command - see RoomActor.ForceExpireAsync.
+    public async Task ForceExpire()
+    {
+        var (room, playerId) = ResolveConnection();
+        var ack = await room.ForceExpireAsync(playerId);
+        EnsureSuccess(ack, nameof(ForceExpire));
+    }
+
+    /// Sandbox-only debug command - see RoomActor.ForceAnswerAsync.
+    public async Task ForceAnswer(Guid targetPlayerId, bool wantCorrect)
+    {
+        var (room, playerId) = ResolveConnection();
+        var ack = await room.ForceAnswerAsync(playerId, targetPlayerId, wantCorrect);
+        EnsureSuccess(ack, nameof(ForceAnswer));
+    }
+
     public async Task SetSeat(int seatIndex, bool isBot)
     {
         var (room, playerId) = ResolveConnection();

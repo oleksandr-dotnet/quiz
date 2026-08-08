@@ -13,7 +13,7 @@ public sealed class RoomRegistry(IRoomFactory factory, IRoomCodeGenerator codeGe
 
     public bool TryGet(string code, out RoomActor room) => _rooms.TryGetValue(Normalize(code), out room!);
 
-    public RoomActor CreateRoom(Language language = Language.Russian)
+    public RoomActor CreateRoom(Language language = Language.Russian, bool isSandbox = false)
     {
         if (_rooms.Count >= options.MaxRooms)
         {
@@ -23,7 +23,7 @@ public sealed class RoomRegistry(IRoomFactory factory, IRoomCodeGenerator codeGe
         for (var attempt = 0; attempt < MaxCreateAttempts; attempt++)
         {
             var code = codeGenerator.NextCode();
-            var room = factory.Create(code, language);
+            var room = factory.Create(code, language, isSandbox);
             if (_rooms.TryAdd(code, room))
             {
                 return room;

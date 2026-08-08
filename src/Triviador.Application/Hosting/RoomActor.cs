@@ -33,6 +33,7 @@ public sealed class RoomActor
     private readonly Task _pump;
 
     private readonly Language _language;
+    private readonly bool _isSandbox;
     private Guid? _hostPlayerId;
     private bool _enableAnswerStreaks = true;
     private bool _enableCategoryBanDraft = true;
@@ -49,7 +50,8 @@ public sealed class RoomActor
 
     public RoomActor(string roomCode, RoomOptions options, IRoomBroadcaster broadcaster, IRoomClock clock,
         IMapRepository mapRepository, IRandomSourceFactory randomSourceFactory,
-        IQuestionSourceFactory questionSourceFactory, Language language, ILogger<RoomActor>? logger = null)
+        IQuestionSourceFactory questionSourceFactory, Language language, ILogger<RoomActor>? logger = null,
+        bool isSandbox = false)
     {
         RoomCode = roomCode;
         _broadcaster = broadcaster;
@@ -59,6 +61,7 @@ public sealed class RoomActor
         _questionSourceFactory = questionSourceFactory;
         _language = language;
         _logger = logger;
+        _isSandbox = isSandbox;
         _seats = Enumerable.Range(0, options.MaxSeats).Select(i => new Seat(i)).ToArray();
         _lastActivityUtc = clock.UtcNow;
         _pump = Task.Run(PumpAsync);
@@ -66,6 +69,8 @@ public sealed class RoomActor
     }
 
     public string RoomCode { get; }
+
+    public bool IsSandbox => _isSandbox;
 
     public DateTimeOffset LastActivityUtc => _lastActivityUtc;
 
@@ -208,6 +213,26 @@ public sealed class RoomActor
         return tcs.Task;
     }
 
+    public Task<CommandAck> ForceExpireAsync(Guid requestingPlayerId)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new ForceExpireRequest(requestingPlayerId, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
+    public Task<CommandAck> ForceAnswerAsync(Guid requestingPlayerId, Guid targetPlayerId, bool wantCorrect)
+    {
+        var tcs = new TaskCompletionSource<CommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!TryPost(new ForceAnswerRequest(requestingPlayerId, targetPlayerId, wantCorrect, tcs)))
+        {
+            return Task.FromResult(CommandAck.Reject("RoomClosed"));
+        }
+        return tcs.Task;
+    }
+
     public Task<GameViewDto> GetGameViewAsync(Guid playerId)
     {
         var tcs = new TaskCompletionSource<GameViewDto>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -262,6 +287,8 @@ public sealed class RoomActor
         SubmitAnswerRequest m => HandleSubmitAnswerAsync(m),
         PickRegionRequest m => HandlePickRegionAsync(m),
         SelectAttackTargetRequest m => HandleSelectAttackTargetAsync(m),
+        ForceExpireRequest m => HandleForceExpireAsync(m),
+        ForceAnswerRequest m => HandleForceAnswerAsync(m),
         GameViewRequest m => HandleGameViewRequest(m),
         EmoteRequest m => HandleEmoteAsync(m),
         EngineTimerElapsed m => HandleEngineTimerElapsedAsync(m),
@@ -564,7 +591,7 @@ public sealed class RoomActor
 
         var occupiedSeats = _seats.Where(s => s.IsBot || s.PlayerId is not null)
             .OrderBy(s => s.Index).ToArray();
-        var rules = GameRules.Default with
+        var rules = (_isSandbox ? GameRules.Sandbox : GameRules.Default) with
         {
             Language = _language,
             EnableAnswerStreaks = _enableAnswerStreaks,
@@ -724,6 +751,101 @@ public sealed class RoomActor
         ArmEngineTimer();
         await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
         m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
+    private async Task HandleForceExpireAsync(ForceExpireRequest m)
+    {
+        if (!_isSandbox)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotSandbox"));
+            return;
+        }
+        if (_engine is null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameNotStarted"));
+            return;
+        }
+        if (_engine.State.Pending is not { } pending)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NoPendingActivity"));
+            return;
+        }
+
+        // Uses the pending activity's own deadline as "now" - satisfies TimeoutElapsed's
+        // At >= Deadline check without waiting for real time to pass, and reuses exactly the same
+        // auto-resolve behavior a real timeout gets (auto-pick first eligible / resolve from
+        // whatever's submitted / apply a RevealHold), never a bespoke sandbox-only code path.
+        var result = _engine.Execute(new TimeoutElapsed(pending.Deadline, pending.Token));
+        if (!result.IsAccepted)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject(result.Rejection!.Value.ToString()));
+            return;
+        }
+
+        LogNotableEvents(result.Events);
+        ArmEngineTimer();
+        await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
+    private async Task HandleForceAnswerAsync(ForceAnswerRequest m)
+    {
+        if (!_isSandbox)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotSandbox"));
+            return;
+        }
+        if (_engine is null)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("GameNotStarted"));
+            return;
+        }
+        if (_engine.State.Pending is not PendingActivity.Question pending)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotAwaitingThisInput"));
+            return;
+        }
+        if (!pending.Participants.Contains(new PlayerId(m.TargetPlayerId)))
+        {
+            m.Reply.TrySetResult(CommandAck.Reject("NotYourTurn"));
+            return;
+        }
+
+        var answer = ComputeForcedAnswer(pending.Q, m.WantCorrect);
+        var result = _engine.Execute(new SubmitAnswer(Now(), new PlayerId(m.TargetPlayerId), pending.Token, answer));
+
+        if (!result.IsAccepted)
+        {
+            m.Reply.TrySetResult(CommandAck.Reject(result.Rejection!.Value.ToString()));
+            return;
+        }
+
+        LogNotableEvents(result.Events);
+        ArmEngineTimer();
+        await BroadcastGameViewAsync(ExtractLastReveal(result.Events));
+        m.Reply.TrySetResult(CommandAck.Ok);
+    }
+
+    // Never reveals the real answer to the client - computed here, server-side, from the pending
+    // question's own Question.CorrectOptionIndex/CorrectNumericValue (already read by RoomActor
+    // elsewhere, e.g. ToRevealDto, just never before resolution) and submitted through the exact
+    // same SubmitAnswer command a genuine answer would use. "Incorrect" for a Choice question is any
+    // other valid option; for a Tip (numeric) question it's a value offset far enough from correct
+    // that it always ranks worse than a genuine close guess, since EvaluateNumeric scores every
+    // Numeric answer at Tier 0 and ranks purely by closeness.
+    private static AnswerValue ComputeForcedAnswer(Question question, bool wantCorrect)
+    {
+        if (question.Prompt.Kind == QuestionKind.Choice)
+        {
+            var correctIndex = question.CorrectOptionIndex ?? 0;
+            var optionCount = question.Prompt.Options.Length;
+            var index = wantCorrect || optionCount <= 1 ? correctIndex : (correctIndex + 1) % optionCount;
+            return new AnswerValue.Choice(index);
+        }
+
+        var correctValue = question.CorrectNumericValue ?? 0;
+        var value = wantCorrect ? correctValue : correctValue + 987_654_321;
+        return new AnswerValue.Numeric(value);
     }
 
     private static (QuestionResult Result, bool IsGolden)? ExtractLastReveal(ImmutableArray<IGameEvent> events)
@@ -1068,7 +1190,10 @@ public sealed class RoomActor
         _engineTimer = null;
 
         var pending = _engine?.State.Pending;
-        if (pending is null)
+        // Sandbox rooms never arm the real timer (or schedule autonomous bot moves) at all - every
+        // pending activity only ever advances via an explicit ForceExpire/ForceAnswer/normal command
+        // from whoever's driving the sandbox, so its pace is entirely in the tester's hands.
+        if (pending is null || _isSandbox)
         {
             ClearBotSchedule();
             return;

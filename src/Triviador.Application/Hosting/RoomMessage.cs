@@ -70,6 +70,20 @@ public sealed record SelectAttackTargetRequest(
 
 public sealed record GameViewRequest(Guid PlayerId, TaskCompletionSource<GameViewDto> Reply) : RoomMessage;
 
+/// Sandbox-only (see test-mechanics-playground): immediately expires whatever is currently pending,
+/// exactly as if its real deadline had just elapsed - reuses TimeoutElapsed's existing auto-resolve
+/// behavior (auto-pick first eligible / resolve a question from whatever's submitted / apply a
+/// RevealHold) instead of duplicating it. Rejected outside a sandbox room.
+public sealed record ForceExpireRequest(Guid RequestingPlayerId, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
+/// Sandbox-only: submits a raw answer computed server-side from the pending question's own correct
+/// answer, so a tester can dictate "this participant answers correctly/incorrectly" without knowing
+/// (or the client ever seeing) the real answer. Goes through the exact same SubmitAnswer command a
+/// real player's answer would, so scoring/ranking/streaks behave identically. Rejected outside a
+/// sandbox room.
+public sealed record ForceAnswerRequest(
+    Guid RequestingPlayerId, Guid TargetPlayerId, bool WantCorrect, TaskCompletionSource<CommandAck> Reply) : RoomMessage;
+
 /// A player-to-room emote/sticker broadcast - purely presentational (never touches engine state),
 /// so it's a fire-and-forget lobby-or-mid-game side channel rather than a domain command.
 public sealed record EmoteRequest(

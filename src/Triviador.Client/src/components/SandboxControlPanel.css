@@ -1,0 +1,162 @@
+/* Deliberately styled as terminal-ish debug chrome (monospace, dark) rather than matching the
+   parchment theme (tokens.css) the real game UI uses - it should read unmistakably as dev tooling,
+   never as part of the game itself. */
+.sandbox-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 90;
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(72vh, 640px);
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 16, 14, 0.94);
+  border: 1px solid #2fbf6f;
+  border-radius: var(--r-md, 8px);
+  color: #d7ffe6;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12.5px;
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.sandbox-panel-collapsed {
+  max-height: none;
+}
+
+.sandbox-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(47, 191, 111, 0.14);
+  border-bottom: 1px solid rgba(47, 191, 111, 0.35);
+}
+
+.sandbox-panel-title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sandbox-panel-phase {
+  flex: 1;
+  opacity: 0.75;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sandbox-panel-collapse,
+.sandbox-panel-exit {
+  flex: none;
+  background: transparent;
+  border: 1px solid rgba(47, 191, 111, 0.5);
+  color: #d7ffe6;
+  border-radius: var(--r-sm, 4px);
+  padding: 2px 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sandbox-panel-collapse:hover,
+.sandbox-panel-exit:hover {
+  background: rgba(47, 191, 111, 0.2);
+}
+
+.sandbox-panel-body {
+  padding: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sandbox-scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-bottom: 1px dashed rgba(215, 255, 230, 0.25);
+  padding-bottom: 8px;
+}
+
+.sandbox-scoreboard-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sandbox-scoreboard-stats {
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.sandbox-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sandbox-section-title {
+  font-weight: 700;
+  color: #9be8ba;
+}
+
+.sandbox-hint {
+  opacity: 0.75;
+  margin: 0;
+}
+
+.sandbox-force-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sandbox-force-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.sandbox-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sandbox-panel button {
+  font: inherit;
+  cursor: pointer;
+  background: rgba(47, 191, 111, 0.16);
+  border: 1px solid rgba(47, 191, 111, 0.5);
+  color: #d7ffe6;
+  border-radius: var(--r-sm, 4px);
+  padding: 4px 8px;
+}
+
+.sandbox-panel button:hover:not(:disabled) {
+  background: rgba(47, 191, 111, 0.3);
+}
+
+.sandbox-panel button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.sandbox-status {
+  margin: 0;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(215, 255, 230, 0.25);
+  color: #ffe08a;
+}
+
+@media (max-width: 640px) {
+  .sandbox-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: 8px;
+  }
+}

@@ -7,6 +7,10 @@ type Status = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'closed'
 interface Session {
   roomCode: string
   playerToken: string
+  // Set only by the /test-mechanics playground's room creation - lets App.tsx render
+  // SandboxControlPanel without any server round trip, and survives a page refresh alongside the
+  // rest of the session since it's persisted in the same sessionStorage blob.
+  isSandbox?: boolean
 }
 
 const SESSION_KEY = 'triviador.session'

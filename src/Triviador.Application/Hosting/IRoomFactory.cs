@@ -4,5 +4,5 @@ namespace Triviador.Application.Hosting;
 
 public interface IRoomFactory
 {
-    RoomActor Create(string roomCode, Language language);
+    RoomActor Create(string roomCode, Language language, bool isSandbox = false);
 }

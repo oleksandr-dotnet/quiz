@@ -13,7 +13,7 @@ public sealed class RoomFactory(
     RoomOptions options,
     ILoggerFactory? loggerFactory = null) : IRoomFactory
 {
-    public RoomActor Create(string roomCode, Language language) =>
+    public RoomActor Create(string roomCode, Language language, bool isSandbox = false) =>
         new(roomCode, options, broadcaster, clock, mapRepository, randomSourceFactory, questionSourceFactory,
-            language, loggerFactory?.CreateLogger<RoomActor>());
+            language, loggerFactory?.CreateLogger<RoomActor>(), isSandbox);
 }
