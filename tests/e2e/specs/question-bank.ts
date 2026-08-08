@@ -67,3 +67,31 @@ export function correctNumericValue(promptText: string): number {
   }
   return entry.correctNumericValue
 }
+
+/** Builds a prompt-text -> category map for one kind's directory - the file's own base name (minus
+ * `.json`) IS the category id, matching the ids category-ban-draft's chips/bans already use. */
+function categoryBank(dir: string): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const file of readdirSync(dir).filter((f) => f.endsWith('.json'))) {
+    const category = path.basename(file, '.json')
+    const questions = JSON.parse(readFileSync(path.join(dir, file), 'utf8')) as Array<{ text: string }>
+    for (const question of questions) map.set(question.text, category)
+  }
+  return map
+}
+
+let choiceCategoryByText: Map<string, string> | null = null
+let tipCategoryByText: Map<string, string> | null = null
+
+/**
+ * Given a question's prompt text (either Choice or Tip kind), returns its category id - needed to
+ * prove a banned category never gets asked again after a category-ban draft resolves. Returns null
+ * for a prompt this bank doesn't recognize (wrong language, or the text has drifted from the bank)
+ * rather than throwing, since a caller scanning many prompts in a driven game may legitimately not
+ * care about ones it can't classify.
+ */
+export function categoryOfPrompt(promptText: string): string | null {
+  choiceCategoryByText ??= categoryBank(path.join(dataDir, 'choice'))
+  tipCategoryByText ??= categoryBank(path.join(dataDir, 'tip'))
+  return choiceCategoryByText.get(promptText) ?? tipCategoryByText.get(promptText) ?? null
+}

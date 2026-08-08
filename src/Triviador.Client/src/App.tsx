@@ -65,23 +65,18 @@ function phaseLabelKey(phase: GameView['phase']): string {
   }
 }
 
-function TopBar({ view }: { view: GameView }) {
+// requestLeave opens the shared LeaveGameConfirmModal, which App() renders as a sibling of
+// AppShell (alongside KickConfirmModal) rather than in here - see App()'s own comment on why that
+// placement matters: nested inside AppShell's topBar slot, a position:fixed modal gets trapped
+// inside .hud-top's stacking context (App.css sets .hud-top to z-index 40, one level below
+// .shell-dock's 45), so its own z-index would only win locally within .hud-top and the whole modal
+// would paint - and hit-test - behind the in-game question card instead of above it.
+function TopBar({ view, requestLeave }: { view: GameView; requestLeave: () => void }) {
   const { t } = useTranslation()
-  const leaveGame = useGameStore((s) => s.leaveGame)
   const phaseKey = phaseLabelKey(view.phase)
   const roundsRemaining = Math.max(0, view.roundLimit - view.currentRound)
   const progressPercent = view.roundLimit > 0 ? Math.min(100, (view.currentRound / view.roundLimit) * 100) : 0
-  const [confirmingLeave, setConfirmingLeave] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-
-  async function onConfirmLeaveGame() {
-    setConfirmingLeave(false)
-    try {
-      await leaveRoom()
-    } finally {
-      leaveGame()
-    }
-  }
 
   return (
     <>
@@ -136,7 +131,7 @@ function TopBar({ view }: { view: GameView }) {
         <EmoteButton />
         <MuteToggle />
         {view.phase !== 'Finished' && (
-          <button type="button" className="leave-game-button" onClick={() => setConfirmingLeave(true)}>
+          <button type="button" className="leave-game-button" onClick={requestLeave}>
             {t('app.leaveGame')}
           </button>
         )}
@@ -164,19 +159,13 @@ function TopBar({ view }: { view: GameView }) {
               view.phase !== 'Finished'
                 ? () => {
                     setMenuOpen(false)
-                    setConfirmingLeave(true)
+                    requestLeave()
                   }
                 : null
             }
           />
         )}
       </div>
-
-      <LeaveGameConfirmModal
-        open={confirmingLeave}
-        onCancel={() => setConfirmingLeave(false)}
-        onConfirm={() => void onConfirmLeaveGame()}
-      />
     </>
   )
 }
@@ -192,6 +181,7 @@ function App() {
   const previousGameView = useGameStore((s) => s.previousGameView)
   const applyView = useGameStore((s) => s.applyView)
   const setSession = useGameStore((s) => s.setSession)
+  const leaveGame = useGameStore((s) => s.leaveGame)
   // urlRoomCode() reads window.location.hash directly wherever it's called - fine for a fresh page
   // load (an invite link always opens one), but a hash-only change in an already-open tab (pasting
   // a link into the address bar, or a same-page anchor) fires no React re-render on its own. This
@@ -209,6 +199,7 @@ function App() {
   const [proclamationQueue, setProclamationQueue] = useState<string[]>([])
   const [mapShaking, setMapShaking] = useState(false)
   const [kickTarget, setKickTarget] = useState<PlayerView | null>(null)
+  const [confirmingLeave, setConfirmingLeave] = useState(false)
   const [bannedCategoriesResult, setBannedCategoriesResult] = useState<string[] | null>(null)
   // Shared with LandGrabDock (same hook, same window) purely to know when a reveal is on screen -
   // AppShell uses it to hide the map on mobile while it's up (see mapHiddenMobile below).
@@ -223,6 +214,15 @@ function App() {
       await kickPlayer(target.playerId, landPolicy)
     } catch (err) {
       setActionError(err instanceof Error ? err.message : t('kick.kickFailed'))
+    }
+  }
+
+  async function onConfirmLeaveGame() {
+    setConfirmingLeave(false)
+    try {
+      await leaveRoom()
+    } finally {
+      leaveGame()
     }
   }
 
@@ -527,7 +527,7 @@ function App() {
         mapShaking={mapShaking}
         mapDanger={ownBaseUnderAssault}
         mapHiddenMobile={mapHiddenMobile}
-        topBar={<TopBar view={gameView} />}
+        topBar={<TopBar view={gameView} requestLeave={() => setConfirmingLeave(true)} />}
         map={
           <GameMap
             view={gameView}
@@ -561,6 +561,17 @@ function App() {
         requireLandPolicy
         onCancel={() => setKickTarget(null)}
         onConfirm={(policy) => void onConfirmKick(policy)}
+      />
+      {/* Rendered here, as a sibling of AppShell, not inside TopBar/AppShell's topBar slot - see
+          TopBar's own comment. .hud-top (App.css, z-index 40) sits below .shell-dock (z-index 45),
+          so a fixed-position modal nested inside it would have its own z-index evaluated only
+          within .hud-top's local stacking context and could be hit-tested behind an in-game
+          question card instead of above it, exactly like KickConfirmModal already avoids by living
+          out here. */}
+      <LeaveGameConfirmModal
+        open={confirmingLeave}
+        onCancel={() => setConfirmingLeave(false)}
+        onConfirm={() => void onConfirmLeaveGame()}
       />
     </>
   )

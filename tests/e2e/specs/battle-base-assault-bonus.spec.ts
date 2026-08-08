@@ -1,14 +1,18 @@
 import { expect, test, type Page } from '@playwright/test'
 import {
   answerAnyIfAsked,
+  answerCorrectly,
+  answerIncorrectly,
   clickFirstEligibleRegion,
   createRoom,
   fastForwardUntil,
   joinRoomByCode,
+  readScore,
   roomCodeOf,
   seatRows,
+  setLobbySettings,
+  startGameAndReachBaseSelection,
 } from './helpers'
-import { correctChoiceIndex, correctNumericValue } from './question-bank'
 
 // Coverage: openspec/changes/base-assault-bonus-and-numeric-tiebreak's battle-flow delta - a resolved
 // base-assault question moves GameRules.BaseAssaultScoreBonus (200) between attacker and defender,
@@ -30,15 +34,6 @@ async function pickBase(page: Page): Promise<string> {
   const testId = await region.getAttribute('data-testid')
   await region.click()
   return testId!.replace('region-', '')
-}
-
-// The score span (components/Odometer.tsx) animates toward its new value over ~320ms - wait past
-// that before reading, so a read right after some earlier score change doesn't catch a mid-animation
-// transient value instead of the settled one.
-async function readScore(page: Page, seat: number): Promise<number> {
-  await page.waitForTimeout(500)
-  const text = await page.getByTestId(`player-card-${seat}`).locator('.score').textContent()
-  return Number(text)
 }
 
 interface AttackerTurn {
@@ -101,9 +96,13 @@ test.describe('base-assault score bonus', () => {
     await joinRoomByCode(page2, code, 'Bob')
     await expect(seatRows(page2).nth(1).locator('.seat-name')).toHaveText('Bob')
 
-    await page.getByTestId('start-game').click()
-    await expect(page.getByTestId('base-selection-dock')).toBeVisible()
-    await expect(page2.getByTestId('base-selection-dock')).toBeVisible()
+    // Deterministic scoring: this test asserts an exact +/-200 delta, which answer streaks (+50 x
+    // streak) or a golden question (doubling) would confound. Category-ban draft is pinned off too,
+    // purely so this test doesn't need to also drive through that phase for a scenario that has
+    // nothing to do with it.
+    await setLobbySettings(page, { answerStreaks: false, categoryBanDraft: false, goldenQuestion: false })
+
+    await startGameAndReachBaseSelection([page, page2])
 
     const adaBaseId = await pickBase(page)
     await expect(page2.locator('.turn-banner')).toBeVisible({ timeout: 20_000 })
@@ -128,34 +127,14 @@ test.describe('base-assault score bonus', () => {
     await expect(attacker.getByTestId('question-card')).toBeVisible({ timeout: 20_000 })
     await expect(defender.getByTestId('question-card')).toBeVisible({ timeout: 20_000 })
 
-    const isChoice = await attacker.getByTestId('option-0').isVisible().catch(() => false)
-    if (isChoice) {
-      const promptText = (await attacker.getByTestId('question-card').locator('.question-text').textContent())?.trim() ?? ''
-      const shownOptions = (await attacker.locator('.option-plate').allTextContents()).map((t) =>
-        t.replace(/^[①②③④]\s*/, ''),
-      )
-      const correctIndex = correctChoiceIndex(promptText, shownOptions)
-      const wrongIndex = (correctIndex + 1) % shownOptions.length
-
-      // The attacker answers correctly and the defender is deliberately wrong, guaranteeing a
-      // decisive attacker win by tier alone (no ambiguity from elapsed time or tie-break order) and
-      // no chance of the "both correct" numeric-tiebreak path also added by this change - that path
-      // is already covered by battle-numeric-tiebreak.spec.ts.
-      await defender.getByTestId(`option-${wrongIndex}`).click()
-      await attacker.getByTestId(`option-${correctIndex}`).click()
-    } else {
-      const promptText = (await attacker.getByTestId('question-card').locator('.question-text').textContent())?.trim() ?? ''
-      const correctValue = correctNumericValue(promptText)
-      // Tip questions are always Tier 0 for any submission - correctness is closeness, not
-      // exactness, so the attacker's exact value beats the defender's deliberately huge miss on
-      // Penalty alone, regardless of who answers faster. Submits via Enter, not the on-screen
-      // keypad's own submit button - App.css hides `.numeric-keypad` above 901px width (touch-only),
-      // and this suite runs at a desktop viewport width.
-      await defender.getByTestId('tip-input').fill(String(correctValue + 1_000_000))
-      await defender.getByTestId('tip-input').press('Enter')
-      await attacker.getByTestId('tip-input').fill(String(correctValue))
-      await attacker.getByTestId('tip-input').press('Enter')
-    }
+    // The attacker answers correctly and the defender is deliberately wrong (for a Choice question,
+    // one slot off the correct one; for a Tip question, a million off - Tip correctness is closeness,
+    // not exactness, so this is a decisive miss regardless of the question's own unit/scale). This
+    // guarantees a decisive attacker win by tier alone (no ambiguity from elapsed time or tie-break
+    // order) and no chance of the "both correct" numeric-tiebreak path also added by this change -
+    // that path is already covered by battle-numeric-tiebreak.spec.ts.
+    await answerIncorrectly(defender)
+    await answerCorrectly(attacker)
 
     await expect(attacker.getByTestId('reveal-overlay')).toBeVisible({ timeout: 10_000 })
     await expect(attacker.getByTestId('reveal-overlay')).toBeHidden({ timeout: 15_000 })

@@ -63,6 +63,10 @@ export function RegionShape({
       tabIndex={clickable ? 0 : undefined}
       aria-label={label}
       data-testid={`region-${region.regionId}`}
+      // Ownership isn't otherwise readable from the DOM (fill color / hatch pattern only, both
+      // presentational) - the e2e harness's regionOwnerSeatOf/ownedRegionIds helpers (tests/e2e/specs/
+      // helpers.ts) key off this instead of parsing SVG fill colors or the localized aria-label.
+      data-owner-seat={ownerSeat ?? undefined}
       onClick={clickable ? () => onSelect!(region.regionId) : undefined}
       onKeyDown={handleKeyDown}
     >

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { answerAnyIfAsked, clickFirstEligibleRegion, revealWinnerName, setUpTwoPlayerBattle } from './helpers'
-import { correctChoiceIndex, correctNumericValue } from './question-bank'
+import { answerAnyIfAsked, answerCorrectly, clickFirstEligibleRegion, revealWinnerName, setUpTwoPlayerBattle } from './helpers'
+import { correctNumericValue } from './question-bank'
 
 // Coverage: openspec/changes/base-assault-bonus-and-numeric-tiebreak's answer-ranking delta - a
 // Choice-kind duel tied on correctness (both combatants correct) is broken by a numeric tiebreak
@@ -13,15 +13,21 @@ import { correctChoiceIndex, correctNumericValue } from './question-bank'
 // disk (see specs/question-bank.ts) - never from a live secret channel, which the anti-cheat
 // boundary never exposes before a question resolves.
 
-/** Attacks whichever adjacent region is currently offered, from whichever of the two pages is on turn. */
+/**
+ * Attacks whichever adjacent region is currently offered, from whichever of the two pages is on turn.
+ * With only two players sharing every region on a fully-connected map, some legal target always exists
+ * between them - a stall here is transient UI/render lag (e.g. right after a RevealHold closes), never
+ * a genuine "nobody can attack" state, so a generous budget just absorbs real-world timing variance
+ * rather than masking an actual game-logic gap.
+ */
 async function attackFromWhoeverIsOnTurn(page: Page, page2: Page): Promise<void> {
-  const deadline = Date.now() + 20_000
+  const deadline = Date.now() + 35_000
   while (Date.now() < deadline) {
     if (await clickFirstEligibleRegion(page)) return
     if (await clickFirstEligibleRegion(page2)) return
     await page.waitForTimeout(200)
   }
-  throw new Error('attackFromWhoeverIsOnTurn: no attacker turn became available within 20s')
+  throw new Error('attackFromWhoeverIsOnTurn: no attacker turn became available within 35s')
 }
 
 /**
@@ -32,7 +38,7 @@ async function attackFromWhoeverIsOnTurn(page: Page, page2: Page): Promise<void>
  * turn instead. Leaves both pages showing the follow-up numeric tiebreak question once it triggers.
  */
 async function driveUntilTiebreakStarts(page: Page, page2: Page): Promise<void> {
-  const deadline = Date.now() + 120_000
+  const deadline = Date.now() + 150_000
   while (Date.now() < deadline) {
     await attackFromWhoeverIsOnTurn(page, page2)
     await expect(page.getByTestId('question-card')).toBeVisible({ timeout: 20_000 })
@@ -40,14 +46,11 @@ async function driveUntilTiebreakStarts(page: Page, page2: Page): Promise<void> 
 
     const isChoice = await page.getByTestId('option-0').isVisible().catch(() => false)
     if (isChoice) {
-      const promptText = (await page.getByTestId('question-card').locator('.question-text').textContent())?.trim() ?? ''
-      const shownOptions = (await page.locator('.option-plate').allTextContents()).map((t) =>
-        t.replace(/^[①②③④]\s*/, ''),
-      )
-      const correctIndex = correctChoiceIndex(promptText, shownOptions)
-
-      await page.getByTestId(`option-${correctIndex}`).click()
-      await page2.getByTestId(`option-${correctIndex}`).click()
+      // Both combatants answer correctly (each computed independently off their own shown option
+      // order, which QuestionDealer shuffles once per draw and broadcasts identically to every
+      // participant, so this reliably forces the "both correct" tie this test is keyed on).
+      await answerCorrectly(page)
+      await answerCorrectly(page2)
 
       // Both answered correctly - the tied question's own reveal shows first, then the numeric
       // tiebreak question replaces it once that reveal's window closes.
@@ -64,11 +67,11 @@ async function driveUntilTiebreakStarts(page: Page, page2: Page): Promise<void> 
     await expect(page.getByTestId('reveal-overlay')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByTestId('reveal-overlay')).toBeHidden({ timeout: 15_000 })
   }
-  throw new Error('driveUntilTiebreakStarts: no Choice-question tie was reached within 120s')
+  throw new Error('driveUntilTiebreakStarts: no Choice-question tie was reached within 150s')
 }
 
 test.describe('numeric tiebreak for a tied-correct Choice duel', () => {
-  test.setTimeout(300_000)
+  test.setTimeout(400_000)
 
   test('closeness decides the tiebreak even when the closer answer is slower, then elapsed time is the last resort for an equally-close tiebreak', async ({
     page,

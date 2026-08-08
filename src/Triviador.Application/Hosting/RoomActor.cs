@@ -470,7 +470,19 @@ public sealed class RoomActor
             return; // stale notification for a connection this room never bound
         }
         seat.ConnectionId = null;
-        await BroadcastAsync();
+
+        // Mirrors every other seat-mutating handler's phase check (e.g. HandleLeaveAsync): once the
+        // game has started, clients render GameView, not the lobby-shaped RoomView, so broadcasting
+        // only BuildView here left a mid-game disconnect invisible to everyone else until the next
+        // unrelated game broadcast happened to carry it along.
+        if (_engine is not null)
+        {
+            await BroadcastGameViewAsync();
+        }
+        else
+        {
+            await BroadcastAsync();
+        }
     }
 
     private Task HandleViewRequest(ViewRequest m)

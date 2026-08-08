@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createRoom, joinRoomByCode, roomCodeOf, seatRows } from './helpers'
+import { createRoom, joinRoomByCode, roomCodeOf, seatRows, startGameAndReachBaseSelection } from './helpers'
 
 // No base-selection/land-grab E2E harness existed before this spec (only room-lobby.spec.ts did).
 // This file builds the minimal one it needs: two human seats plus two bot seats, driven into
@@ -58,9 +58,10 @@ async function setupToLandGrabWithBobSeated(page: Page, context: import('@playwr
   await seatRows(page).nth(2).getByRole('button', { name: 'Fill with bot' }).click()
   await seatRows(page).nth(3).getByRole('button', { name: 'Fill with bot' }).click()
 
-  await page.getByTestId('start-game').click()
-  await expect(page.getByTestId('base-selection-dock')).toBeVisible()
-  await expect(page2.getByTestId('base-selection-dock')).toBeVisible()
+  // GameRules.EnableCategoryBanDraft defaults on, so StartGame lands in CategoryBan before base
+  // selection - this helper walks both human pages (and the two bot seats resolve on their own)
+  // straight past it with an empty proposal, since this spec doesn't care which categories get banned.
+  await startGameAndReachBaseSelection([page, page2])
 
   // Ada then Bob pick their own bases via direct UI action - no reliance on either human's personal
   // 15s pick timeout. The two bot seats pick their own bases independently in the background.

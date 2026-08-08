@@ -1,10 +1,17 @@
 name: E2E (production)
 
-# Manually triggered verification of the live Render deployment, not a per-commit gate - see
+# Verification of the live Render deployment, not a per-commit gate - see
 # openspec/changes/base-assault-bonus-and-numeric-tiebreak/design.md's "Running the suite against
 # production" decision. Some scenarios (reaching Battle's round-8 base-assault unlock) legitimately
-# take several minutes for real, so this intentionally does not run on every push.
+# take several minutes for real, so this intentionally does not run on every push - instead it runs
+# once nightly (schedule, below) plus on demand (workflow_dispatch).
+#
+# Cron is always UTC and does not observe daylight saving - 12:00 UTC is 15:00 in Europe/Kiev during
+# EEST (summer, UTC+3); it reads as 14:00 there once clocks fall back to EET (UTC+2) in winter.
+# Adjust the cron expression by an hour at the DST boundary if a fixed local wall-clock time matters.
 on:
+  schedule:
+    - cron: '0 12 * * *'
   workflow_dispatch:
     inputs:
       base_url:
@@ -15,7 +22,7 @@ on:
 jobs:
   e2e-production:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -36,7 +43,10 @@ jobs:
       - name: Run E2E suite against production
         working-directory: tests/e2e
         env:
-          E2E_BASE_URL: ${{ github.event.inputs.base_url }}
+          # workflow_dispatch's own default only applies to its input UI, not to this expression - a
+          # scheduled run has no `inputs` at all, and an empty dispatch input is an empty string, not
+          # unset, so both cases need this explicit fallback to actually reach production.
+          E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://quiz-l0e2.onrender.com' }}
         run: npx playwright test
 
       - name: Upload Playwright report
