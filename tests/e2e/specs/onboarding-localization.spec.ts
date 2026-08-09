@@ -10,7 +10,7 @@ import { goToLanding, joinRoomByCode, roomCodeOf, seatRows, setLobbySettings, st
 const CYRILLIC = /[Ѐ-ӿ]/
 
 test.describe('How to play modal', () => {
-  test('opens from the landing screen and covers all four phases', async ({ page }) => {
+  test('opens from the landing screen and covers every game mechanic', async ({ page }) => {
     await goToLanding(page)
     const trigger = page.getByTestId('how-to-play-open')
     await expect(trigger).toBeVisible()
@@ -19,13 +19,28 @@ test.describe('How to play modal', () => {
     const dialog = page.getByRole('dialog', { name: 'How to play' })
     await expect(dialog).toBeVisible()
 
+    // 11 sections: objective, setup, category ban, base selection, land grab, battle turns, duels,
+    // base assault, streaks, golden question, scoring - see client-onboarding's "every mechanic is
+    // covered" scenario.
     const headings = await dialog.locator('.how-to-play-phases h3').allTextContents()
-    expect(headings).toHaveLength(4)
+    expect(headings).toHaveLength(11)
     const joined = headings.join(' | ').toLowerCase()
+    expect(joined).toContain('objective')
+    expect(joined).toContain('setup')
+    expect(joined).toContain('category') // category-ban draft
     expect(joined).toContain('base') // base selection
-    expect(joined).toContain('land grab') // land grab
-    expect(joined).toContain('battle') // battle
-    expect(joined).toContain('win') // win condition
+    expect(joined).toContain('land grab')
+    expect(joined).toContain('battle')
+    expect(joined).toContain('duel')
+    expect(joined).toContain('capital') // base assault
+    expect(joined).toContain('streak')
+    expect(joined).toContain('golden')
+    expect(joined).toContain('scoring')
+
+    // The base-assault section spans two paragraphs (the assault itself, then self-heal) - assert
+    // the modal actually renders both rather than just the first.
+    const bodyParagraphs = await dialog.locator('.how-to-play-phases section').nth(7).locator('p').count()
+    expect(bodyParagraphs).toBe(2)
   })
 
   test('closes via its close control and via Escape, returning focus to the trigger each time', async ({ page }) => {

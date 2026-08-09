@@ -72,14 +72,40 @@
   "howToPlay.openButton": "How to play?",
   "howToPlay.title": "How to play",
   "howToPlay.close": "Close",
-  "howToPlay.baseSelection.heading": "1. Pick a base",
-  "howToPlay.baseSelection.body": "Each player picks one region as their home base, in turn order.",
-  "howToPlay.landGrab.heading": "2. Land grab",
-  "howToPlay.landGrab.body": "Everyone answers the same trivia question at once. The fastest correct answers claim the remaining regions on the map, until every region has an owner.",
-  "howToPlay.battle.heading": "3. Battle",
-  "howToPlay.battle.body": "Take turns attacking a neighboring region: win a trivia duel to capture an ordinary region, or chip away at an enemy base's hit points across up to five questions to capture it and eliminate its owner.",
-  "howToPlay.winCondition.heading": "4. Win",
-  "howToPlay.winCondition.body": "The last player left standing wins. If the round limit is reached first, whoever holds the most points wins.",
+
+  "howToPlay.objective.heading": "1. Objective",
+  "howToPlay.objective.body1": "Triviador is a quiz-conquest game for 2-4 players on an 18-territory map. Answer trivia faster and more accurately than your rivals to claim land, defend your capital, and try to be the last player standing - or hold the highest score if the game reaches its round limit.",
+
+  "howToPlay.setup.heading": "2. Setup",
+  "howToPlay.setup.body1": "Create a room and share its code or invite link, or start a match against bots. Any seat still empty when the host starts the game is filled with a bot automatically, so a room is always ready with 2 to 4 players. Turn order for the rest of the game follows seat order.",
+
+  "howToPlay.categoryBan.heading": "3. Ban a category",
+  "howToPlay.categoryBan.body1": "If the host has this turned on, every player privately proposes up to three question categories before the map is contested. One category from each player's list is banned at random - or a random category if a player proposes none - and stays off-limits for every question asked the rest of the game.",
+
+  "howToPlay.baseSelection.heading": "4. Pick your base",
+  "howToPlay.baseSelection.body1": "In seat order, each player claims one territory as their capital. Capitals must start at least {{minDistance}} territories apart on the map, so no two players begin right next to each other (that rule is waived only if it would leave nobody a legal pick). Miss the timer and the game picks a legal base for you automatically.",
+
+  "howToPlay.landGrab.heading": "5. Land grab",
+  "howToPlay.landGrab.body1": "With capitals claimed, every remaining territory is up for grabs. Everyone answers the same trivia question at the same time, and the fastest correct answers rank highest. Top-ranked players earn the most picks and, in ranked order, claim territories bordering land they already own (or anywhere, once nothing borders their land) - one question and one round of picks after another, until the whole map has an owner. If a question goes by with nobody answering at all several times running, the remaining land is instead handed out in random order.",
+
+  "howToPlay.battleTurns.heading": "6. Battle: taking turns",
+  "howToPlay.battleTurns.body1": "Once the map is fully claimed, players take turns in seat order attacking a territory that borders land they already own. Any adjacent enemy-owned territory is a legal target: an ordinary region starts a duel, while an enemy capital can only be assaulted once the battle has gone on for a while (see below). A player with no legal target has their turn skipped.",
+
+  "howToPlay.duels.heading": "7. Duels for territory",
+  "howToPlay.duels.body1": "Attacking an ordinary territory challenges its owner to a one-question duel. Whoever answers correctly wins the territory for the attacker - if both do, a numeric tiebreaker question decides it, closest answer to the true value wins. If the defender wins, ties, or the attacker doesn't answer, the defender keeps the land and is awarded a {{scoreBonus}}-point bonus for a successful defense.",
+
+  "howToPlay.baseAssault.heading": "8. Assaulting a capital",
+  "howToPlay.baseAssault.body1": "From round {{unlockRound}} onward, capitals themselves become valid targets. A base assault is a running series of questions between attacker and defender: the winner of each one either chips a hit point off the capital (it starts with {{hitPoints}}) or, if the defender wins instead, ends the assault right there. A capital reduced to zero hit points falls - its owner is eliminated and every territory they held transfers to the attacker. Every question in an assault also moves a {{scoreBonus}}-point bonus between the two combatants, win or lose.",
+  "howToPlay.baseAssault.body2": "Instead of attacking someone else, a player whose own capital is damaged can spend their turn trying to heal it instead, by answering a question about themself. A correct answer restores a hit point and lets them act again - heal further or attack - in the same turn.",
+
+  "howToPlay.streaks.heading": "9. Answer streaks",
+  "howToPlay.streaks.body1": "Answering correctly again and again - in any phase, against any question - builds a streak, and every question after the first in a streak pays an escalating score bonus. Any wrong answer or missed deadline resets the streak to zero, so staying consistent pays off far more than one lucky guess.",
+
+  "howToPlay.goldenQuestion.heading": "10. Golden questions",
+  "howToPlay.goldenQuestion.body1": "A handful of questions each game are marked golden at random. Answer one correctly and every reward it can produce is doubled - land grab picks, streak bonuses, base assault damage and healing, and score bonuses all pay out at twice their normal rate.",
+
+  "howToPlay.scoring.heading": "11. Scoring & winning",
+  "howToPlay.scoring.body1": "Your score is a large fixed amount for holding your own capital, plus the value of every other territory you own, plus any bonus score you've earned from streaks and battles. The game ends the moment only one player remains standing - they win outright. If nobody has been eliminated by the round limit, whoever has the highest score wins instead, and a tie splits the win.",
 
   "lobby.titleLabel": "Room",
   "lobby.copyInviteLink": "Copy invite link",
